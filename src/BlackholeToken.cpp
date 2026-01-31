@@ -1,3 +1,3 @@
 #include "BlackholeToken.hpp"
 
-// Minimal placeholder
+// Implementation in header

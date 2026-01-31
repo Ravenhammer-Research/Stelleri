@@ -1,8 +1,12 @@
 #pragma once
 
+#include "BridgeInterfaceConfig.hpp"
 #include "ConfigurationManager.hpp"
 #include "InterfaceType.hpp"
+#include "LaggConfig.hpp"
 #include "Token.hpp"
+#include "TunnelConfig.hpp"
+#include "VLANConfig.hpp"
 #include <iostream>
 #include <optional>
 #include <string>
@@ -18,7 +22,13 @@ public:
   const std::string &name() const { return name_; }
   InterfaceType type() const { return type_; }
   std::optional<std::string> vrf;
-  std::optional<std::string> source_interface;
+  std::optional<int> tunnel_vrf;
+  std::optional<std::string> address;
+  std::optional<int> mtu;
+  std::optional<BridgeInterfaceConfig> bridge;
+  std::optional<LaggConfig> lagg;
+  std::optional<VLANConfig> vlan;
+  std::optional<TunnelConfig> tunnel;
 
   // Render interfaces as a table. If name is empty, get all interfaces from
   // manager; otherwise get the specific interface by name. Returns formatted

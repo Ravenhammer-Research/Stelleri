@@ -1,9 +1,11 @@
 #pragma once
 
+#include "BlackholeToken.hpp"
 #include "ConfigurationManager.hpp"
 #include "IPAddress.hpp"
 #include "IPNetwork.hpp"
 #include "InterfaceToken.hpp"
+#include "RejectToken.hpp"
 #include "Token.hpp"
 #include "VRFToken.hpp"
 #include <iomanip>
@@ -24,13 +26,16 @@ public:
   std::unique_ptr<InterfaceToken> interface;
   std::unique_ptr<VRFToken>
       vrf; // only the id/name is completable in this context
-  bool blackhole = false;
+  std::unique_ptr<BlackholeToken> blackhole_token;
+  std::unique_ptr<RejectToken> reject_token;
+  bool blackhole = false;  // Kept for backward compatibility
+  bool reject = false;     // Kept for backward compatibility
 
   void debugOutput(std::ostream &os) const;
 
   // Parse route option tokens starting at `start` and return the index after
   // consumed tokens. Recognized options: next-hop <ip|cidr>, interface <name>,
-  // vrf <name>, blackhole
+  // vrf <name>, blackhole, reject
   size_t parseOptions(const std::vector<std::string> &tokens, size_t start);
 
   // Render routes as a table. If prefix is empty, get all routes from manager;

@@ -16,6 +16,6 @@ target_include_directories(netcli PRIVATE include)
 
 ## No libedit/readline linking required.
 
-target_compile_options(netcli PRIVATE -Wall -Wextra -pedantic)
+target_compile_options(netcli PRIVATE -Wall -Wextra -Werror -pedantic)
 
 install(TARGETS netcli DESTINATION bin)

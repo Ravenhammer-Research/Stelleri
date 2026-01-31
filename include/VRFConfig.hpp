@@ -1,10 +1,19 @@
+/**
+ * @file VRFConfig.hpp
+ * @brief VRF (Virtual Routing and Forwarding) configuration
+ */
+
 #pragma once
 
 #include <optional>
 #include <string>
 
+/**
+ * @brief VRF configuration using FreeBSD FIB tables
+ * 
+ * VRFs are implemented as FIB (Forwarding Information Base) tables in FreeBSD.
+ */
 struct VRFConfig {
-  std::string name;
-  std::optional<int> table;
-  bool bind_to_all = false;
+  std::string name;                 ///< VRF name
+  std::optional<int> table;         ///< FIB table number (0-65535)
 };

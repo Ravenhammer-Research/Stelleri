@@ -7,7 +7,7 @@ std::string RouteToken::toString() const {
 }
 
 std::vector<std::string> RouteToken::autoComplete(std::string_view) const {
-  return {"interface", "next-hop", "blackhole", "vrf"};
+  return {"interface", "next-hop", "blackhole", "reject", "vrf"};
 }
 
 std::unique_ptr<Token> RouteToken::clone() const {
@@ -18,7 +18,12 @@ std::unique_ptr<Token> RouteToken::clone() const {
     r->interface = std::make_unique<InterfaceToken>(*interface);
   if (vrf)
     r->vrf = std::make_unique<VRFToken>(*vrf);
+  if (blackhole_token)
+    r->blackhole_token = std::make_unique<BlackholeToken>(*blackhole_token);
+  if (reject_token)
+    r->reject_token = std::make_unique<RejectToken>(*reject_token);
   r->blackhole = blackhole;
+  r->reject = reject;
   return r;
 }
 
@@ -32,6 +37,8 @@ void RouteToken::debugOutput(std::ostream &os) const {
     os << " interface='" << interface->name() << "'";
   if (blackhole)
     os << " blackhole=true";
+  if (reject)
+    os << " reject=true";
   os << '\n';
 }
 
@@ -69,6 +76,13 @@ size_t RouteToken::parseOptions(const std::vector<std::string> &tokens,
     }
     if (opt == "blackhole") {
       blackhole = true;
+      blackhole_token = std::make_unique<BlackholeToken>();
+      ++j;
+      continue;
+    }
+    if (opt == "reject") {
+      reject = true;
+      reject_token = std::make_unique<RejectToken>();
       ++j;
       continue;
     }
@@ -100,12 +114,19 @@ std::string RouteToken::renderTable(ConfigurationManager *mgr) const {
     return "No routes found.\n";
   }
 
-  // Format as table
+  // Determine VRF context
+  std::string vrfContext = "Global";
+  if (!routes.empty() && routes[0].route && routes[0].route->vrf) {
+    vrfContext = *routes[0].route->vrf;
+  }
+
+  // Format as table with VRF header
   std::ostringstream oss;
+  oss << "Routes (FIB: " << vrfContext << ")\n\n";
   oss << std::left;
   oss << std::setw(20) << "Destination" << std::setw(18) << "Gateway"
-      << std::setw(12) << "Interface" << std::setw(10) << "VRF" << "Flags\n";
-  oss << std::string(70, '-') << "\n";
+      << std::setw(12) << "Interface" << "Flags\n";
+  oss << std::string(56, '-') << "\n";
 
   for (const auto &cd : routes) {
     if (!cd.route)
@@ -115,17 +136,18 @@ std::string RouteToken::renderTable(ConfigurationManager *mgr) const {
     std::string dest = route.prefix.empty() ? "-" : route.prefix;
     std::string gateway = route.nexthop.value_or("-");
     std::string iface = route.iface.value_or("-");
-    std::string vrf = route.vrf.value_or("-");
     std::string flags;
     if (route.blackhole)
       flags += "B";
+    if (route.reject)
+      flags += "R";
     if (!route.nexthop)
       flags += "C"; // Connected
-    else
+    else if (!route.blackhole && !route.reject)
       flags += "UG"; // Up, Gateway
 
     oss << std::setw(20) << dest << std::setw(18) << gateway << std::setw(12)
-        << iface << std::setw(10) << vrf << flags << "\n";
+        << iface << flags << "\n";
   }
 
   return oss.str();

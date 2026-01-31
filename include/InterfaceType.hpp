@@ -1,8 +1,17 @@
+/**
+ * @file InterfaceType.hpp
+ * @brief Network interface type enumeration
+ */
+
 #pragma once
 
-#include <net/if.h>
 #include <string>
 
+/**
+ * @brief Network interface types
+ * 
+ * Covers common physical and virtual interface types.
+ */
 enum class InterfaceType {
   Unknown,
   Loopback,

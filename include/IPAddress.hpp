@@ -1,12 +1,25 @@
+/**
+ * @file IPAddress.hpp
+ * @brief IP address base class
+ */
+
 #pragma once
 
 #include <cstdint>
 #include <memory>
 #include <string>
-// Forward declaration to avoid circular include with IPNetwork
 
+/**
+ * @brief IP address family (IPv4 or IPv6)
+ */
 enum class AddressFamily { IPv4, IPv6 };
 
+/**
+ * @brief Base class for IP addresses
+ * 
+ * Uses 128-bit storage to handle both IPv4 and IPv6 addresses uniformly.
+ * Derived classes implement family-specific behavior.
+ */
 class IPAddress {
 protected:
   unsigned __int128 value_ = 0;
@@ -18,21 +31,25 @@ public:
   IPAddress(unsigned __int128 v, uint8_t mask) : value_(v), mask_(mask) {}
   virtual ~IPAddress() = default;
 
+  /** @brief Get raw 128-bit address value */
   unsigned __int128 value() const { return value_; }
 
+  /** @brief Get prefix length/netmask */
   uint8_t mask() const { return mask_; }
 
-  // Return family (IPv4 / IPv6)
+  /** @brief Get address family (IPv4 or IPv6) */
   virtual AddressFamily family() const = 0;
 
-  // (removed) Create a network object with the provided mask
-
-  // Return textual representation of the address
+  /** @brief Get textual representation of the address */
   virtual std::string toString() const = 0;
 
-  // Clone the address object
+  /** @brief Clone the address object */
   virtual std::unique_ptr<IPAddress> clone() const = 0;
 
-  // Parse an address string (IPv4 or IPv6 textual form) and return an IPAddress
+  /**
+   * @brief Parse an address string (IPv4 or IPv6 textual form)
+   * @param s IP address string
+   * @return Unique pointer to IPAddress, or nullptr if invalid
+   */
   static std::unique_ptr<IPAddress> fromString(const std::string &s);
 };

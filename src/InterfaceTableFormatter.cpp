@@ -1,36 +1,11 @@
 #include "InterfaceTableFormatter.hpp"
 #include "InterfaceConfig.hpp"
+#include "InterfaceFlags.hpp"
 #include "InterfaceType.hpp"
 #include <algorithm>
 #include <iomanip>
 #include <net/if.h>
 #include <sstream>
-
-static std::string flagsToString(uint32_t flags) {
-  std::string result;
-  if (flags & IFF_UP)
-    result += "U";
-  if (flags & IFF_BROADCAST)
-    result += "B";
-  if (flags & IFF_DEBUG)
-    result += "D";
-  if (flags & IFF_LOOPBACK)
-    result += "L";
-  if (flags & IFF_POINTOPOINT)
-    result += "P";
-  if (flags & IFF_RUNNING)
-    result += "R";
-  if (flags & IFF_NOARP)
-    result += "N";
-  if (flags & IFF_PROMISC)
-    result += "O";
-  if (flags & IFF_ALLMULTI)
-    result += "A";
-  if (flags & IFF_MULTICAST)
-    result += "M";
-
-  return result.empty() ? "-" : result;
-}
 
 std::string InterfaceTableFormatter::format(
     const std::vector<ConfigData> &interfaces) const {

@@ -4,7 +4,6 @@
 #include <iostream>
 
 int main(int argc, char *argv[]) {
-  bool interactive = true;
   std::string onecmd;
 
   struct option longopts[] = {{"command", required_argument, nullptr, 'c'},
@@ -18,10 +17,9 @@ int main(int argc, char *argv[]) {
     switch (ch) {
     case 'c':
       onecmd = optarg;
-      interactive = false;
       break;
     case 'i':
-      interactive = true;
+      // Interactive mode (default anyway)
       break;
     case 'h':
       std::cout << "Usage: netcli [-c command] [-i]\n";
