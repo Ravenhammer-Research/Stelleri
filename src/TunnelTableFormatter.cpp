@@ -5,8 +5,8 @@
 #include <iomanip>
 #include <sstream>
 
-std::string TunnelTableFormatter::format(
-    const std::vector<ConfigData> &interfaces) const {
+std::string
+TunnelTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
   if (interfaces.empty()) {
     return "No tunnel interfaces found.\n";
   }
@@ -16,13 +16,9 @@ std::string TunnelTableFormatter::format(
   oss << std::string(80, '=') << "\n\n";
 
   // Table header
-  oss << std::left
-      << std::setw(12) << "Interface"
-      << std::setw(18) << "Source"
-      << std::setw(18) << "Destination"
-      << std::setw(10) << "Tunnel VRF"
-      << std::setw(8) << "TTL"
-      << std::setw(8) << "TOS"
+  oss << std::left << std::setw(12) << "Interface" << std::setw(18) << "Source"
+      << std::setw(18) << "Destination" << std::setw(10) << "Tunnel VRF"
+      << std::setw(8) << "TTL" << std::setw(8) << "TOS"
       << "\n";
   oss << std::string(74, '-') << "\n";
 
@@ -31,12 +27,12 @@ std::string TunnelTableFormatter::format(
       continue;
 
     const auto &ic = *cd.iface;
-    
+
     std::string source = "-";
     std::string destination = "-";
     std::string ttl = "-";
     std::string tos = "-";
-    
+
     if (ic.tunnel) {
       if (ic.tunnel->source)
         source = *ic.tunnel->source;
@@ -47,19 +43,14 @@ std::string TunnelTableFormatter::format(
       if (ic.tunnel->tos)
         tos = std::to_string(*ic.tunnel->tos);
     }
-    
+
     std::string tunnel_vrf = "-";
     if (ic.tunnel_vrf)
       tunnel_vrf = std::to_string(*ic.tunnel_vrf);
-    
-    oss << std::left
-        << std::setw(12) << ic.name
-        << std::setw(18) << source
-        << std::setw(18) << destination
-        << std::setw(10) << tunnel_vrf
-        << std::setw(8) << ttl
-        << std::setw(8) << tos
-        << "\n";
+
+    oss << std::left << std::setw(12) << ic.name << std::setw(18) << source
+        << std::setw(18) << destination << std::setw(10) << tunnel_vrf
+        << std::setw(8) << ttl << std::setw(8) << tos << "\n";
   }
 
   oss << "\n";

@@ -12,7 +12,7 @@
 
 /**
  * @brief Container for a parsed command with linked token chain
- * 
+ *
  * Builds and manages a chain of tokens representing a complete command.
  */
 class Command {

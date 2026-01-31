@@ -5,8 +5,8 @@
 #include <iomanip>
 #include <sstream>
 
-std::string BridgeTableFormatter::format(
-    const std::vector<ConfigData> &interfaces) const {
+std::string
+BridgeTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
   if (interfaces.empty()) {
     return "No bridge interfaces found.\n";
   }
@@ -24,11 +24,12 @@ std::string BridgeTableFormatter::format(
 
     if (ic.bridge) {
       const auto &br = *ic.bridge;
-      
+
       // Bridge settings
       oss << "  STP:            " << (br.stp ? "enabled" : "disabled") << "\n";
-      oss << "  VLAN Filtering: " << (br.vlanFiltering ? "enabled" : "disabled") << "\n";
-      
+      oss << "  VLAN Filtering: " << (br.vlanFiltering ? "enabled" : "disabled")
+          << "\n";
+
       if (br.priority)
         oss << "  Priority:       " << *br.priority << "\n";
       if (br.hello_time)
@@ -53,23 +54,21 @@ std::string BridgeTableFormatter::format(
       // Detailed member configurations
       if (!br.member_configs.empty()) {
         oss << "  Member Configurations:\n";
-        oss << "    " << std::left 
-            << std::setw(12) << "Interface"
-            << std::setw(10) << "Priority"
-            << std::setw(12) << "Path Cost"
-            << std::setw(8) << "STP"
-            << std::setw(8) << "Edge"
+        oss << "    " << std::left << std::setw(12) << "Interface"
+            << std::setw(10) << "Priority" << std::setw(12) << "Path Cost"
+            << std::setw(8) << "STP" << std::setw(8) << "Edge"
             << "\n";
         oss << "    " << std::string(50, '-') << "\n";
-        
+
         for (const auto &member : br.member_configs) {
-          oss << "    " << std::left
-              << std::setw(12) << member.name
-              << std::setw(10) << (member.priority ? std::to_string(*member.priority) : "default")
-              << std::setw(12) << (member.path_cost ? std::to_string(*member.path_cost) : "auto")
-              << std::setw(8) << (member.stp ? "yes" : "no")
-              << std::setw(8) << (member.edge ? "yes" : "no")
-              << "\n";
+          oss << "    " << std::left << std::setw(12) << member.name
+              << std::setw(10)
+              << (member.priority ? std::to_string(*member.priority)
+                                  : "default")
+              << std::setw(12)
+              << (member.path_cost ? std::to_string(*member.path_cost) : "auto")
+              << std::setw(8) << (member.stp ? "yes" : "no") << std::setw(8)
+              << (member.edge ? "yes" : "no") << "\n";
         }
       }
     }
@@ -80,7 +79,7 @@ std::string BridgeTableFormatter::format(
     if (ic.mtu) {
       oss << "  MTU:            " << *ic.mtu << "\n";
     }
-    
+
     oss << "\n";
   }
 

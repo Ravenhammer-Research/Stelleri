@@ -5,8 +5,8 @@
 #include "LaggTableFormatter.hpp"
 #include "SingleInterfaceSummaryFormatter.hpp"
 #include "TunnelTableFormatter.hpp"
-#include "VirtualTableFormatter.hpp"
 #include "VLANTableFormatter.hpp"
+#include "VirtualTableFormatter.hpp"
 #include <iostream>
 #include <sstream>
 
@@ -77,16 +77,22 @@ std::string InterfaceToken::renderTable(ConfigurationManager *mgr) const {
   bool allVlan = true;
   bool allTunnel = true;
   bool allVirtual = true;
-  
+
   for (const auto &cd : interfaces) {
-    if (!cd.iface) continue;
-    if (cd.iface->type != InterfaceType::Bridge) allBridge = false;
-    if (!cd.iface->lagg) allLagg = false;
-    if (cd.iface->type != InterfaceType::VLAN) allVlan = false;
-    if (cd.iface->type != InterfaceType::Tunnel) allTunnel = false;
-    if (cd.iface->type != InterfaceType::Virtual) allVirtual = false;
+    if (!cd.iface)
+      continue;
+    if (cd.iface->type != InterfaceType::Bridge)
+      allBridge = false;
+    if (!cd.iface->lagg)
+      allLagg = false;
+    if (cd.iface->type != InterfaceType::VLAN)
+      allVlan = false;
+    if (cd.iface->type != InterfaceType::Tunnel)
+      allTunnel = false;
+    if (cd.iface->type != InterfaceType::Virtual)
+      allVirtual = false;
   }
-  
+
   // Use specialized formatter if all interfaces are the same type
   if (allBridge && !interfaces.empty()) {
     BridgeTableFormatter formatter;
@@ -104,7 +110,7 @@ std::string InterfaceToken::renderTable(ConfigurationManager *mgr) const {
     VirtualTableFormatter formatter;
     return formatter.format(interfaces);
   }
-  
+
   // Fall back to general interface table formatter
   InterfaceTableFormatter formatter;
   return formatter.format(interfaces);

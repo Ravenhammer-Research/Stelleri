@@ -21,8 +21,8 @@ static std::string protocolToString(LaggProtocol proto) {
   }
 }
 
-std::string LaggTableFormatter::format(
-    const std::vector<ConfigData> &interfaces) const {
+std::string
+LaggTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
   if (interfaces.empty()) {
     return "No LAGG interfaces found.\n";
   }
@@ -36,7 +36,7 @@ std::string LaggTableFormatter::format(
       continue;
 
     const auto &ic = *cd.iface;
-    
+
     // Check if this is a LAGG interface (has lagg config)
     if (!ic.lagg)
       continue;
@@ -44,13 +44,14 @@ std::string LaggTableFormatter::format(
     oss << "LAGG: " << ic.name << "\n";
 
     const auto &lagg = *ic.lagg;
-    
+
     oss << "  Protocol:       " << protocolToString(lagg.protocol) << "\n";
-    
+
     if (lagg.hash_policy)
       oss << "  Hash Policy:    " << *lagg.hash_policy << "\n";
     if (lagg.lacp_rate)
-      oss << "  LACP Rate:      " << (*lagg.lacp_rate == 1 ? "fast (1s)" : "slow (30s)") << "\n";
+      oss << "  LACP Rate:      "
+          << (*lagg.lacp_rate == 1 ? "fast (1s)" : "slow (30s)") << "\n";
     if (lagg.min_links)
       oss << "  Min Links:      " << *lagg.min_links << "\n";
 
@@ -67,7 +68,7 @@ std::string LaggTableFormatter::format(
     if (ic.mtu) {
       oss << "  MTU:            " << *ic.mtu << "\n";
     }
-    
+
     oss << "\n";
   }
 

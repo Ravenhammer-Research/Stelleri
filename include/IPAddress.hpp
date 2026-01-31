@@ -16,7 +16,7 @@ enum class AddressFamily { IPv4, IPv6 };
 
 /**
  * @brief Base class for IP addresses
- * 
+ *
  * Uses 128-bit storage to handle both IPv4 and IPv6 addresses uniformly.
  * Derived classes implement family-specific behavior.
  */

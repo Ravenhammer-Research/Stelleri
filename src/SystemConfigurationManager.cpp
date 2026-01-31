@@ -35,7 +35,7 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
   // Handle interface configuration
   if (data.iface) {
     const auto &iface = *data.iface;
-    
+
     // Check if interface exists
     bool exists = false;
     struct ifaddrs *ifs = nullptr;
@@ -48,41 +48,41 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
       }
       freeifaddrs(ifs);
     }
-    
+
     // If interface doesn't exist, check if it's a type we can create
     if (!exists) {
       bool canCreate = false;
       switch (iface.type) {
-        case InterfaceType::Loopback:
-        case InterfaceType::Bridge:
-        case InterfaceType::VLAN:
-        case InterfaceType::Tunnel:
-        case InterfaceType::Virtual:
-          canCreate = true;
-          break;
-        case InterfaceType::Ethernet:
-        case InterfaceType::Wireless:
-        case InterfaceType::PPP:
-        case InterfaceType::PointToPoint:
-        default:
-          canCreate = false;
-          break;
+      case InterfaceType::Loopback:
+      case InterfaceType::Bridge:
+      case InterfaceType::VLAN:
+      case InterfaceType::Tunnel:
+      case InterfaceType::Virtual:
+        canCreate = true;
+        break;
+      case InterfaceType::Ethernet:
+      case InterfaceType::Wireless:
+      case InterfaceType::PPP:
+      case InterfaceType::PointToPoint:
+      default:
+        canCreate = false;
+        break;
       }
-      
+
       if (!canCreate) {
         throw std::runtime_error(
-            "Cannot create interface '" + iface.name + 
+            "Cannot create interface '" + iface.name +
             "': Physical/hardware interfaces cannot be created via CLI. " +
             "Interface does not exist or is not attached.");
       }
-      
+
       // Create the interface
       createInterface(iface.name, iface.type);
     }
-    
+
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
-      throw std::runtime_error("Failed to create socket: " + 
+      throw std::runtime_error("Failed to create socket: " +
                                std::string(strerror(errno)));
     }
 
@@ -95,15 +95,15 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
       if (iface.address->family() == AddressFamily::IPv4) {
         auto v4addr = dynamic_cast<const IPv4Address *>(iface.address.get());
         if (v4addr) {
-          struct sockaddr_in *addr = 
+          struct sockaddr_in *addr =
               reinterpret_cast<struct sockaddr_in *>(&ifr.ifr_addr);
           addr->sin_family = AF_INET;
           addr->sin_addr.s_addr = htonl(v4addr->asUint32());
-          
+
           if (ioctl(sock, SIOCSIFADDR, &ifr) < 0) {
             close(sock);
-            throw std::runtime_error("Failed to set interface address: " + 
-                                   std::string(strerror(errno)));
+            throw std::runtime_error("Failed to set interface address: " +
+                                     std::string(strerror(errno)));
           }
 
           // Set netmask
@@ -111,17 +111,17 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
           if (v4net && v4net->mask() < 32) {
             std::memset(&ifr, 0, sizeof(ifr));
             std::strncpy(ifr.ifr_name, iface.name.c_str(), IFNAMSIZ - 1);
-            struct sockaddr_in *mask = 
+            struct sockaddr_in *mask =
                 reinterpret_cast<struct sockaddr_in *>(&ifr.ifr_addr);
             mask->sin_family = AF_INET;
-            uint32_t maskval = (v4net->mask() == 0) ? 0 : 
-                               (~0u << (32 - v4net->mask()));
+            uint32_t maskval =
+                (v4net->mask() == 0) ? 0 : (~0u << (32 - v4net->mask()));
             mask->sin_addr.s_addr = htonl(maskval);
-            
+
             if (ioctl(sock, SIOCSIFNETMASK, &ifr) < 0) {
               close(sock);
-              throw std::runtime_error("Failed to set netmask: " + 
-                                     std::string(strerror(errno)));
+              throw std::runtime_error("Failed to set netmask: " +
+                                       std::string(strerror(errno)));
             }
           }
         }
@@ -130,8 +130,8 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
         close(sock);
         sock = socket(AF_INET6, SOCK_DGRAM, 0);
         if (sock < 0) {
-          throw std::runtime_error("Failed to create IPv6 socket: " + 
-                                 std::string(strerror(errno)));
+          throw std::runtime_error("Failed to create IPv6 socket: " +
+                                   std::string(strerror(errno)));
         }
 
         struct in6_ifreq {
@@ -139,10 +139,11 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
           uint32_t ifr6_prefixlen;
           unsigned int ifr6_ifindex;
         };
-        
+
         // Note: FreeBSD IPv6 address configuration typically requires
         // more complex handling via routing sockets. This is a simplified stub.
-        std::cerr << "Warning: IPv6 address configuration not fully implemented\n";
+        std::cerr
+            << "Warning: IPv6 address configuration not fully implemented\n";
       }
     }
 
@@ -152,11 +153,11 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
       std::memset(&ifr, 0, sizeof(ifr));
       std::strncpy(ifr.ifr_name, iface.name.c_str(), IFNAMSIZ - 1);
       ifr.ifr_mtu = *iface.mtu;
-      
+
       if (ioctl(sock, SIOCSIFMTU, &ifr) < 0) {
         close(sock);
-        throw std::runtime_error("Failed to set MTU: " + 
-                               std::string(strerror(errno)));
+        throw std::runtime_error("Failed to set MTU: " +
+                                 std::string(strerror(errno)));
       }
     }
 
@@ -164,11 +165,11 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
     struct ifreq ifr;
     std::memset(&ifr, 0, sizeof(ifr));
     std::strncpy(ifr.ifr_name, iface.name.c_str(), IFNAMSIZ - 1);
-    
+
     if (ioctl(sock, SIOCGIFFLAGS, &ifr) >= 0) {
       ifr.ifr_flags |= IFF_UP;
       if (ioctl(sock, SIOCSIFFLAGS, &ifr) < 0) {
-        std::cerr << "Warning: Failed to bring interface up: " 
+        std::cerr << "Warning: Failed to bring interface up: "
                   << strerror(errno) << "\n";
       }
     }
@@ -193,14 +194,14 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
     // Configure GIF/tunnel endpoints
     if (iface.tunnel && iface.tunnel->source && iface.tunnel->destination) {
       configureGIFTunnel(iface.name, *iface.tunnel->source,
-                        *iface.tunnel->destination, iface.tunnel_vrf);
+                         *iface.tunnel->destination, iface.tunnel_vrf);
     }
   }
 
   // Handle route configuration
   if (data.route) {
     const auto &route = *data.route;
-    
+
     // Parse prefix
     auto network = IPNetwork::fromString(route.prefix);
     if (!network) {
@@ -210,8 +211,8 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
     // Create routing socket
     int sock = socket(PF_ROUTE, SOCK_RAW, AF_UNSPEC);
     if (sock < 0) {
-      throw std::runtime_error("Failed to create routing socket: " + 
-                             std::string(strerror(errno)));
+      throw std::runtime_error("Failed to create routing socket: " +
+                               std::string(strerror(errno)));
     }
 
     // Build routing message for RTM_ADD
@@ -219,9 +220,9 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
       struct rt_msghdr hdr;
       struct sockaddr_storage addrs[RTAX_MAX];
     } rtmsg;
-    
+
     std::memset(&rtmsg, 0, sizeof(rtmsg));
-    
+
     rtmsg.hdr.rtm_msglen = sizeof(struct rt_msghdr);
     rtmsg.hdr.rtm_version = RTM_VERSION;
     rtmsg.hdr.rtm_type = RTM_ADD;
@@ -234,7 +235,7 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
 
     if (network->family() == AddressFamily::IPv4) {
       auto v4net = dynamic_cast<IPv4Network *>(network.get());
-      
+
       // Destination
       struct sockaddr_in dst;
       std::memset(&dst, 0, sizeof(dst));
@@ -250,7 +251,8 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
       std::memset(&mask, 0, sizeof(mask));
       mask.sin_len = sizeof(mask);
       mask.sin_family = AF_INET;
-      uint32_t maskval = (v4net->mask() == 0) ? 0 : (~0u << (32 - v4net->mask()));
+      uint32_t maskval =
+          (v4net->mask() == 0) ? 0 : (~0u << (32 - v4net->mask()));
       mask.sin_addr.s_addr = htonl(maskval);
       std::memcpy(cp, &mask, sizeof(mask));
       cp += sizeof(mask);
@@ -278,7 +280,7 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
       if (route.blackhole) {
         rtmsg.hdr.rtm_flags |= RTF_BLACKHOLE;
       }
-      
+
       // Reject flag
       if (route.reject) {
         rtmsg.hdr.rtm_flags |= RTF_REJECT;
@@ -291,8 +293,8 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
       if (errno == EEXIST) {
         throw std::runtime_error("Route already exists");
       }
-      throw std::runtime_error("Failed to add route: " + 
-                             std::string(strerror(errno)));
+      throw std::runtime_error("Failed to add route: " +
+                               std::string(strerror(errno)));
     }
 
     close(sock);
@@ -304,7 +306,8 @@ void SystemConfigurationManager::set([[maybe_unused]] const std::string &path,
     // VRF on FreeBSD is managed via FIB (Forwarding Information Base)
     // This requires setting up FIB routing tables
     // For now, just acknowledge the configuration
-    std::cerr << "Note: VRF/FIB configuration requires kernel support (setfib)\n";
+    std::cerr
+        << "Note: VRF/FIB configuration requires kernel support (setfib)\n";
     std::cerr << "VRF '" << vrf.name << "' registered";
     if (vrf.table) {
       std::cerr << " with FIB table " << *vrf.table;
@@ -318,42 +321,42 @@ void SystemConfigurationManager::delete_config(const std::string &path) {
   if (path.find("interfaces.") == 0) {
     // Extract interface name
     std::string ifname = path.substr(11); // Skip "interfaces."
-    
+
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
-      throw std::runtime_error("Failed to create socket: " + 
-                             std::string(strerror(errno)));
+      throw std::runtime_error("Failed to create socket: " +
+                               std::string(strerror(errno)));
     }
 
     // Bring interface down
     struct ifreq ifr;
     std::memset(&ifr, 0, sizeof(ifr));
     std::strncpy(ifr.ifr_name, ifname.c_str(), IFNAMSIZ - 1);
-    
+
     if (ioctl(sock, SIOCGIFFLAGS, &ifr) >= 0) {
       ifr.ifr_flags &= ~IFF_UP;
       if (ioctl(sock, SIOCSIFFLAGS, &ifr) < 0) {
         close(sock);
-        throw std::runtime_error("Failed to bring interface down: " + 
-                               std::string(strerror(errno)));
+        throw std::runtime_error("Failed to bring interface down: " +
+                                 std::string(strerror(errno)));
       }
     }
 
     // Clear IP address
     std::memset(&ifr, 0, sizeof(ifr));
     std::strncpy(ifr.ifr_name, ifname.c_str(), IFNAMSIZ - 1);
-    struct sockaddr_in *addr = 
+    struct sockaddr_in *addr =
         reinterpret_cast<struct sockaddr_in *>(&ifr.ifr_addr);
     addr->sin_family = AF_INET;
     addr->sin_addr.s_addr = INADDR_ANY;
-    
+
     ioctl(sock, SIOCSIFADDR, &ifr); // Ignore errors
-    
+
     close(sock);
   } else if (path.find("route.") == 0) {
     // Extract route prefix
     std::string prefix = path.substr(6); // Skip "route."
-    
+
     auto network = IPNetwork::fromString(prefix);
     if (!network) {
       throw std::runtime_error("Invalid route prefix: " + prefix);
@@ -361,8 +364,8 @@ void SystemConfigurationManager::delete_config(const std::string &path) {
 
     int sock = socket(PF_ROUTE, SOCK_RAW, AF_UNSPEC);
     if (sock < 0) {
-      throw std::runtime_error("Failed to create routing socket: " + 
-                             std::string(strerror(errno)));
+      throw std::runtime_error("Failed to create routing socket: " +
+                               std::string(strerror(errno)));
     }
 
     // Build routing message for RTM_DELETE
@@ -370,9 +373,9 @@ void SystemConfigurationManager::delete_config(const std::string &path) {
       struct rt_msghdr hdr;
       struct sockaddr_storage addrs[RTAX_MAX];
     } rtmsg;
-    
+
     std::memset(&rtmsg, 0, sizeof(rtmsg));
-    
+
     rtmsg.hdr.rtm_msglen = sizeof(struct rt_msghdr);
     rtmsg.hdr.rtm_version = RTM_VERSION;
     rtmsg.hdr.rtm_type = RTM_DELETE;
@@ -384,7 +387,7 @@ void SystemConfigurationManager::delete_config(const std::string &path) {
 
     if (network->family() == AddressFamily::IPv4) {
       auto v4net = dynamic_cast<IPv4Network *>(network.get());
-      
+
       // Destination
       struct sockaddr_in dst;
       std::memset(&dst, 0, sizeof(dst));
@@ -400,7 +403,8 @@ void SystemConfigurationManager::delete_config(const std::string &path) {
       std::memset(&mask, 0, sizeof(mask));
       mask.sin_len = sizeof(mask);
       mask.sin_family = AF_INET;
-      uint32_t maskval = (v4net->mask() == 0) ? 0 : (~0u << (32 - v4net->mask()));
+      uint32_t maskval =
+          (v4net->mask() == 0) ? 0 : (~0u << (32 - v4net->mask()));
       mask.sin_addr.s_addr = htonl(maskval);
       std::memcpy(cp, &mask, sizeof(mask));
       rtmsg.hdr.rtm_msglen += sizeof(mask);
@@ -411,8 +415,8 @@ void SystemConfigurationManager::delete_config(const std::string &path) {
       if (errno == ESRCH) {
         throw std::runtime_error("Route not found");
       }
-      throw std::runtime_error("Failed to delete route: " + 
-                             std::string(strerror(errno)));
+      throw std::runtime_error("Failed to delete route: " +
+                               std::string(strerror(errno)));
     }
 
     close(sock);
@@ -422,7 +426,7 @@ void SystemConfigurationManager::delete_config(const std::string &path) {
     // They exist as long as the kernel runs. You can only stop using them or
     // clear their routes, but the FIB table itself remains.
     throw std::runtime_error(
-        "Cannot delete VRF '" + vrfname + 
+        "Cannot delete VRF '" + vrfname +
         "': FreeBSD FIB tables are permanent kernel structures");
   } else {
     throw std::runtime_error("Unknown configuration path: " + path);
@@ -756,11 +760,12 @@ std::vector<ConfigData> SystemConfigurationManager::getRoutes() const {
   return routes;
 }
 
-void SystemConfigurationManager::createInterface(
-    const std::string &name, InterfaceType type) {
+void SystemConfigurationManager::createInterface(const std::string &name,
+                                                 InterfaceType type) {
   // FreeBSD interface creation using SIOCIFCREATE ioctl
-  // Interface type is determined by name prefix (bridge*, gif*, vlan*, epair*, etc.)
-  
+  // Interface type is determined by name prefix (bridge*, gif*, vlan*, epair*,
+  // etc.)
+
   // Validate that the name prefix matches the expected type
   std::string prefix;
   switch (type) {
@@ -785,10 +790,10 @@ void SystemConfigurationManager::createInterface(
   }
 
   // Warn if name doesn't match expected prefix (but allow it)
-  if (name.compare(0, prefix.length(), prefix) != 0 && 
-      !(type == InterfaceType::Virtual && 
+  if (name.compare(0, prefix.length(), prefix) != 0 &&
+      !(type == InterfaceType::Virtual &&
         (name.compare(0, 3, "tap") == 0 || name.compare(0, 3, "tun") == 0))) {
-    std::cerr << "Warning: Interface name '" << name 
+    std::cerr << "Warning: Interface name '" << name
               << "' doesn't match expected prefix for type " << to_string(type)
               << " (expected '" << prefix << "*')\n";
   }
@@ -864,11 +869,16 @@ void SystemConfigurationManager::configureBridge(
 
     // Configure member port flags
     uint32_t flags = 0;
-    if (member.stp) flags |= IFBIF_STP;
-    if (member.edge) flags |= IFBIF_BSTP_EDGE;
-    if (member.autoedge) flags |= IFBIF_BSTP_AUTOEDGE;
-    if (member.ptp) flags |= IFBIF_BSTP_PTP;
-    if (member.autoptp) flags |= IFBIF_BSTP_AUTOPTP;
+    if (member.stp)
+      flags |= IFBIF_STP;
+    if (member.edge)
+      flags |= IFBIF_BSTP_EDGE;
+    if (member.autoedge)
+      flags |= IFBIF_BSTP_AUTOEDGE;
+    if (member.ptp)
+      flags |= IFBIF_BSTP_PTP;
+    if (member.autoptp)
+      flags |= IFBIF_BSTP_AUTOPTP;
 
     if (flags > 0) {
       std::memset(&req, 0, sizeof(req));
@@ -900,8 +910,8 @@ void SystemConfigurationManager::configureBridge(
       ifd.ifd_data = &req;
 
       if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-        std::cerr << "Warning: Failed to set priority on member '" << member.name
-                  << "': " << strerror(errno) << "\n";
+        std::cerr << "Warning: Failed to set priority on member '"
+                  << member.name << "': " << strerror(errno) << "\n";
       }
     }
 
@@ -918,8 +928,8 @@ void SystemConfigurationManager::configureBridge(
       ifd.ifd_data = &req;
 
       if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-        std::cerr << "Warning: Failed to set path cost on member '" << member.name
-                  << "': " << strerror(errno) << "\n";
+        std::cerr << "Warning: Failed to set path cost on member '"
+                  << member.name << "': " << strerror(errno) << "\n";
       }
     }
   }
@@ -938,8 +948,8 @@ void SystemConfigurationManager::configureBridge(
     ifd.ifd_data = &param;
 
     if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-      std::cerr << "Warning: Failed to set bridge priority: " 
-                << strerror(errno) << "\n";
+      std::cerr << "Warning: Failed to set bridge priority: " << strerror(errno)
+                << "\n";
     }
   }
 
@@ -957,8 +967,8 @@ void SystemConfigurationManager::configureBridge(
     ifd.ifd_data = &param;
 
     if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-      std::cerr << "Warning: Failed to set hello time: " 
-                << strerror(errno) << "\n";
+      std::cerr << "Warning: Failed to set hello time: " << strerror(errno)
+                << "\n";
     }
   }
 
@@ -976,8 +986,8 @@ void SystemConfigurationManager::configureBridge(
     ifd.ifd_data = &param;
 
     if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-      std::cerr << "Warning: Failed to set forward delay: " 
-                << strerror(errno) << "\n";
+      std::cerr << "Warning: Failed to set forward delay: " << strerror(errno)
+                << "\n";
     }
   }
 
@@ -995,8 +1005,8 @@ void SystemConfigurationManager::configureBridge(
     ifd.ifd_data = &param;
 
     if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-      std::cerr << "Warning: Failed to set max age: " 
-                << strerror(errno) << "\n";
+      std::cerr << "Warning: Failed to set max age: " << strerror(errno)
+                << "\n";
     }
   }
 
@@ -1014,8 +1024,8 @@ void SystemConfigurationManager::configureBridge(
     ifd.ifd_data = &param;
 
     if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-      std::cerr << "Warning: Failed to set aging time: " 
-                << strerror(errno) << "\n";
+      std::cerr << "Warning: Failed to set aging time: " << strerror(errno)
+                << "\n";
     }
   }
 
@@ -1033,8 +1043,8 @@ void SystemConfigurationManager::configureBridge(
     ifd.ifd_data = &param;
 
     if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-      std::cerr << "Warning: Failed to set max addresses: " 
-                << strerror(errno) << "\n";
+      std::cerr << "Warning: Failed to set max addresses: " << strerror(errno)
+                << "\n";
     }
   }
 
@@ -1065,7 +1075,7 @@ void SystemConfigurationManager::configureBridge(
 }
 
 void SystemConfigurationManager::configureLagg(const std::string &name,
-                                                const LaggConfig &config) {
+                                               const LaggConfig &config) {
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) {
     throw std::runtime_error("Failed to create socket: " +
@@ -1129,7 +1139,7 @@ void SystemConfigurationManager::configureLagg(const std::string &name,
     // Hash policy mapping: layer2, layer2+3, layer3+4
     // This is typically done via sysctl or LAGG-specific ioctls in FreeBSD
     // Note: Specific implementation depends on FreeBSD version
-    std::cerr << "Note: Hash policy configuration for LAGG '" << name 
+    std::cerr << "Note: Hash policy configuration for LAGG '" << name
               << "' may require sysctl settings\n";
   }
 
@@ -1137,7 +1147,7 @@ void SystemConfigurationManager::configureLagg(const std::string &name,
   if (config.lacp_rate) {
     // LACP rate: 0=slow (30s), 1=fast (1s)
     // This is typically configured per-port in FreeBSD
-    std::cerr << "Note: LACP rate configuration for LAGG '" << name 
+    std::cerr << "Note: LACP rate configuration for LAGG '" << name
               << "' may require per-port settings\n";
   }
 
@@ -1145,7 +1155,7 @@ void SystemConfigurationManager::configureLagg(const std::string &name,
 }
 
 void SystemConfigurationManager::configureVLAN(const std::string &name,
-                                                const VLANConfig &config) {
+                                               const VLANConfig &config) {
   if (!config.parent || config.id == 0) {
     throw std::runtime_error(
         "VLAN configuration requires parent interface and VLAN ID");
@@ -1164,7 +1174,7 @@ void SystemConfigurationManager::configureVLAN(const std::string &name,
 
   // Set PCP (Priority Code Point) if provided
   if (config.pcp) {
-    vreq.vlr_tag |= (*config.pcp & 0x7) << 13;  // PCP is bits 13-15
+    vreq.vlr_tag |= (*config.pcp & 0x7) << 13; // PCP is bits 13-15
   }
 
   struct ifreq ifr;
@@ -1183,8 +1193,7 @@ void SystemConfigurationManager::configureVLAN(const std::string &name,
 
 void SystemConfigurationManager::configureGIFTunnel(
     const std::string &name, const std::string &source,
-    const std::string &destination,
-    const std::optional<int> &tunnel_fib) {
+    const std::string &destination, const std::optional<int> &tunnel_fib) {
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) {
     throw std::runtime_error("Failed to create socket: " +
@@ -1237,15 +1246,17 @@ void SystemConfigurationManager::configureGIFTunnel(
   } else {
     // IPv6 tunnel configuration
     // Note: FreeBSD may require using routing socket for IPv6 tunnel config
-    // This is a simplified version - production code may need routing socket approach
-    
+    // This is a simplified version - production code may need routing socket
+    // approach
+
     struct ifreq ifr;
     std::memset(&ifr, 0, sizeof(ifr));
     std::strncpy(ifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
-    
+
     // IPv6 tunnel endpoints typically configured via routing socket messages
     // or specialized ioctl structures. For now, log a warning.
-    std::cerr << "Warning: IPv6 tunnel configuration requires routing socket - not fully implemented\n";
+    std::cerr << "Warning: IPv6 tunnel configuration requires routing socket - "
+                 "not fully implemented\n";
   }
 
   // Set tunnel FIB if specified

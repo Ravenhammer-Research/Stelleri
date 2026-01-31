@@ -28,8 +28,8 @@ public:
       vrf; // only the id/name is completable in this context
   std::unique_ptr<BlackholeToken> blackhole_token;
   std::unique_ptr<RejectToken> reject_token;
-  bool blackhole = false;  // Kept for backward compatibility
-  bool reject = false;     // Kept for backward compatibility
+  bool blackhole = false; // Kept for backward compatibility
+  bool reject = false;    // Kept for backward compatibility
 
   void debugOutput(std::ostream &os) const;
 

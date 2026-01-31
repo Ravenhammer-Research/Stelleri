@@ -9,7 +9,7 @@
 
 /**
  * @brief Network interface types
- * 
+ *
  * Covers common physical and virtual interface types.
  */
 enum class InterfaceType {

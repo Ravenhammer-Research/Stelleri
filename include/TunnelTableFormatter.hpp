@@ -11,8 +11,9 @@
 
 /**
  * @brief Formats tunnel interface configuration as ASCII table
- * 
- * Shows tunnel-specific details like source, destination, tunnel-vrf (FIB), TTL, TOS.
+ *
+ * Shows tunnel-specific details like source, destination, tunnel-vrf (FIB),
+ * TTL, TOS.
  */
 class TunnelTableFormatter {
 public:

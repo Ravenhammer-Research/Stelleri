@@ -9,8 +9,8 @@
 #include "VRFToken.hpp"
 #include <fstream>
 #include <iostream>
-#include <unistd.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 CLI::CLI(std::unique_ptr<ConfigurationManager> mgr) : mgr_(std::move(mgr)) {
   // Set history file to ~/.netcli_history
@@ -42,10 +42,10 @@ void CLI::processLine(const std::string &line) {
   if (line == "exit" || line == "quit") {
     std::exit(0);
   }
-  
+
   // Save to history
   saveHistory(line);
-  
+
   auto toks = netcli::tokenize(line);
   auto cmd = netcli::parse(toks);
   if (!cmd || !cmd->head()) {
@@ -92,7 +92,7 @@ void CLI::processLine(const std::string &line) {
         InterfaceConfig ic;
         ic.name = iftok->name();
         ic.type = iftok->type();
-        
+
         if (iftok->address) {
           ic.address = IPNetwork::fromString(*iftok->address);
         }
@@ -119,13 +119,14 @@ void CLI::processLine(const std::string &line) {
         if (iftok->tunnel) {
           ic.tunnel = *iftok->tunnel;
         }
-        
+
         cd.iface = std::move(ic);
-        
+
         // Call configuration manager
         std::string path = "interfaces." + iftok->name();
         mgr_->set(path, cd);
-        std::cout << "Interface " << iftok->name() << " configured successfully\n";
+        std::cout << "Interface " << iftok->name()
+                  << " configured successfully\n";
       } catch (const std::exception &e) {
         std::cerr << "Error configuring interface: " << e.what() << "\n";
       }
@@ -137,7 +138,7 @@ void CLI::processLine(const std::string &line) {
         ConfigData cd;
         RouteConfig rc;
         rc.prefix = routeTok->prefix();
-        
+
         if (routeTok->nexthop) {
           rc.nexthop = routeTok->nexthop->toString();
         }
@@ -149,12 +150,13 @@ void CLI::processLine(const std::string &line) {
         }
         rc.blackhole = routeTok->blackhole;
         rc.reject = routeTok->reject;
-        
+
         cd.route = std::move(rc);
-        
+
         std::string path = "route." + routeTok->prefix();
         mgr_->set(path, cd);
-        std::cout << "Route " << routeTok->prefix() << " configured successfully\n";
+        std::cout << "Route " << routeTok->prefix()
+                  << " configured successfully\n";
       } catch (const std::exception &e) {
         std::cerr << "Error configuring route: " << e.what() << "\n";
       }
@@ -165,11 +167,12 @@ void CLI::processLine(const std::string &line) {
       try {
         ConfigData cd;
         VRFConfig vc;
-        vc.name = vrfTok->name();        if (vrfTok->table) {
+        vc.name = vrfTok->name();
+        if (vrfTok->table) {
           vc.table = vrfTok->table;
         }
         cd.vrf = std::move(vc);
-        
+
         std::string path = "vrf." + vrfTok->name();
         mgr_->set(path, cd);
         std::cout << "VRF " << vrfTok->name() << " configured successfully\n";
@@ -206,7 +209,8 @@ void CLI::processLine(const std::string &line) {
       try {
         std::string path = "route." + routeTok->prefix();
         mgr_->delete_config(path);
-        std::cout << "Route " << routeTok->prefix() << " deleted successfully\n";
+        std::cout << "Route " << routeTok->prefix()
+                  << " deleted successfully\n";
       } catch (const std::exception &e) {
         std::cerr << "Error deleting route: " << e.what() << "\n";
       }

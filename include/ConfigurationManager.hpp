@@ -13,15 +13,16 @@
 
 /**
  * @brief Abstract base class for configuration storage and retrieval
- * 
+ *
  * Provides an interface for setting and querying network configuration data.
- * Implementations can use in-memory storage, file-based persistence, or other backends.
+ * Implementations can use in-memory storage, file-based persistence, or other
+ * backends.
  */
 class ConfigurationManager {
 public:
   /** @brief Configuration storage type */
   enum class Type { Memory };
-  
+
   virtual ~ConfigurationManager() = default;
 
   /**
@@ -30,7 +31,7 @@ public:
    * @param data Configuration data to store
    */
   virtual void set(const std::string &path, const ConfigData &data) = 0;
-  
+
   /**
    * @brief Delete configuration at specified path
    * @param path Configuration path to delete

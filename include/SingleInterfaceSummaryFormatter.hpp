@@ -10,7 +10,7 @@
 
 /**
  * @brief Formats a single interface as detailed summary
- * 
+ *
  * Shows all interface properties in a human-readable format.
  */
 class SingleInterfaceSummaryFormatter {

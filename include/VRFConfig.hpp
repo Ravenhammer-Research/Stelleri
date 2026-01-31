@@ -10,10 +10,10 @@
 
 /**
  * @brief VRF configuration using FreeBSD FIB tables
- * 
+ *
  * VRFs are implemented as FIB (Forwarding Information Base) tables in FreeBSD.
  */
 struct VRFConfig {
-  std::string name;                 ///< VRF name
-  std::optional<int> table;         ///< FIB table number (0-65535)
+  std::string name;         ///< VRF name
+  std::optional<int> table; ///< FIB table number (0-65535)
 };

@@ -11,7 +11,7 @@
 
 /**
  * @brief Formats bridge interface configuration as ASCII table
- * 
+ *
  * Shows bridge-specific details like members, STP settings, priorities, timers.
  */
 class BridgeTableFormatter {

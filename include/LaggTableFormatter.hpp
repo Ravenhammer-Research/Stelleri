@@ -11,8 +11,9 @@
 
 /**
  * @brief Formats LAGG interface configuration as ASCII table
- * 
- * Shows LAGG-specific details like protocol, members, hash policy, LACP settings.
+ *
+ * Shows LAGG-specific details like protocol, members, hash policy, LACP
+ * settings.
  */
 class LaggTableFormatter {
 public:

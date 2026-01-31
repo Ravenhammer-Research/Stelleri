@@ -11,8 +11,9 @@
 
 /**
  * @brief Formats virtual interface configuration as ASCII table
- * 
- * Shows virtual interface details like epair peers, tap devices, routing domain.
+ *
+ * Shows virtual interface details like epair peers, tap devices, routing
+ * domain.
  */
 class VirtualTableFormatter {
 public:

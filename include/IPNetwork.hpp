@@ -12,7 +12,7 @@
 
 /**
  * @brief Base class for IP networks (address + prefix length)
- * 
+ *
  * Represents IP addresses with CIDR notation (e.g., 192.168.1.0/24).
  */
 class IPNetwork : public IPAddress {

@@ -19,4 +19,4 @@ namespace netcli {
    * @return Vector of tokens (whitespace-separated, respects quotes)
    */
   std::vector<std::string> tokenize(std::string_view input);
-}
+} // namespace netcli

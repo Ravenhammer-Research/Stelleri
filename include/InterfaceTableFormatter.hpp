@@ -11,7 +11,7 @@
 
 /**
  * @brief Formats interface configuration data as ASCII tables
- * 
+ *
  * General-purpose formatter that handles mixed interface types.
  * For uniform interface types, specialized formatters may be preferred.
  */

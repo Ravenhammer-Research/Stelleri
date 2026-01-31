@@ -36,27 +36,39 @@ namespace netcli {
       const std::string sub = tokens[i];
       if (sub == "interfaces" || sub == "interface") {
         std::shared_ptr<InterfaceToken> iftok;
-        
-        if (i + 1 < tokens.size() && tokens[i + 1] == "name" && i + 2 < tokens.size()) {
-          iftok = std::make_shared<InterfaceToken>(InterfaceType::Unknown, tokens[i + 2]);
-        } else if (i + 1 < tokens.size() && tokens[i + 1] == "type" && i + 2 < tokens.size()) {
+
+        if (i + 1 < tokens.size() && tokens[i + 1] == "name" &&
+            i + 2 < tokens.size()) {
+          iftok = std::make_shared<InterfaceToken>(InterfaceType::Unknown,
+                                                   tokens[i + 2]);
+        } else if (i + 1 < tokens.size() && tokens[i + 1] == "type" &&
+                   i + 2 < tokens.size()) {
           std::string typeStr = tokens[i + 2];
           InterfaceType itype = InterfaceType::Unknown;
-          if (typeStr == "ethernet") itype = InterfaceType::Ethernet;
-          else if (typeStr == "loopback") itype = InterfaceType::Loopback;
-          else if (typeStr == "bridge") itype = InterfaceType::Bridge;
-          else if (typeStr == "vlan") itype = InterfaceType::VLAN;
-          else if (typeStr == "wireless") itype = InterfaceType::Wireless;
-          else if (typeStr == "ppp") itype = InterfaceType::PPP;
-          else if (typeStr == "tunnel") itype = InterfaceType::Tunnel;
-          else if (typeStr == "point-to-point") itype = InterfaceType::PointToPoint;
-          else if (typeStr == "virtual" || typeStr == "epair") itype = InterfaceType::Virtual;
+          if (typeStr == "ethernet")
+            itype = InterfaceType::Ethernet;
+          else if (typeStr == "loopback")
+            itype = InterfaceType::Loopback;
+          else if (typeStr == "bridge")
+            itype = InterfaceType::Bridge;
+          else if (typeStr == "vlan")
+            itype = InterfaceType::VLAN;
+          else if (typeStr == "wireless")
+            itype = InterfaceType::Wireless;
+          else if (typeStr == "ppp")
+            itype = InterfaceType::PPP;
+          else if (typeStr == "tunnel")
+            itype = InterfaceType::Tunnel;
+          else if (typeStr == "point-to-point")
+            itype = InterfaceType::PointToPoint;
+          else if (typeStr == "virtual" || typeStr == "epair")
+            itype = InterfaceType::Virtual;
           iftok = std::make_shared<InterfaceToken>(itype, "");
         } else {
           size_t next = 0;
           iftok = InterfaceToken::parseFromTokens(tokens, i, next);
         }
-        
+
         cmd->addToken(iftok);
         return cmd;
       }
@@ -82,7 +94,8 @@ namespace netcli {
             try {
               vrfTok->table = std::stoi(tokens[j + 1]);
             } catch (...) {
-              std::cerr << "[parser] Invalid table number: " << tokens[j + 1] << "\n";
+              std::cerr << "[parser] Invalid table number: " << tokens[j + 1]
+                        << "\n";
             }
             j += 2;
           } else {
@@ -106,12 +119,12 @@ namespace netcli {
       if (sub == "interfaces" || sub == "interface") {
         size_t next = 0;
         auto iftok = InterfaceToken::parseFromTokens(tokens, i, next);
-        
+
         // Parse interface-specific attributes
         size_t j = next;
         while (j < tokens.size()) {
           const std::string &attr = tokens[j];
-          
+
           if (attr == "address" && j + 1 < tokens.size()) {
             iftok->address = tokens[j + 1];
             j += 2;
@@ -129,7 +142,8 @@ namespace netcli {
             try {
               iftok->tunnel_vrf = std::stoi(tokens[j + 1]);
             } catch (...) {
-              std::cerr << "[parser] Invalid tunnel-vrf FIB ID: " << tokens[j + 1] << "\n";
+              std::cerr << "[parser] Invalid tunnel-vrf FIB ID: "
+                        << tokens[j + 1] << "\n";
             }
             j += 2;
           } else if (attr == "tunnel-source" && j + 1 < tokens.size()) {
@@ -180,7 +194,8 @@ namespace netcli {
               iftok->bridge = BridgeInterfaceConfig();
             }
             const std::string &val = tokens[j + 1];
-            iftok->bridge->stp = (val == "true" || val == "1" || val == "enable");
+            iftok->bridge->stp =
+                (val == "true" || val == "1" || val == "enable");
             j += 2;
           } else if (attr == "priority" && j + 1 < tokens.size()) {
             // Bridge priority
@@ -190,7 +205,8 @@ namespace netcli {
             try {
               iftok->bridge->priority = std::stoi(tokens[j + 1]);
             } catch (...) {
-              std::cerr << "[parser] Invalid bridge priority: " << tokens[j + 1] << "\n";
+              std::cerr << "[parser] Invalid bridge priority: " << tokens[j + 1]
+                        << "\n";
             }
             j += 2;
           } else if (attr == "hello-time" && j + 1 < tokens.size()) {
@@ -201,7 +217,8 @@ namespace netcli {
             try {
               iftok->bridge->hello_time = std::stoi(tokens[j + 1]);
             } catch (...) {
-              std::cerr << "[parser] Invalid hello-time: " << tokens[j + 1] << "\n";
+              std::cerr << "[parser] Invalid hello-time: " << tokens[j + 1]
+                        << "\n";
             }
             j += 2;
           } else if (attr == "forward-delay" && j + 1 < tokens.size()) {
@@ -212,7 +229,8 @@ namespace netcli {
             try {
               iftok->bridge->forward_delay = std::stoi(tokens[j + 1]);
             } catch (...) {
-              std::cerr << "[parser] Invalid forward-delay: " << tokens[j + 1] << "\n";
+              std::cerr << "[parser] Invalid forward-delay: " << tokens[j + 1]
+                        << "\n";
             }
             j += 2;
           } else if (attr == "max-age" && j + 1 < tokens.size()) {
@@ -223,7 +241,8 @@ namespace netcli {
             try {
               iftok->bridge->max_age = std::stoi(tokens[j + 1]);
             } catch (...) {
-              std::cerr << "[parser] Invalid max-age: " << tokens[j + 1] << "\n";
+              std::cerr << "[parser] Invalid max-age: " << tokens[j + 1]
+                        << "\n";
             }
             j += 2;
           } else if (attr == "aging-time" && j + 1 < tokens.size()) {
@@ -234,7 +253,8 @@ namespace netcli {
             try {
               iftok->bridge->aging_time = std::stoi(tokens[j + 1]);
             } catch (...) {
-              std::cerr << "[parser] Invalid aging-time: " << tokens[j + 1] << "\n";
+              std::cerr << "[parser] Invalid aging-time: " << tokens[j + 1]
+                        << "\n";
             }
             j += 2;
           } else if (attr == "max-addresses" && j + 1 < tokens.size()) {
@@ -245,7 +265,8 @@ namespace netcli {
             try {
               iftok->bridge->max_addresses = std::stoi(tokens[j + 1]);
             } catch (...) {
-              std::cerr << "[parser] Invalid max-addresses: " << tokens[j + 1] << "\n";
+              std::cerr << "[parser] Invalid max-addresses: " << tokens[j + 1]
+                        << "\n";
             }
             j += 2;
           } else if (attr == "hash-policy" && j + 1 < tokens.size()) {
@@ -263,7 +284,8 @@ namespace netcli {
             try {
               iftok->lagg->lacp_rate = std::stoi(tokens[j + 1]);
             } catch (...) {
-              std::cerr << "[parser] Invalid lacp-rate: " << tokens[j + 1] << "\n";
+              std::cerr << "[parser] Invalid lacp-rate: " << tokens[j + 1]
+                        << "\n";
             }
             j += 2;
           } else if (attr == "min-links" && j + 1 < tokens.size()) {
@@ -274,7 +296,8 @@ namespace netcli {
             try {
               iftok->lagg->min_links = std::stoi(tokens[j + 1]);
             } catch (...) {
-              std::cerr << "[parser] Invalid min-links: " << tokens[j + 1] << "\n";
+              std::cerr << "[parser] Invalid min-links: " << tokens[j + 1]
+                        << "\n";
             }
             j += 2;
           } else if (attr == "pcp" && j + 1 < tokens.size()) {
@@ -296,7 +319,8 @@ namespace netcli {
             try {
               iftok->vlan->id = std::stoi(tokens[j + 1]);
             } catch (...) {
-              std::cerr << "[parser] Invalid VLAN ID: " << tokens[j + 1] << "\n";
+              std::cerr << "[parser] Invalid VLAN ID: " << tokens[j + 1]
+                        << "\n";
             }
             j += 2;
           } else if (attr == "parent" && j + 1 < tokens.size()) {
@@ -310,7 +334,7 @@ namespace netcli {
             break;
           }
         }
-        
+
         cmd->addToken(iftok);
         return cmd;
       }
@@ -324,22 +348,25 @@ namespace netcli {
               auto routeTok = std::make_shared<RouteToken>(tokens[i + 3]);
               auto protoTok = std::make_shared<ProtocolsToken>("static");
               auto staticTok = std::make_shared<StaticToken>();
-              
+
               cmd->addToken(routeTok);
               routeTok->setNext(protoTok);
               protoTok->setNext(staticTok);
-              
-              // Parse route options (next-hop, interface, vrf, blackhole, reject)
+
+              // Parse route options (next-hop, interface, vrf, blackhole,
+              // reject)
               size_t j = i + 4;
               j = routeTok->parseOptions(tokens, j);
-              
+
               return cmd;
             } else {
-              std::cerr << "[parser] Error: Missing route prefix after 'protocols static'\n";
+              std::cerr << "[parser] Error: Missing route prefix after "
+                           "'protocols static'\n";
               return cmd;
             }
           } else {
-            std::cerr << "[parser] Error: Expected 'static' after 'protocols'\n";
+            std::cerr
+                << "[parser] Error: Expected 'static' after 'protocols'\n";
             return cmd;
           }
         } else {
@@ -372,22 +399,24 @@ namespace netcli {
               auto routeTok = std::make_shared<RouteToken>(tokens[i + 3]);
               auto protoTok = std::make_shared<ProtocolsToken>("static");
               auto staticTok = std::make_shared<StaticToken>();
-              
+
               cmd->addToken(routeTok);
               routeTok->setNext(protoTok);
               protoTok->setNext(staticTok);
-              
+
               // Parse route options for VRF context if present
               size_t j = i + 4;
               j = routeTok->parseOptions(tokens, j);
-              
+
               return cmd;
             } else {
-              std::cerr << "[parser] Error: Missing route prefix after 'protocols static'\n";
+              std::cerr << "[parser] Error: Missing route prefix after "
+                           "'protocols static'\n";
               return cmd;
             }
           } else {
-            std::cerr << "[parser] Error: Expected 'static' after 'protocols'\n";
+            std::cerr
+                << "[parser] Error: Expected 'static' after 'protocols'\n";
             return cmd;
           }
         } else {

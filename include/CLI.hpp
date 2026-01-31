@@ -11,7 +11,7 @@
 
 /**
  * @brief VyOS-style command-line interface
- * 
+ *
  * Provides an interactive REPL for network configuration with
  * command history persistence.
  */
@@ -23,12 +23,12 @@ public:
    */
   explicit CLI(std::unique_ptr<ConfigurationManager> mgr);
   ~CLI();
-  
+
   /**
    * @brief Start interactive REPL loop
    */
   void run();
-  
+
   /**
    * @brief Process a single command line
    * @param line Command string to execute

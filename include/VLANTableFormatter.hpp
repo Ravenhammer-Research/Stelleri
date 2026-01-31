@@ -11,7 +11,7 @@
 
 /**
  * @brief Formats VLAN interface configuration as ASCII table
- * 
+ *
  * Shows VLAN-specific details like VLAN ID, parent interface, PCP.
  */
 class VLANTableFormatter {
