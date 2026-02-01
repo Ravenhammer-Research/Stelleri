@@ -21,11 +21,10 @@ public:
   virtual ~Token() = default;
 
   /**
-   * @brief Get CLI fragment representation
-   * @return String representation used to reconstruct commands
-   * @example InterfaceToken::toString() -> "interfaces ethernet eth1"
+   * NOTE: `toString()` was removed from the token interface. Tokens no
+   * longer expose a textual reconstruction helper; use parsing/formatting
+   * utilities instead when needed.
    */
-  virtual std::string toString() const = 0;
 
   /**
    * @brief Provide completion suggestions for partial input

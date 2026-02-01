@@ -9,10 +9,11 @@
 #include <memory>
 #include <string>
 
-/**
- * @brief IP address family (IPv4 or IPv6)
- */
-enum class AddressFamily { IPv4, IPv6 };
+#include "AddressFamily.hpp"
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <cstring>
+#include <string>
 
 /**
  * @brief Base class for IP addresses
@@ -23,33 +24,38 @@ enum class AddressFamily { IPv4, IPv6 };
 class IPAddress {
 protected:
   unsigned __int128 value_ = 0;
-  uint8_t mask_ = 0;
 
 public:
   IPAddress() = default;
   explicit IPAddress(unsigned __int128 v) : value_(v) {}
-  IPAddress(unsigned __int128 v, uint8_t mask) : value_(v), mask_(mask) {}
-  virtual ~IPAddress() = default;
+  
+  IPAddress::IPAddress(const std::string &s) {
+  struct in_addr a4;
+  if (inet_pton(AF_INET, s.c_str(), &a4) == 1) {
+    uint32_t v4 = ntohl(a4.s_addr);
+    value_ = static_cast<unsigned __int128>(v4);
+    return;
+  }
 
-  /** @brief Get raw 128-bit address value */
-  unsigned __int128 value() const { return value_; }
+  struct in6_addr a6;
+  if (inet_pton(AF_INET6, s.c_str(), &a6) == 1) {
+    unsigned __int128 v = 0;
+    for (int i = 0; i < 16; ++i) {
+      v <<= 8;
+      v |= static_cast<unsigned char>(a6.s6_addr[i]);
+    }
+    value_ = v;
+    return;
+  }
 
-  /** @brief Get prefix length/netmask */
-  uint8_t mask() const { return mask_; }
-
+  value_ = 0;
+}
+  
   /** @brief Get address family (IPv4 or IPv6) */
   virtual AddressFamily family() const = 0;
 
   /** @brief Get textual representation of the address */
   virtual std::string toString() const = 0;
-
-  /** @brief Clone the address object */
-  virtual std::unique_ptr<IPAddress> clone() const = 0;
-
-  /**
-   * @brief Parse an address string (IPv4 or IPv6 textual form)
-   * @param s IP address string
-   * @return Unique pointer to IPAddress, or nullptr if invalid
-   */
-  static std::unique_ptr<IPAddress> fromString(const std::string &s);
 };
+
+

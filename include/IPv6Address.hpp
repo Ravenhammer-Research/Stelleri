@@ -9,6 +9,9 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <cstring>
 
 /**
  * @brief IPv6 address (128-bit)
@@ -19,22 +22,20 @@
  */
 class IPv6Address : public IPAddress {
 public:
-  /**
-   * @brief Construct from 128-bit unsigned integer
-   * @param v IPv6 address as 128-bit value
-   */
   explicit IPv6Address(unsigned __int128 v) : IPAddress(v) {}
-
-  /** @brief Get address family (always IPv6) */
   AddressFamily family() const override { return AddressFamily::IPv6; }
 
-  /** @brief Get address as 128-bit unsigned integer */
-  unsigned __int128 asUint128() const { return value(); }
-
-  /** @brief Get colon-hexadecimal string representation (e.g., "2001:db8::1")
-   */
-  std::string toString() const override;
-
-  /** @brief Clone the address object */
-  std::unique_ptr<IPAddress> clone() const override;
+  std::string toString() const override {
+  struct in6_addr a6;
+  std::memset(&a6, 0, sizeof(a6));
+  unsigned __int128 v = value_;
+  for (int i = 15; i >= 0; --i) {
+    a6.s6_addr[i] = static_cast<uint8_t>(v & 0xFF);
+    v >>= 8;
+  }
+  char buf[INET6_ADDRSTRLEN] = {0};
+  if (inet_ntop(AF_INET6, &a6, buf, sizeof(buf)) == nullptr)
+    return std::string();
+  return std::string(buf);
+}
 };

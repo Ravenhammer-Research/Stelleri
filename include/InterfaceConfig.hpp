@@ -5,18 +5,24 @@
 
 #pragma once
 
-#include "BridgeInterfaceConfig.hpp"
+#include "ConfigData.hpp"
 #include "IPNetwork.hpp"
 #include "InterfaceType.hpp"
-#include "LaggConfig.hpp"
-#include "TunnelConfig.hpp"
-#include "VLANConfig.hpp"
-#include "VRFConfig.hpp"
-#include "VirtualInterfaceConfig.hpp"
 #include <memory>
 #include <optional>
 #include <string>
 #include <vector>
+
+class BridgeInterfaceConfig;
+class LaggConfig;
+class TunnelConfig;
+class VLANConfig;
+#include "VRFConfig.hpp"
+class VirtualInterfaceConfig;
+
+#include <ifaddrs.h>
+#include <string_view>
+
 
 /**
  * @brief Complete configuration for a network interface
@@ -24,21 +30,46 @@
  * Supports all interface types with type-specific configurations.
  * Optional fields allow for sparse configuration updates.
  */
-struct InterfaceConfig {
+class InterfaceConfig : public ConfigData {
+public:
+  InterfaceConfig() = default;
+  InterfaceConfig(const struct ifaddrs *ifa);
+  InterfaceConfig(std::string name,
+                  InterfaceType type,
+                  std::unique_ptr<IPNetwork> address,
+                  std::vector<std::unique_ptr<IPNetwork>> aliases,
+                  std::unique_ptr<VRFConfig> vrf,
+                  std::optional<uint32_t> flags,
+                  std::optional<int> tunnel_vrf,
+                  std::vector<std::string> groups,
+                  std::optional<int> mtu);
   std::string name; ///< Interface name (e.g., em0, bridge0)
   InterfaceType type = InterfaceType::Unknown; ///< Interface type
   std::unique_ptr<IPNetwork> address; ///< Primary IP address with prefix
   std::vector<std::unique_ptr<IPNetwork>> aliases; ///< Additional IP addresses
-  std::optional<VRFConfig> vrf;                    ///< VRF membership
+  std::unique_ptr<VRFConfig> vrf;                    ///< VRF membership
   std::optional<uint32_t> flags;   ///< System flags (IFF_UP, IFF_RUNNING, etc.)
   std::optional<int> tunnel_vrf;   ///< FIB ID for tunnel routing lookups
   std::vector<std::string> groups; ///< Interface groups
-  std::optional<BridgeInterfaceConfig>
-      bridge;                         ///< Bridge-specific configuration
-  std::optional<VLANConfig> vlan;     ///< VLAN-specific configuration
-  std::optional<LaggConfig> lagg;     ///< Link aggregation configuration
-  std::optional<TunnelConfig> tunnel; ///< Tunnel endpoint configuration
-  std::optional<VirtualInterfaceConfig>
-      virtual_config;     ///< Virtual interface (epair, tap) configuration
   std::optional<int> mtu; ///< Maximum Transmission Unit
+
+  // Persist this interface configuration to the system.
+  void save() const override;
+
+  // Destroy this interface from the system.
+  void destroy() const override;
+
+protected:
+  // Helper to configure addresses (primary + aliases) using the provided
+  // socket and `ifr`. Performs necessary SIOCSIFADDR / SIOCSIFNETMASK calls.
+  void configureAddresses(int sock, struct ifreq &ifr) const;
+
+  // Helper to configure MTU using the provided socket and `ifr`.
+  void configureMTU(int sock, struct ifreq &ifr) const;
+
+  // Helper to configure flags (bring interface up) using the provided socket
+  // and `ifr`.
+  void configureFlags(int sock, struct ifreq &ifr) const;
+
+  // (Interface existence check moved to `ConfigData::exists`)
 };

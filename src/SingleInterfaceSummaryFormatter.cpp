@@ -51,9 +51,9 @@ SingleInterfaceSummaryFormatter::format(const ConfigData &cd) const {
   // Show tunnel details
   if (ic.tunnel) {
     if (ic.tunnel->source)
-      oss << "Tunnel Src: " << *ic.tunnel->source << "\n";
+      oss << "Tunnel Src: " << ic.tunnel->source->toString() << "\n";
     if (ic.tunnel->destination)
-      oss << "Tunnel Dst: " << *ic.tunnel->destination << "\n";
+      oss << "Tunnel Dst: " << ic.tunnel->destination->toString() << "\n";
     if (ic.tunnel->ttl)
       oss << "Tunnel TTL: " << *ic.tunnel->ttl << "\n";
     if (ic.tunnel->tos)
@@ -114,7 +114,7 @@ SingleInterfaceSummaryFormatter::format(const ConfigData &cd) const {
     if (ic.vlan->parent)
       oss << "Parent:    " << *ic.vlan->parent << "\n";
     if (ic.vlan->pcp)
-      oss << "PCP:       " << *ic.vlan->pcp << "\n";
+      oss << "PCP:       " << static_cast<int>(*ic.vlan->pcp) << "\n";
   }
 
   if (ic.flags) {

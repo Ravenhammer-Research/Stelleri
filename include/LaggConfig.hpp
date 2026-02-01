@@ -5,23 +5,26 @@
 
 #pragma once
 
+#include "InterfaceConfig.hpp"
 #include <string>
 #include <vector>
+#include <optional>
 
-/**
- * @brief LAGG protocol types
- */
-enum class LaggProtocol {
-  LACP,        ///< Link Aggregation Control Protocol
-  FAILOVER,    ///< Failover mode
-  LOADBALANCE, ///< Load balancing mode
-  NONE         ///< No protocol
-};
+#include "LaggProtocol.hpp"
 
 /**
  * @brief Configuration for link aggregation interfaces
  */
-struct LaggConfig {
+class LaggConfig : public InterfaceConfig {
+public:
+  LaggConfig() = default;
+  LaggConfig(const InterfaceConfig &base);
+  LaggConfig(const InterfaceConfig &base,
+             LaggProtocol protocol,
+             std::vector<std::string> members,
+             std::optional<std::string> hash_policy,
+             std::optional<int> lacp_rate,
+             std::optional<int> min_links);
   LaggProtocol protocol =
       LaggProtocol::NONE;           ///< LAGG protocol (LACP, failover, etc.)
   std::vector<std::string> members; ///< Member port names
@@ -29,4 +32,9 @@ struct LaggConfig {
       hash_policy;              ///< Hash policy (layer2, layer2+3, layer3+4)
   std::optional<int> lacp_rate; ///< LACP rate: 0=slow (30s), 1=fast (1s)
   std::optional<int> min_links; ///< Minimum number of active links
+
+  ~LaggConfig() override = default;
+  void save() const override;
+private:
+  void create() const;
 };

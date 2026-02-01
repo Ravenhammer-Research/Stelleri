@@ -35,9 +35,9 @@ TunnelTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
 
     if (ic.tunnel) {
       if (ic.tunnel->source)
-        source = *ic.tunnel->source;
+        source = ic.tunnel->source->toString();
       if (ic.tunnel->destination)
-        destination = *ic.tunnel->destination;
+        destination = ic.tunnel->destination->toString();
       if (ic.tunnel->ttl)
         ttl = std::to_string(*ic.tunnel->ttl);
       if (ic.tunnel->tos)

@@ -13,24 +13,7 @@
 InterfaceToken::InterfaceToken(InterfaceType t, std::string name)
     : type_(t), name_(std::move(name)) {}
 
-std::string InterfaceToken::toString() const {
-  std::string t;
-  switch (type_) {
-  case InterfaceType::Ethernet:
-    t = "interfaces ethernet";
-    break;
-  case InterfaceType::Loopback:
-    t = "interfaces loopback";
-    break;
-  case InterfaceType::PPP:
-    t = "interfaces ppp";
-    break;
-  default:
-    t = "interfaces";
-    break;
-  }
-  return t + " " + name_;
-}
+// textual reconstruction removed from InterfaceToken
 
 std::vector<std::string> InterfaceToken::autoComplete(std::string_view) const {
   return {}; // suggestions could query ConfigurationManager; keep empty for

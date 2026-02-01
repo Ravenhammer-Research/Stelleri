@@ -17,7 +17,7 @@
 class RouteToken : public Token {
 public:
   explicit RouteToken(std::string prefix);
-  std::string toString() const override;
+  // textual reconstruction removed
   std::vector<std::string> autoComplete(std::string_view) const override;
   std::unique_ptr<Token> clone() const override;
 

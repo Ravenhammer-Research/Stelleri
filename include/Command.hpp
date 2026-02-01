@@ -34,20 +34,7 @@ public:
     tail_ = t;
   }
 
-  // Reconstruct the full CLI command by joining each Token's CLI fragment
-  std::string toString() const {
-    std::ostringstream oss;
-    auto cur = head_;
-    bool first = true;
-    while (cur) {
-      if (!first)
-        oss << ' ';
-      oss << cur->toString();
-      first = false;
-      cur = cur->getNext();
-    }
-    return oss.str();
-  }
+  // Reconstruction removed: token textual reconstruction is deprecated.
 
   // Basic validation stub; detailed grammar validation via Parser
   bool validate() const { return static_cast<bool>(head_); }

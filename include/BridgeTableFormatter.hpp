@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "ConfigData.hpp"
+#include "BridgeConfig.hpp"
 #include <string>
 #include <vector>
 
@@ -23,5 +23,5 @@ public:
    * @param interfaces List of ConfigData with bridge configurations
    * @return Formatted ASCII table string
    */
-  std::string format(const std::vector<ConfigData> &interfaces) const;
+  std::string format(const std::vector<BridgeConfig> &interfaces) const;
 };

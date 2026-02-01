@@ -18,16 +18,11 @@ class DeleteCommand : public Token {
 public:
   DeleteCommand() = default;
 
-  /** @brief Get string representation of the token */
-  std::string toString() const override { return "delete"; }
+  /** @brief textual reconstruction removed */
 
   /** @brief Get autocomplete suggestions (none for delete command) */
-  std::vector<std::string> autoComplete(std::string_view) const override {
-    return {};
-  }
+  std::vector<std::string> autoComplete(std::string_view) const override;
 
   /** @brief Clone the token */
-  std::unique_ptr<Token> clone() const override {
-    return std::make_unique<DeleteCommand>(*this);
-  }
+  std::unique_ptr<Token> clone() const override;
 };

@@ -2,9 +2,7 @@
 
 RouteToken::RouteToken(std::string prefix) : prefix_(std::move(prefix)) {}
 
-std::string RouteToken::toString() const {
-  return std::string("route ") + prefix_;
-}
+// textual reconstruction removed from RouteToken
 
 std::vector<std::string> RouteToken::autoComplete(std::string_view) const {
   return {"interface", "next-hop", "blackhole", "reject", "vrf"};

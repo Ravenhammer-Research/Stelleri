@@ -23,8 +23,7 @@ public:
    */
   explicit VRFToken(std::string name);
 
-  /** @brief Get string representation of VRF */
-  std::string toString() const override;
+  /** @brief textual reconstruction removed */
 
   /** @brief Get autocomplete suggestions (none for VRF) */
   std::vector<std::string> autoComplete(std::string_view) const override;

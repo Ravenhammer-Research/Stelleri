@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "ConfigData.hpp"
 #include <optional>
 #include <string>
 
@@ -13,7 +14,11 @@
  *
  * VRFs are implemented as FIB (Forwarding Information Base) tables in FreeBSD.
  */
-struct VRFConfig {
+class VRFConfig : public ConfigData {
+public:
   std::string name;         ///< VRF name
   std::optional<int> table; ///< FIB table number (0-65535)
+
+  // Persist VRF configuration (no-op placeholder)
+  void save() const override {}
 };

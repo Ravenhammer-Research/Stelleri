@@ -18,13 +18,9 @@ class StaticToken : public Token {
 public:
   StaticToken() = default;
 
-  std::string toString() const override { return "static"; }
+  // textual reconstruction removed
 
-  std::vector<std::string> autoComplete(std::string_view) const override {
-    return {}; // No sub-options for static protocol
-  }
+  std::vector<std::string> autoComplete(std::string_view) const override;
 
-  std::unique_ptr<Token> clone() const override {
-    return std::make_unique<StaticToken>(*this);
-  }
+  std::unique_ptr<Token> clone() const override;
 };

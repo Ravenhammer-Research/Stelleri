@@ -5,30 +5,35 @@
 
 #pragma once
 
+#include "InterfaceConfig.hpp"
+
 #include <optional>
 #include <string>
 #include <vector>
 
-/**
- * @brief Configuration for a bridge member port
- */
-struct BridgeMemberConfig {
-  std::string name;             ///< Member interface name
-  std::optional<int> priority;  ///< Port priority (0-255, default 128)
-  std::optional<int> path_cost; ///< STP path cost (1-200000000, auto=0)
-  bool stp = true;              ///< Enable STP on this port
-  bool edge = false;            ///< Edge port (skip listening/learning)
-  bool autoedge = true;         ///< Auto-detect edge ports
-  bool ptp = false;             ///< Point-to-point link
-  bool autoptp = true;          ///< Auto-detect PTP links
-};
+#include "BridgeMemberConfig.hpp"
 
 /**
  * @brief Configuration for bridge interfaces
  *
  * Stores bridge-specific settings including STP and member interfaces.
  */
-struct BridgeInterfaceConfig {
+class BridgeInterfaceConfig : public InterfaceConfig {
+public:
+    BridgeInterfaceConfig() = default;
+    BridgeInterfaceConfig(InterfaceConfig base);
+    BridgeInterfaceConfig(InterfaceConfig base,
+                          bool stp,
+                          bool vlanFiltering,
+                          std::vector<std::string> members,
+                          std::vector<BridgeMemberConfig> member_configs,
+                          std::optional<int> priority,
+                          std::optional<int> hello_time,
+                          std::optional<int> forward_delay,
+                          std::optional<int> max_age,
+                          std::optional<int> aging_time,
+                          std::optional<int> max_addresses);
+public:
   bool stp = false;                 ///< Spanning Tree Protocol enabled
   bool vlanFiltering = false;       ///< VLAN filtering enabled
   std::vector<std::string> members; ///< Member interface names (simple)
@@ -44,4 +49,10 @@ struct BridgeInterfaceConfig {
       aging_time; ///< MAC address aging time in seconds (10-1000000)
   std::optional<int>
       max_addresses; ///< Maximum number of MAC addresses in cache
+  
+    // Persist bridge configuration to the system.
+    void save() const override;
+private:
+    // Ensure the bridge interface exists; create if necessary.
+    void create() const;
 };

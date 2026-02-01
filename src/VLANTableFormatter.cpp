@@ -35,7 +35,7 @@ VLANTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
 
     oss << std::left << std::setw(15) << ic.name << std::setw(10) << vlan.id
         << std::setw(15) << (vlan.parent ? *vlan.parent : "-") << std::setw(8)
-        << (vlan.pcp ? std::to_string(*vlan.pcp) : "-") << std::setw(20)
+        << (vlan.pcp ? std::to_string(static_cast<int>(*vlan.pcp)) : "-") << std::setw(20)
         << (ic.address ? ic.address->toString() : "-") << std::setw(8)
         << (ic.mtu ? std::to_string(*ic.mtu) : "-") << "\n";
   }
