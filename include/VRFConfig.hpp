@@ -21,4 +21,5 @@ public:
 
   // Persist VRF configuration (no-op placeholder)
   void save() const override {}
+  void destroy() const override {}
 };

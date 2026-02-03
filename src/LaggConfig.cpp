@@ -7,46 +7,57 @@
 #include <cerrno>
 #include <cstring>
 #include <iostream>
+#if defined(__has_include)
+#if __has_include(<net/if_ether.h>)
+#include <net/if_ether.h>
+#elif __has_include(<net/ethernet.h>)
+#include <net/ethernet.h>
+#endif
+#else
+#include <net/if_ether.h>
+#endif
+#include <net/if.h>
+#include <net/if_lagg.h>
 #include <stdexcept>
 #include <string>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <net/if.h>
-#include <net/if_lagg.h>
 
 LaggConfig::LaggConfig(const InterfaceConfig &base) {
   name = base.name;
   type = base.type;
-  if (base.address) address = base.address->clone();
+  if (base.address)
+    address = base.address->clone();
   aliases.clear();
   for (const auto &a : base.aliases) {
     if (a)
       aliases.push_back(a->clone());
   }
-  if (base.vrf) vrf = std::make_unique<VRFConfig>(*base.vrf);
+  if (base.vrf)
+    vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
   tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
   mtu = base.mtu;
 }
 
-LaggConfig::LaggConfig(const InterfaceConfig &base,
-                       LaggProtocol protocol_,
+LaggConfig::LaggConfig(const InterfaceConfig &base, LaggProtocol protocol_,
                        std::vector<std::string> members_,
                        std::optional<std::string> hash_policy_,
                        std::optional<int> lacp_rate_,
-                       std::optional<int> min_links_)
-{
+                       std::optional<int> min_links_) {
   name = base.name;
   type = base.type;
-  if (base.address) address = base.address->clone();
+  if (base.address)
+    address = base.address->clone();
   aliases.clear();
   for (const auto &a : base.aliases) {
     if (a)
       aliases.push_back(a->clone());
   }
-  if (base.vrf) vrf = std::make_unique<VRFConfig>(*base.vrf);
+  if (base.vrf)
+    vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
   tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
@@ -63,7 +74,7 @@ void LaggConfig::save() const {
   if (name.empty())
     throw std::runtime_error("LaggConfig has no interface name set");
 
-  if (!ConfigData::exists(name)) {
+  if (!InterfaceConfig::exists(name)) {
     create();
   } else {
     InterfaceConfig::save();
@@ -71,15 +82,24 @@ void LaggConfig::save() const {
 
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) {
-    throw std::runtime_error("Failed to create socket: " + std::string(strerror(errno)));
+    throw std::runtime_error("Failed to create socket: " +
+                             std::string(strerror(errno)));
   }
 
   int proto_value = 0;
   switch (protocol) {
-  case LaggProtocol::FAILOVER: proto_value = 1; break;
-  case LaggProtocol::LOADBALANCE: proto_value = 4; break;
-  case LaggProtocol::LACP: proto_value = 3; break;
-  case LaggProtocol::NONE: proto_value = 0; break;
+  case LaggProtocol::FAILOVER:
+    proto_value = 1;
+    break;
+  case LaggProtocol::LOADBALANCE:
+    proto_value = 4;
+    break;
+  case LaggProtocol::LACP:
+    proto_value = 3;
+    break;
+  case LaggProtocol::NONE:
+    proto_value = 0;
+    break;
   }
 
   if (proto_value > 0) {
@@ -94,7 +114,8 @@ void LaggConfig::save() const {
 
     if (ioctl(sock, SIOCSLAGG, &ifr) < 0) {
       close(sock);
-      throw std::runtime_error("Failed to set LAGG protocol: " + std::string(strerror(errno)));
+      throw std::runtime_error("Failed to set LAGG protocol: " +
+                               std::string(strerror(errno)));
     }
   }
 
@@ -110,16 +131,19 @@ void LaggConfig::save() const {
 
     if (ioctl(sock, SIOCSLAGGPORT, &ifr) < 0) {
       close(sock);
-      throw std::runtime_error("Failed to add port '" + member + "' to LAGG '" + name + "': " + std::string(strerror(errno)));
+      throw std::runtime_error("Failed to add port '" + member + "' to LAGG '" +
+                               name + "': " + std::string(strerror(errno)));
     }
   }
 
   if (hash_policy) {
-    std::cerr << "Note: Hash policy configuration for LAGG '" << name << "' may require sysctl settings\n";
+    std::cerr << "Note: Hash policy configuration for LAGG '" << name
+              << "' may require sysctl settings\n";
   }
 
   if (lacp_rate) {
-    std::cerr << "Note: LACP rate configuration for LAGG '" << name << "' may require per-port settings\n";
+    std::cerr << "Note: LACP rate configuration for LAGG '" << name
+              << "' may require per-port settings\n";
   }
 
   close(sock);
@@ -129,7 +153,8 @@ void LaggConfig::create() const {
   const std::string &nm = name;
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) {
-    throw std::runtime_error("Failed to create socket: " + std::string(strerror(errno)));
+    throw std::runtime_error("Failed to create socket: " +
+                             std::string(strerror(errno)));
   }
 
   struct ifreq ifr;
@@ -138,7 +163,8 @@ void LaggConfig::create() const {
 
   if (ioctl(sock, SIOCIFCREATE, &ifr) < 0) {
     close(sock);
-    throw std::runtime_error("Failed to create interface '" + nm + "': " + std::string(strerror(errno)));
+    throw std::runtime_error("Failed to create interface '" + nm +
+                             "': " + std::string(strerror(errno)));
   }
 
   close(sock);

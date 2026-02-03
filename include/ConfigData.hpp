@@ -5,9 +5,13 @@
  * @brief Lightweight marker/container for configuration payloads
  */
 
-#include <ifaddrs.h>
-#include <string_view>
 #include <cstring>
+#include <ifaddrs.h>
+#include <memory>
+#include <string_view>
+
+class InterfaceConfig; // forward
+class RouteConfig;     // forward
 
 /**
  * @brief Lightweight configuration container/base type
@@ -18,35 +22,27 @@
  */
 class ConfigData {
 public:
-	virtual ~ConfigData() = default;
+  virtual ~ConfigData() = default;
 
-	// Persist this configuration to the system. Implementations must
-	// provide a concrete `save` method.
-	virtual void save() const = 0;
+  // Persist this configuration to the system. Implementations may
+  // override to provide concrete behavior. Default is no-op.
+  virtual void save() const {}
 
-	// Destroy this configuration on the system (e.g., remove interface).
-	// Concrete types should implement this to perform deletion/teardown.
-	virtual void destroy() const = 0;
+  // Destroy this configuration on the system (e.g., remove interface).
+  // Concrete types may override to perform deletion/teardown. Default is no-op.
+  virtual void destroy() const {}
 
-	// Check whether the named interface exists on the system. This is
-	// provided as a convenience for subclasses and callers.
-	static bool exists(std::string_view name) {
-		bool found = false;
-		struct ifaddrs *ifs = nullptr;
-		if (getifaddrs(&ifs) == 0) {
-			for (struct ifaddrs *ifa = ifs; ifa; ifa = ifa->ifa_next) {
-				if (ifa->ifa_name && name == ifa->ifa_name) {
-					found = true;
-					break;
-				}
-			}
-			freeifaddrs(ifs);
-		}
-		return found;
-	}
+  // (Interface existence helper moved to `InterfaceConfig`)
 
-protected:
-	// Protected constructor prevents direct instantiation; subclassing
-	// is required to provide concrete payloads and the `save` implementation.
-	ConfigData() = default;
+  // Optional pointer to an InterfaceConfig payload used by formatters and
+  // consumers that aggregate heterogeneous configuration objects.
+  // Use shared_ptr so it can be declared with a forward declaration.
+  std::shared_ptr<InterfaceConfig> iface;
+  // Optional pointer to a RouteConfig when this ConfigData carries a route
+  std::shared_ptr<RouteConfig> route;
+
+public:
+  // Default constructor allows creating lightweight container instances
+  // that hold `iface` or `route` payload pointers.
+  ConfigData() = default;
 };

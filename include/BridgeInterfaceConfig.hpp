@@ -20,19 +20,18 @@
  */
 class BridgeInterfaceConfig : public InterfaceConfig {
 public:
-    BridgeInterfaceConfig() = default;
-    BridgeInterfaceConfig(InterfaceConfig base);
-    BridgeInterfaceConfig(InterfaceConfig base,
-                          bool stp,
-                          bool vlanFiltering,
-                          std::vector<std::string> members,
-                          std::vector<BridgeMemberConfig> member_configs,
-                          std::optional<int> priority,
-                          std::optional<int> hello_time,
-                          std::optional<int> forward_delay,
-                          std::optional<int> max_age,
-                          std::optional<int> aging_time,
-                          std::optional<int> max_addresses);
+  BridgeInterfaceConfig() = default;
+  BridgeInterfaceConfig(const InterfaceConfig &base);
+  BridgeInterfaceConfig(const InterfaceConfig &base, bool stp,
+                        bool vlanFiltering, std::vector<std::string> members,
+                        std::vector<BridgeMemberConfig> member_configs,
+                        std::optional<int> priority,
+                        std::optional<int> hello_time,
+                        std::optional<int> forward_delay,
+                        std::optional<int> max_age,
+                        std::optional<int> aging_time,
+                        std::optional<int> max_addresses);
+
 public:
   bool stp = false;                 ///< Spanning Tree Protocol enabled
   bool vlanFiltering = false;       ///< VLAN filtering enabled
@@ -49,10 +48,15 @@ public:
       aging_time; ///< MAC address aging time in seconds (10-1000000)
   std::optional<int>
       max_addresses; ///< Maximum number of MAC addresses in cache
-  
-    // Persist bridge configuration to the system.
-    void save() const override;
+
+  // Persist bridge configuration to the system.
+  void save() const override;
+
+  // Populate runtime bridge data (member list, STP params) from the kernel.
+  // This performs platform-specific ioctls and should be called on FreeBSD.
+  void loadMembers();
+
 private:
-    // Ensure the bridge interface exists; create if necessary.
-    void create() const;
+  // Ensure the bridge interface exists; create if necessary.
+  void create() const;
 };

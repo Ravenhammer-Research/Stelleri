@@ -1,8 +1,10 @@
-#include "VRFToken.hpp"
 #include "ConfigurationManager.hpp"
+#include "Parser.hpp"
+#include "VRFToken.hpp"
 #include <iostream>
 
-void executeSetVRF(const VRFToken &tok, ConfigurationManager *mgr) {
+void netcli::Parser::executeSetVRF(const VRFToken &tok,
+                                   ConfigurationManager *mgr) const {
   (void)tok;
   (void)mgr;
   // Stub: creating VRF (FIB) will be implemented later

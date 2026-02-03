@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include <string>
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/if_types.h>
+#include <string>
 
 /**
  * @brief Network interface types
@@ -32,8 +32,6 @@ enum class InterfaceType {
   Virtual,
   Other,
 };
-
-
 
 // `detectInterfaceType` moved to the system implementation where `struct
 // ifaddrs` is available so link-layer address families can be examined

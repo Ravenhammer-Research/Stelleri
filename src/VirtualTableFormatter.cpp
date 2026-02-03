@@ -2,6 +2,7 @@
 #include "InterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
 #include "InterfaceType.hpp"
+#include "VirtualInterfaceConfig.hpp"
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
@@ -32,11 +33,11 @@ VirtualTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
     std::string peer = "-";
     std::string rdomain = "-";
 
-    if (ic.virtual_config) {
-      if (ic.virtual_config->peer)
-        peer = *ic.virtual_config->peer;
-      if (ic.virtual_config->rdomain)
-        rdomain = std::to_string(*ic.virtual_config->rdomain);
+    if (ic.virtual_iface) {
+      if (ic.virtual_iface->peer)
+        peer = *ic.virtual_iface->peer;
+      if (ic.virtual_iface->rdomain)
+        rdomain = std::to_string(*ic.virtual_iface->rdomain);
     }
 
     std::string flags = "-";

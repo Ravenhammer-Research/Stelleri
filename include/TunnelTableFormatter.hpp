@@ -6,6 +6,7 @@
 #pragma once
 
 #include "ConfigData.hpp"
+#include "TableFormatter.hpp"
 #include <string>
 #include <vector>
 
@@ -15,7 +16,7 @@
  * Shows tunnel-specific details like source, destination, tunnel-vrf (FIB),
  * TTL, TOS.
  */
-class TunnelTableFormatter {
+class TunnelTableFormatter : public TableFormatter {
 public:
   TunnelTableFormatter() = default;
 

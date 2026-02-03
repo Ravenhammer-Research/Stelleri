@@ -6,6 +6,7 @@
 #pragma once
 
 #include "ConfigData.hpp"
+#include "TableFormatter.hpp"
 #include <string>
 #include <vector>
 
@@ -15,7 +16,7 @@
  * Shows LAGG-specific details like protocol, members, hash policy, LACP
  * settings.
  */
-class LaggTableFormatter {
+class LaggTableFormatter : public TableFormatter {
 public:
   LaggTableFormatter() = default;
 

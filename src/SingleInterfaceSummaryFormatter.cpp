@@ -1,8 +1,11 @@
 #include "SingleInterfaceSummaryFormatter.hpp"
+#include "BridgeInterfaceConfig.hpp"
 #include "InterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
 #include "InterfaceType.hpp"
 #include "LaggConfig.hpp"
+#include "TunnelConfig.hpp"
+#include "VLANConfig.hpp"
 #include <sstream>
 
 std::string
@@ -14,7 +17,7 @@ SingleInterfaceSummaryFormatter::format(const ConfigData &cd) const {
   std::ostringstream oss;
 
   oss << "Interface: " << ic.name << "\n";
-  oss << "Type:      " << to_string(ic.type) << "\n";
+  oss << "Type:      " << std::to_string(static_cast<int>(ic.type)) << "\n";
 
   if (ic.flags) {
     std::string status = "-";

@@ -1,8 +1,10 @@
-#include "VRFToken.hpp"
 #include "ConfigurationManager.hpp"
+#include "Parser.hpp"
+#include "VRFToken.hpp"
 #include <iostream>
 
-void executeDeleteVRF(const VRFToken &tok, ConfigurationManager *mgr) {
+void netcli::Parser::executeDeleteVRF(const VRFToken &tok,
+                                      ConfigurationManager *mgr) const {
   (void)tok;
   (void)mgr;
   // Stub: VRF deletion will be implemented later

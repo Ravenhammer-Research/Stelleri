@@ -6,6 +6,7 @@
 #pragma once
 
 #include "ConfigData.hpp"
+#include "TableFormatter.hpp"
 #include <string>
 #include <vector>
 
@@ -14,7 +15,7 @@
  *
  * Shows VLAN-specific details like VLAN ID, parent interface, PCP.
  */
-class VLANTableFormatter {
+class VLANTableFormatter : public TableFormatter {
 public:
   VLANTableFormatter() = default;
 

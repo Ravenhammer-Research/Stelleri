@@ -1,17 +1,26 @@
 #include "VirtualInterfaceConfig.hpp"
 
+#include <cerrno>
+#include <cstring>
 #include <iostream>
+#include <net/if.h>
+#include <stdexcept>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 VirtualInterfaceConfig::VirtualInterfaceConfig(const InterfaceConfig &base) {
   name = base.name;
   type = base.type;
-  if (base.address) address = base.address->clone();
+  if (base.address)
+    address = base.address->clone();
   aliases.clear();
   for (const auto &a : base.aliases) {
     if (a)
       aliases.push_back(a->clone());
   }
-  if (base.vrf) vrf = std::make_unique<VRFConfig>(*base.vrf);
+  if (base.vrf)
+    vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
   tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
@@ -21,17 +30,18 @@ VirtualInterfaceConfig::VirtualInterfaceConfig(const InterfaceConfig &base) {
 VirtualInterfaceConfig::VirtualInterfaceConfig(const InterfaceConfig &base,
                                                std::optional<std::string> peer_,
                                                std::optional<int> rdomain_,
-                                               bool promiscuous_)
-{
+                                               bool promiscuous_) {
   name = base.name;
   type = base.type;
-  if (base.address) address = base.address->clone();
+  if (base.address)
+    address = base.address->clone();
   aliases.clear();
   for (const auto &a : base.aliases) {
     if (a)
       aliases.push_back(a->clone());
   }
-  if (base.vrf) vrf = std::make_unique<VRFConfig>(*base.vrf);
+  if (base.vrf)
+    vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
   tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
@@ -43,14 +53,15 @@ VirtualInterfaceConfig::VirtualInterfaceConfig(const InterfaceConfig &base,
 }
 
 void VirtualInterfaceConfig::save() const {
-  if (!ConfigData::exists(name)) {
+  if (!InterfaceConfig::exists(name)) {
     create();
   } else {
     InterfaceConfig::save();
   }
 
   if (promiscuous) {
-    std::cerr << "Note: enabling promiscuous mode for '" << name << "' may require additional privileges or steps\n";
+    std::cerr << "Note: enabling promiscuous mode for '" << name
+              << "' may require additional privileges or steps\n";
   }
 }
 
@@ -58,7 +69,8 @@ void VirtualInterfaceConfig::create() const {
   const std::string &nm = name;
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) {
-    throw std::runtime_error("Failed to create socket: " + std::string(strerror(errno)));
+    throw std::runtime_error("Failed to create socket: " +
+                             std::string(strerror(errno)));
   }
 
   struct ifreq ifr;
@@ -67,7 +79,8 @@ void VirtualInterfaceConfig::create() const {
 
   if (ioctl(sock, SIOCIFCREATE, &ifr) < 0) {
     close(sock);
-    throw std::runtime_error("Failed to create interface '" + nm + "': " + std::string(strerror(errno)));
+    throw std::runtime_error("Failed to create interface '" + nm +
+                             "': " + std::string(strerror(errno)));
   }
 
   close(sock);

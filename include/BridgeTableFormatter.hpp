@@ -6,6 +6,8 @@
 #pragma once
 
 #include "BridgeConfig.hpp"
+#include "ConfigData.hpp"
+#include "TableFormatter.hpp"
 #include <string>
 #include <vector>
 
@@ -14,7 +16,7 @@
  *
  * Shows bridge-specific details like members, STP settings, priorities, timers.
  */
-class BridgeTableFormatter {
+class BridgeTableFormatter : public TableFormatter {
 public:
   BridgeTableFormatter() = default;
 
@@ -23,5 +25,5 @@ public:
    * @param interfaces List of ConfigData with bridge configurations
    * @return Formatted ASCII table string
    */
-  std::string format(const std::vector<BridgeConfig> &interfaces) const;
+  std::string format(const std::vector<ConfigData> &interfaces) const;
 };

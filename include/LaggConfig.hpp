@@ -6,9 +6,9 @@
 #pragma once
 
 #include "InterfaceConfig.hpp"
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
 
 #include "LaggProtocol.hpp"
 
@@ -19,12 +19,10 @@ class LaggConfig : public InterfaceConfig {
 public:
   LaggConfig() = default;
   LaggConfig(const InterfaceConfig &base);
-  LaggConfig(const InterfaceConfig &base,
-             LaggProtocol protocol,
+  LaggConfig(const InterfaceConfig &base, LaggProtocol protocol,
              std::vector<std::string> members,
              std::optional<std::string> hash_policy,
-             std::optional<int> lacp_rate,
-             std::optional<int> min_links);
+             std::optional<int> lacp_rate, std::optional<int> min_links);
   LaggProtocol protocol =
       LaggProtocol::NONE;           ///< LAGG protocol (LACP, failover, etc.)
   std::vector<std::string> members; ///< Member port names
@@ -35,6 +33,7 @@ public:
 
   ~LaggConfig() override = default;
   void save() const override;
+
 private:
   void create() const;
 };

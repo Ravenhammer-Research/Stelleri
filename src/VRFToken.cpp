@@ -6,10 +6,6 @@ std::vector<std::string> VRFToken::autoComplete(std::string_view) const {
   return {};
 }
 
-std::vector<std::string> VRFToken::autoComplete(std::string_view) const {
-  return {};
-}
-
 std::unique_ptr<Token> VRFToken::clone() const {
   return std::make_unique<VRFToken>(*this);
 }

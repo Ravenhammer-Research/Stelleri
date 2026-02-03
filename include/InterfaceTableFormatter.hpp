@@ -6,6 +6,7 @@
 #pragma once
 
 #include "ConfigData.hpp"
+#include "TableFormatter.hpp"
 #include <string>
 #include <vector>
 
@@ -15,7 +16,7 @@
  * General-purpose formatter that handles mixed interface types.
  * For uniform interface types, specialized formatters may be preferred.
  */
-class InterfaceTableFormatter {
+class InterfaceTableFormatter : public TableFormatter {
 public:
   InterfaceTableFormatter() = default;
 

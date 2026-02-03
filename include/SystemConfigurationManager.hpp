@@ -1,16 +1,17 @@
 #pragma once
 
 #include "BridgeInterfaceConfig.hpp"
+#include "ConfigurationManager.hpp"
 #include "InterfaceConfig.hpp"
-#include "VRFConfig.hpp"
-#include <optional>
 #include "LaggConfig.hpp"
-#include "VLANConfig.hpp"
-#include "TunnelConfig.hpp"
-#include "VirtualInterfaceConfig.hpp"
-#include <vector>
-#include <string_view>
 #include "RouteConfig.hpp"
+#include "TunnelConfig.hpp"
+#include "VLANConfig.hpp"
+#include "VRFConfig.hpp"
+#include "VirtualInterfaceConfig.hpp"
+#include <optional>
+#include <string_view>
+#include <vector>
 
 /**
  * @brief System configuration helpers (enumeration only)
@@ -21,28 +22,26 @@
  */
 class SystemConfigurationManager : public ConfigurationManager {
 public:
-	// Static helpers remain available for direct calls; instance methods
-	// override the abstract `ConfigurationManager` API and delegate to the
-	// static implementations for convenience.
-	static std::vector<InterfaceConfig> GetInterfaces(const std::optional<VRFConfig> &vrf = std::nullopt);
-	static std::vector<InterfaceConfig> GetInterfacesByGroup(const std::optional<VRFConfig> &vrf, std::string_view group);
-	static std::vector<BridgeInterfaceConfig> GetBridgeInterfaces(const std::optional<VRFConfig> &vrf = std::nullopt);
-	static std::vector<LaggConfig> GetLaggInterfaces(const std::optional<VRFConfig> &vrf = std::nullopt);
-	static std::vector<VLANConfig> GetVLANInterfaces(const std::optional<VRFConfig> &vrf = std::nullopt);
-	static std::vector<TunnelConfig> GetTunnelInterfaces(const std::optional<VRFConfig> &vrf = std::nullopt);
-	static std::vector<VirtualInterfaceConfig> GetVirtualInterfaces(const std::optional<VRFConfig> &vrf = std::nullopt);
-	static std::vector<RouteConfig> GetStaticRoutes(const std::optional<VRFConfig> &vrf = std::nullopt);
-	static std::vector<VRFConfig> GetNetworkInstances(const std::optional<int> &table = std::nullopt);
-
-	// Instance overrides delegate to the static implementations
-	std::vector<InterfaceConfig> GetInterfaces(const std::optional<VRFConfig> &vrf = std::nullopt) const override { return SystemConfigurationManager::GetInterfaces(vrf); }
-	std::vector<InterfaceConfig> GetInterfacesByGroup(const std::optional<VRFConfig> &vrf, std::string_view group) const override { return SystemConfigurationManager::GetInterfacesByGroup(vrf, group); }
-	std::vector<BridgeInterfaceConfig> GetBridgeInterfaces(const std::optional<VRFConfig> &vrf = std::nullopt) const override { return SystemConfigurationManager::GetBridgeInterfaces(vrf); }
-	std::vector<LaggConfig> GetLaggInterfaces(const std::optional<VRFConfig> &vrf = std::nullopt) const override { return SystemConfigurationManager::GetLaggInterfaces(vrf); }
-	std::vector<VLANConfig> GetVLANInterfaces(const std::optional<VRFConfig> &vrf = std::nullopt) const override { return SystemConfigurationManager::GetVLANInterfaces(vrf); }
-	std::vector<TunnelConfig> GetTunnelInterfaces(const std::optional<VRFConfig> &vrf = std::nullopt) const override { return SystemConfigurationManager::GetTunnelInterfaces(vrf); }
-	std::vector<VirtualInterfaceConfig> GetVirtualInterfaces(const std::optional<VRFConfig> &vrf = std::nullopt) const override { return SystemConfigurationManager::GetVirtualInterfaces(vrf); }
-	std::vector<RouteConfig> GetStaticRoutes(const std::optional<VRFConfig> &vrf = std::nullopt) const override { return SystemConfigurationManager::GetStaticRoutes(vrf); }
-	std::vector<VRFConfig> GetNetworkInstances(const std::optional<int> &table = std::nullopt) const override { return SystemConfigurationManager::GetNetworkInstances(table); }
+  // Instance overrides implement the abstract `ConfigurationManager` API.
+  std::vector<InterfaceConfig> GetInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+  std::vector<InterfaceConfig>
+  GetInterfacesByGroup(const std::optional<VRFConfig> &vrf,
+                       std::string_view group) const override;
+  std::vector<BridgeInterfaceConfig> GetBridgeInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+  std::vector<LaggConfig> GetLaggInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+  std::vector<VLANConfig> GetVLANInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+  std::vector<TunnelConfig> GetTunnelInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+  std::vector<VirtualInterfaceConfig> GetVirtualInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+  std::vector<RouteConfig> GetStaticRoutes(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+  std::vector<RouteConfig>
+  GetRoutes(const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+  std::vector<VRFConfig> GetNetworkInstances(
+      const std::optional<int> &table = std::nullopt) const override;
 };
-

@@ -20,7 +20,7 @@ public:
   std::optional<std::string> vrf;     ///< VRF name for route
   bool blackhole = false;             ///< Blackhole route (drop packets)
   bool reject = false;                ///< Reject route (send ICMP unreachable)
-  
+
   // Persist route configuration (no-op for now)
   void save() const override {}
 };

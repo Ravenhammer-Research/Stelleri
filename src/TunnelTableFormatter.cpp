@@ -1,6 +1,7 @@
 #include "TunnelTableFormatter.hpp"
 #include "InterfaceConfig.hpp"
 #include "InterfaceType.hpp"
+#include "TunnelConfig.hpp"
 #include <algorithm>
 #include <iomanip>
 #include <sstream>

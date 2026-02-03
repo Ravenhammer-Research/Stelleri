@@ -3,8 +3,6 @@
 #include "InterfaceToken.hpp"
 #include "Parser.hpp"
 #include "RouteToken.hpp"
-#include "SetCommand.hpp"
-#include "ShowCommand.hpp"
 #include "VRFToken.hpp"
 #include <fstream>
 #include <iostream>

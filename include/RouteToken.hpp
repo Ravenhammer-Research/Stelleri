@@ -38,9 +38,7 @@ public:
   // vrf <name>, blackhole, reject
   size_t parseOptions(const std::vector<std::string> &tokens, size_t start);
 
-  // Render routes as a table. If prefix is empty, get all routes from manager;
-  // otherwise get the specific route by prefix. Returns formatted table string.
-  std::string renderTable(ConfigurationManager *mgr) const;
+  // (Rendering moved to execute handlers; token is parse-only.)
 
 private:
   std::string prefix_;

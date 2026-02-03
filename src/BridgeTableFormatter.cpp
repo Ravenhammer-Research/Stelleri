@@ -1,86 +1,67 @@
 #include "BridgeTableFormatter.hpp"
+#include "BridgeInterfaceConfig.hpp"
 #include "InterfaceConfig.hpp"
+#include "InterfaceFlags.hpp"
 #include "InterfaceType.hpp"
 #include <algorithm>
+#include <cstdio>
 #include <iomanip>
+#include <regex>
 #include <sstream>
+#include <vector>
 
 std::string
 BridgeTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
   if (interfaces.empty()) {
     return "No bridge interfaces found.\n";
   }
-
+  // Produce a compact, tabular bridge summary similar to other formatters.
   std::ostringstream oss;
-  oss << "\nBridge Interfaces\n";
-  oss << std::string(80, '=') << "\n\n";
+  oss << std::left << std::setw(15) << "Interface" << std::setw(8) << "STP"
+      << std::setw(15) << "VLANFiltering" << std::setw(10) << "Priority"
+      << std::setw(20) << "Members" << std::setw(8) << "MTU" << std::setw(8)
+      << "Flags" << "\n";
+  oss << std::string(100, '-') << "\n";
 
   for (const auto &cd : interfaces) {
     if (!cd.iface || cd.iface->type != InterfaceType::Bridge)
       continue;
 
     const auto &ic = *cd.iface;
-    oss << "Bridge: " << ic.name << "\n";
+    const auto *br =
+        dynamic_cast<const BridgeInterfaceConfig *>(cd.iface.get());
 
-    if (ic.bridge) {
-      const auto &br = *ic.bridge;
+    std::string stp = (br && br->stp) ? "yes" : "no";
+    std::string vlanf = (br && br->vlanFiltering) ? "yes" : "no";
+    std::string prio =
+        (br && br->priority) ? std::to_string(*br->priority) : std::string("-");
+    std::vector<std::string> memberList;
+    if (br && !br->members.empty()) {
+      for (const auto &m : br->members)
+        memberList.push_back(m);
+    }
+    std::string mtu = ic.mtu ? std::to_string(*ic.mtu) : std::string("-");
+    std::string flags =
+        (ic.flags ? flagsToString(*ic.flags) : std::string("-"));
 
-      // Bridge settings
-      oss << "  STP:            " << (br.stp ? "enabled" : "disabled") << "\n";
-      oss << "  VLAN Filtering: " << (br.vlanFiltering ? "enabled" : "disabled")
+    if (memberList.empty()) {
+      oss << std::left << std::setw(15) << ic.name << std::setw(8) << stp
+          << std::setw(15) << vlanf << std::setw(10) << prio << std::setw(20)
+          << "-" << std::setw(8) << mtu << std::setw(8) << flags << "\n";
+    } else {
+      // First member on the primary row
+      oss << std::left << std::setw(15) << ic.name << std::setw(8) << stp
+          << std::setw(15) << vlanf << std::setw(10) << prio << std::setw(20)
+          << memberList[0] << std::setw(8) << mtu << std::setw(8) << flags
           << "\n";
-
-      if (br.priority)
-        oss << "  Priority:       " << *br.priority << "\n";
-      if (br.hello_time)
-        oss << "  Hello Time:     " << *br.hello_time << "s\n";
-      if (br.forward_delay)
-        oss << "  Forward Delay:  " << *br.forward_delay << "s\n";
-      if (br.max_age)
-        oss << "  Max Age:        " << *br.max_age << "s\n";
-      if (br.aging_time)
-        oss << "  Aging Time:     " << *br.aging_time << "s\n";
-      if (br.max_addresses)
-        oss << "  Max Addresses:  " << *br.max_addresses << "\n";
-
-      // Simple members
-      if (!br.members.empty()) {
-        oss << "  Members:\n";
-        for (const auto &member : br.members) {
-          oss << "    - " << member << "\n";
-        }
-      }
-
-      // Detailed member configurations
-      if (!br.member_configs.empty()) {
-        oss << "  Member Configurations:\n";
-        oss << "    " << std::left << std::setw(12) << "Interface"
-            << std::setw(10) << "Priority" << std::setw(12) << "Path Cost"
-            << std::setw(8) << "STP" << std::setw(8) << "Edge"
+      // Remaining members on indented subsequent rows
+      for (size_t i = 1; i < memberList.size(); ++i) {
+        oss << std::left << std::setw(15) << "" << std::setw(8) << ""
+            << std::setw(15) << "" << std::setw(10) << "" << std::setw(20)
+            << memberList[i] << std::setw(8) << "" << std::setw(8) << ""
             << "\n";
-        oss << "    " << std::string(50, '-') << "\n";
-
-        for (const auto &member : br.member_configs) {
-          oss << "    " << std::left << std::setw(12) << member.name
-              << std::setw(10)
-              << (member.priority ? std::to_string(*member.priority)
-                                  : "default")
-              << std::setw(12)
-              << (member.path_cost ? std::to_string(*member.path_cost) : "auto")
-              << std::setw(8) << (member.stp ? "yes" : "no") << std::setw(8)
-              << (member.edge ? "yes" : "no") << "\n";
-        }
       }
     }
-
-    if (ic.address) {
-      oss << "  Address:        " << ic.address->toString() << "\n";
-    }
-    if (ic.mtu) {
-      oss << "  MTU:            " << *ic.mtu << "\n";
-    }
-
-    oss << "\n";
   }
 
   return oss.str();

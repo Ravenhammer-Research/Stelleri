@@ -30,10 +30,7 @@ public:
   std::optional<VLANConfig> vlan;
   std::optional<TunnelConfig> tunnel;
 
-  // Render interfaces as a table. If name is empty, get all interfaces from
-  // manager; otherwise get the specific interface by name. Returns formatted
-  // table string.
-  std::string renderTable(ConfigurationManager *mgr) const;
+  // (Rendering moved to execute handlers. Token is parse-only.)
 
   // Parse an `interfaces` sequence starting at index `start` in `tokens`.
   // `start` should point to the "interfaces" token. On success, returns a

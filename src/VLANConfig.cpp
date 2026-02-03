@@ -3,44 +3,53 @@
 #include <cerrno>
 #include <cstring>
 #include <iostream>
+#include <net/if.h>
+#if defined(__has_include)
+#if __has_include(<net/if_vlan.h>)
+#include <net/if_vlan.h>
+#elif __has_include(<net/if_vlan_var.h>)
+#include <net/if_vlan_var.h>
+#endif
+#endif
 #include <stdexcept>
 #include <string>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <net/if.h>
 
 VLANConfig::VLANConfig(const InterfaceConfig &base) {
   name = base.name;
   type = base.type;
-  if (base.address) address = base.address->clone();
+  if (base.address)
+    address = base.address->clone();
   aliases.clear();
   for (const auto &a : base.aliases) {
     if (a)
       aliases.push_back(a->clone());
   }
-  if (base.vrf) vrf = std::make_unique<VRFConfig>(*base.vrf);
+  if (base.vrf)
+    vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
   tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
   mtu = base.mtu;
 }
 
-VLANConfig::VLANConfig(const InterfaceConfig &base,
-                       uint16_t id_,
+VLANConfig::VLANConfig(const InterfaceConfig &base, uint16_t id_,
                        std::optional<std::string> name_,
                        std::optional<std::string> parent_,
-                       std::optional<PriorityCodePoint> pcp_)
-{
+                       std::optional<PriorityCodePoint> pcp_) {
   name = base.name;
   type = base.type;
-  if (base.address) address = base.address->clone();
+  if (base.address)
+    address = base.address->clone();
   aliases.clear();
   for (const auto &a : base.aliases) {
     if (a)
       aliases.push_back(a->clone());
   }
-  if (base.vrf) vrf = std::make_unique<VRFConfig>(*base.vrf);
+  if (base.vrf)
+    vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
   tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
@@ -53,22 +62,24 @@ VLANConfig::VLANConfig(const InterfaceConfig &base,
 }
 
 void VLANConfig::save() const {
-  if (name.empty())
+  if (InterfaceConfig::name.empty())
     throw std::runtime_error("VLANConfig has no interface name set");
 
   if (!parent || id == 0) {
-    throw std::runtime_error("VLAN configuration requires parent interface and VLAN ID");
+    throw std::runtime_error(
+        "VLAN configuration requires parent interface and VLAN ID");
   }
-
-  if (!ConfigData::exists(name)) {
+  if (!InterfaceConfig::exists(InterfaceConfig::name)) {
     create();
   } else {
     InterfaceConfig::save();
   }
 
+#if defined(SIOCSETVLAN)
   int vsock = socket(AF_INET, SOCK_DGRAM, 0);
   if (vsock < 0) {
-    throw std::runtime_error("Failed to create socket: " + std::string(strerror(errno)));
+    throw std::runtime_error("Failed to create socket: " +
+                             std::string(strerror(errno)));
   }
 
   struct vlanreq vreq;
@@ -81,22 +92,27 @@ void VLANConfig::save() const {
 
   struct ifreq ifr;
   std::memset(&ifr, 0, sizeof(ifr));
-  std::strncpy(ifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
+  std::strncpy(ifr.ifr_name, InterfaceConfig::name.c_str(), IFNAMSIZ - 1);
   ifr.ifr_data = reinterpret_cast<char *>(&vreq);
 
   if (ioctl(vsock, SIOCSETVLAN, &ifr) < 0) {
     close(vsock);
-    throw std::runtime_error("Failed to configure VLAN: " + std::string(strerror(errno)));
+    throw std::runtime_error("Failed to configure VLAN: " +
+                             std::string(strerror(errno)));
   }
 
   close(vsock);
+#else
+  throw std::runtime_error("VLAN configuration not supported on this platform");
+#endif
 }
 
 void VLANConfig::create() const {
-  const std::string &nm = name;
+  const std::string &nm = InterfaceConfig::name;
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) {
-    throw std::runtime_error("Failed to create socket: " + std::string(strerror(errno)));
+    throw std::runtime_error("Failed to create socket: " +
+                             std::string(strerror(errno)));
   }
 
   struct ifreq ifr;
@@ -105,7 +121,8 @@ void VLANConfig::create() const {
 
   if (ioctl(sock, SIOCIFCREATE, &ifr) < 0) {
     close(sock);
-    throw std::runtime_error("Failed to create interface '" + nm + "': " + std::string(strerror(errno)));
+    throw std::runtime_error("Failed to create interface '" + nm +
+                             "': " + std::string(strerror(errno)));
   }
 
   close(sock);

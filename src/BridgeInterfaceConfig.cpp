@@ -6,55 +6,56 @@
 #include "BridgeInterfaceConfig.hpp"
 #include <cerrno>
 #include <cstring>
+#include <ifaddrs.h>
+#include <iostream>
+#include <net/if.h>
+#include <net/if_bridgevar.h>
 #include <stdexcept>
 #include <string>
-#include <iostream>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <net/if.h>
+
 #include <net/if_bridgevar.h>
-#include <ifaddrs.h>
 
 BridgeInterfaceConfig::BridgeInterfaceConfig(const InterfaceConfig &base) {
   // copy common InterfaceConfig fields
   name = base.name;
   type = base.type;
-  if (base.address) address = base.address->cloneNetwork();
+  if (base.address)
+    address = base.address->cloneNetwork();
   aliases.clear();
   for (const auto &a : base.aliases) {
     if (a)
       aliases.push_back(a->cloneNetwork());
   }
-  if (base.vrf) vrf = std::move(base.vrf);
+  if (base.vrf)
+    vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
   tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
   mtu = base.mtu;
 }
 
-BridgeInterfaceConfig::BridgeInterfaceConfig(const InterfaceConfig &base,
-                                             bool stp_,
-                                             bool vlanFiltering_,
-                                             std::vector<std::string> members_,
-                                             std::vector<BridgeMemberConfig> member_configs_,
-                                             std::optional<int> priority_,
-                                             std::optional<int> hello_time_,
-                                             std::optional<int> forward_delay_,
-                                             std::optional<int> max_age_,
-                                             std::optional<int> aging_time_,
-                                             std::optional<int> max_addresses_)
-{
+BridgeInterfaceConfig::BridgeInterfaceConfig(
+    const InterfaceConfig &base, bool stp_, bool vlanFiltering_,
+    std::vector<std::string> members_,
+    std::vector<BridgeMemberConfig> member_configs_,
+    std::optional<int> priority_, std::optional<int> hello_time_,
+    std::optional<int> forward_delay_, std::optional<int> max_age_,
+    std::optional<int> aging_time_, std::optional<int> max_addresses_) {
   // copy common InterfaceConfig fields
   name = base.name;
   type = base.type;
-  if (base.address) address = base.address->cloneNetwork();
+  if (base.address)
+    address = base.address->cloneNetwork();
   aliases.clear();
   for (const auto &a : base.aliases) {
     if (a)
       aliases.push_back(a->cloneNetwork());
   }
-  if (base.vrf) vrf = std::move(base.vrf);
+  if (base.vrf)
+    vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
   tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
@@ -78,7 +79,7 @@ void BridgeInterfaceConfig::save() const {
 
   // If the interface does not exist, create it; otherwise apply generic
   // interface settings via the base class.
-  if (!ConfigData::exists(name)) {
+  if (!InterfaceConfig::exists(name)) {
     create();
   } else {
     InterfaceConfig::save();
@@ -86,7 +87,8 @@ void BridgeInterfaceConfig::save() const {
 
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) {
-    throw std::runtime_error("Failed to create socket: " + std::string(strerror(errno)));
+    throw std::runtime_error("Failed to create socket: " +
+                             std::string(strerror(errno)));
   }
 
   // Add members to bridge (simple list)
@@ -104,7 +106,9 @@ void BridgeInterfaceConfig::save() const {
 
     if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
       close(sock);
-      throw std::runtime_error("Failed to add member '" + member + "' to bridge '" + name + "': " + std::string(strerror(errno)));
+      throw std::runtime_error("Failed to add member '" + member +
+                               "' to bridge '" + name +
+                               "': " + std::string(strerror(errno)));
     }
   }
 
@@ -124,7 +128,9 @@ void BridgeInterfaceConfig::save() const {
 
     if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
       close(sock);
-      throw std::runtime_error("Failed to add member '" + member.name + "' to bridge '" + name + "': " + std::string(strerror(errno)));
+      throw std::runtime_error("Failed to add member '" + member.name +
+                               "' to bridge '" + name +
+                               "': " + std::string(strerror(errno)));
     }
 
     // Configure member port flags
@@ -336,11 +342,13 @@ void BridgeInterfaceConfig::save() const {
 
 void BridgeInterfaceConfig::create() const {
   // Use base helper to check for existence.
-  if (ConfigData::exists(name)) return;
+  if (InterfaceConfig::exists(name))
+    return;
 
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) {
-    throw std::runtime_error("Failed to create socket: " + std::string(strerror(errno)));
+    throw std::runtime_error("Failed to create socket: " +
+                             std::string(strerror(errno)));
   }
 
   struct ifreq ifr;
@@ -349,7 +357,77 @@ void BridgeInterfaceConfig::create() const {
 
   if (ioctl(sock, SIOCIFCREATE, &ifr) < 0) {
     close(sock);
-    throw std::runtime_error("Failed to create interface '" + name + "': " + std::string(strerror(errno)));
+    throw std::runtime_error("Failed to create interface '" + name +
+                             "': " + std::string(strerror(errno)));
+  }
+
+  close(sock);
+}
+
+void BridgeInterfaceConfig::loadMembers() {
+  members.clear();
+  int sock = socket(AF_INET, SOCK_DGRAM, 0);
+  if (sock < 0)
+    return;
+  // Try with a small buffer first, then retry with a larger buffer if needed.
+  const size_t small_entries = 64;
+  const size_t large_entries = 1024;
+  size_t used_bytes = 0;
+  bool success = false;
+  for (size_t entries : {small_entries, large_entries}) {
+    std::vector<struct ifbreq> buf(entries);
+    std::memset(buf.data(), 0, buf.size() * sizeof(struct ifbreq));
+
+    struct ifbifconf ifbic;
+    std::memset(&ifbic, 0, sizeof(ifbic));
+    ifbic.ifbic_len = static_cast<uint32_t>(buf.size() * sizeof(struct ifbreq));
+    ifbic.ifbic_buf = reinterpret_cast<caddr_t>(buf.data());
+
+    struct ifdrv ifd;
+    std::memset(&ifd, 0, sizeof(ifd));
+    std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
+    ifd.ifd_cmd = BRDGGIFS;
+    // Kernel expects ifd.ifd_len to be sizeof(ifbifconf) while the actual
+    // buffer pointer/length are passed via ifbic.ifbic_buf/ifbic.ifbic_len.
+    ifd.ifd_len = static_cast<int>(sizeof(ifbic));
+    ifd.ifd_data = &ifbic;
+
+    if (ioctl(sock, SIOCGDRVSPEC, &ifd) < 0) {
+      int e = errno;
+      std::cerr << "loadMembers: ioctl failed for bridge '" << name
+                << "': " << strerror(e) << " (errno=" << e << ")\n";
+      // If ioctl fails with EINVAL on the small buffer, try a larger one.
+      if (entries == large_entries || e != EINVAL)
+        break;
+      continue;
+    }
+
+    used_bytes = static_cast<size_t>(ifbic.ifbic_len);
+    size_t count = (used_bytes / sizeof(struct ifbreq));
+    if (count > buf.size())
+      count = buf.size();
+
+    for (size_t i = 0; i < count; ++i) {
+      if (buf[i].ifbr_ifsname[0] != '\0')
+        members.emplace_back(std::string(buf[i].ifbr_ifsname));
+    }
+
+    success = true;
+    // If kernel filled the buffer fully, it may have more entries; retry with
+    // the larger buffer on the next loop iteration would have already run.
+    if (!members.empty() || entries == large_entries)
+      break;
+  }
+
+  if (!success) {
+    std::cerr << "loadMembers: failed to retrieve members for bridge '" << name
+              << "'\n";
+  } else {
+    std::cerr << "loadMembers: bridge '" << name << "' returned "
+              << members.size() << " members (used_bytes=" << used_bytes
+              << ")\n";
+    for (const auto &m : members)
+      std::cerr << "  member: " << m << "\n";
   }
 
   close(sock);

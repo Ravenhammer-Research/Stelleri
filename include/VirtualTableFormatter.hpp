@@ -6,6 +6,7 @@
 #pragma once
 
 #include "ConfigData.hpp"
+#include "TableFormatter.hpp"
 #include <string>
 #include <vector>
 
@@ -15,7 +16,7 @@
  * Shows virtual interface details like epair peers, tap devices, routing
  * domain.
  */
-class VirtualTableFormatter {
+class VirtualTableFormatter : public TableFormatter {
 public:
   VirtualTableFormatter() = default;
 
