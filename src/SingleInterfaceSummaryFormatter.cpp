@@ -1,10 +1,10 @@
 #include "SingleInterfaceSummaryFormatter.hpp"
-#include "BridgeInterfaceConfig.hpp"
 #include "InterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
 #include "InterfaceType.hpp"
 #include "LaggConfig.hpp"
 #include "TunnelConfig.hpp"
+#include "BridgeInterfaceConfig.hpp"
 #include "VLANConfig.hpp"
 #include <sstream>
 

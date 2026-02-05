@@ -12,7 +12,6 @@ void netcli::Parser::executeShowRoute(const RouteToken &tok,
     std::cout << "No ConfigurationManager provided\n";
     return;
   }
-
   std::vector<ConfigData> routes;
   if (tok.prefix().empty()) {
     routes = mgr->getRoutes();

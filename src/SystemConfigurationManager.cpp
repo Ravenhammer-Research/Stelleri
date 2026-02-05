@@ -24,6 +24,11 @@
 #include <net/if_ether.h>
 #endif
 #include <net/if_lagg.h>
+#include <sys/sockio.h>
+#include <net/if_vlan_var.h>
+#include <cstdlib>
+#include <cerrno>
+#include <cstring>
 #include <unistd.h>
 #include <iostream>
 
@@ -51,6 +56,8 @@ static std::string laggPortFlagsLabel(uint32_t f) {
   }
   return s;
 }
+
+// Debug prints are always enabled (removed NETCLI_DEBUG env gating)
 
 std::vector<RouteConfig> SystemConfigurationManager::GetStaticRoutes(
     const std::optional<VRFConfig> &vrf) const {
@@ -287,8 +294,7 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
       // Attempt to query kernel for LAGG protocol, ports and hash policy
       int sock = socket(AF_LOCAL, SOCK_DGRAM, 0);
       if (sock >= 0) {
-        // Debug: querying kernel for interface
-        // std::cerr << "GetLaggInterfaces: querying kernel for '" << ic.name << "'\n";
+        std::cerr << "GetLaggInterfaces: querying kernel for '" << ic.name << "'\n";
         // Use the same allocation/layout libifconfig uses to query lagg status
         struct _local_lagg_status {
           struct lagg_reqall ra;
@@ -299,6 +305,7 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
 
         ls = static_cast<decltype(ls)>(std::calloc(1, sizeof(*ls)));
         if (ls) {
+          std::cerr << "GetLaggInterfaces: allocated status buffer\n";
           ls->ra.ra_port = ls->rpbuf;
           ls->ra.ra_size = sizeof(ls->rpbuf);
           std::strncpy(ls->ro.ro_ifname, ic.name.c_str(), IFNAMSIZ - 1);
@@ -310,7 +317,7 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
 
           // SIOCGLAGGOPTS
           if (ioctl(sock, SIOCGLAGGOPTS, &ls->ro) != 0) {
-            // std::cerr << "GetLaggInterfaces: SIOCGLAGGOPTS failed: " << strerror(errno) << "\n";
+            std::cerr << "GetLaggInterfaces: SIOCGLAGGOPTS failed: " << strerror(errno) << "\n";
           }
 
           // SIOCGLAGGFLAGS
@@ -322,7 +329,7 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
           // SIOCGLAGG
           std::strncpy(ls->ra.ra_ifname, ic.name.c_str(), IFNAMSIZ - 1);
           if (ioctl(sock, SIOCGLAGG, &ls->ra) == 0) {
-            // std::cerr << "GetLaggInterfaces: SIOCGLAGG returned proto=" << ls->ra.ra_proto << " ports=" << ls->ra.ra_ports << "\n";
+            std::cerr << "GetLaggInterfaces: SIOCGLAGG returned proto=" << ls->ra.ra_proto << " ports=" << ls->ra.ra_ports << "\n";
             if (ls->ra.ra_proto) {
               switch (ls->ra.ra_proto) {
               case LAGG_PROTO_FAILOVER:
@@ -346,11 +353,12 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
             for (int i = 0; i < nports; ++i) {
               std::string pname = ls->rpbuf[i].rp_portname;
               // std::cerr << "GetLaggInterfaces: lp port[" << i << "] name='" << pname << "' flags=" << ls->rpbuf[i].rp_flags << "\n";
-              if (!pname.empty()) {
+                if (!pname.empty()) {
                 uint32_t flags = ls->rpbuf[i].rp_flags;
                 std::string lbl = laggPortFlagsLabel(flags);
                 lac.members.emplace_back(pname);
                 lac.member_flags.emplace_back(lbl.empty() ? std::string("-") : lbl);
+                std::cerr << "GetLaggInterfaces: found member '" << pname << "' flags=" << flags << " label='" << lbl << "'\n";
               }
             }
           } else {
@@ -366,8 +374,10 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
               hp += (hp.empty() ? "l3" : ",l3");
             if (ls->rf.rf_flags & LAGG_F_HASHL4)
               hp += (hp.empty() ? "l4" : ",l4");
-            if (!hp.empty())
+            if (!hp.empty()) {
               lac.hash_policy = hp;
+              std::cerr << "GetLaggInterfaces: hash policy='" << hp << "'\n";
+            }
           }
 
           free(ls);
@@ -447,7 +457,95 @@ std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
   std::vector<VLANConfig> out;
   for (const auto &ic : bases) {
     if (ic.type == InterfaceType::VLAN || ic.name.rfind("vlan", 0) == 0) {
-      out.emplace_back(ic);
+      VLANConfig vconf(ic);
+
+      // Query kernel for VLAN information using struct vlanreq via ioctl
+      int vsock = socket(AF_INET, SOCK_DGRAM, 0);
+      if (vsock >= 0) {
+        std::cerr << "GetVLANInterfaces: querying kernel for '" << ic.name << "'\n";
+        struct vlanreq vreq;
+        std::memset(&vreq, 0, sizeof(vreq));
+        struct ifreq ifr;
+        std::memset(&ifr, 0, sizeof(ifr));
+        std::strncpy(ifr.ifr_name, ic.name.c_str(), IFNAMSIZ - 1);
+        ifr.ifr_data = reinterpret_cast<char *>(&vreq);
+
+        if (ioctl(vsock, SIOCGETVLAN, &ifr) == 0) {
+          vconf.id = static_cast<uint16_t>(vreq.vlr_tag & 0x0fff);
+          int pcp = (vreq.vlr_tag >> 13) & 0x7;
+          vconf.parent = std::string(vreq.vlr_parent);
+          vconf.pcp = static_cast<PriorityCodePoint>(pcp);
+          std::cerr << "GetVLANInterfaces: SIOCGETVLAN parent='" << vreq.vlr_parent << "' tag=" << vreq.vlr_tag << " proto=" << vreq.vlr_proto << "\n";
+
+          // Map protocol if provided by ioctl
+          if (vreq.vlr_proto) {
+            uint16_t proto = static_cast<uint16_t>(vreq.vlr_proto);
+            if (proto == 0x8100)
+              vconf.proto = std::string("802.1q");
+            else if (proto == 0x88a8)
+              vconf.proto = std::string("802.1ad");
+            else {
+              char buf[8];
+              std::snprintf(buf, sizeof(buf), "0x%04x", proto);
+              vconf.proto = std::string(buf);
+            }
+          }
+        } else {
+          std::cerr << "GetVLANInterfaces: SIOCGETVLAN failed for '" << ic.name << "': " << strerror(errno) << "\n";
+        }
+        close(vsock);
+
+        // Populate options (capabilities) from VLAN iface or parent
+        auto query_caps = [&](const std::string &name) -> std::optional<std::string> {
+          int csock = socket(AF_INET, SOCK_DGRAM, 0);
+          if (csock < 0)
+            return std::nullopt;
+          struct ifreq cifr;
+          std::memset(&cifr, 0, sizeof(cifr));
+          std::strncpy(cifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
+            if (ioctl(csock, SIOCGIFCAP, &cifr) == 0) {
+              unsigned int curcap = cifr.ifr_curcap;
+              std::string opts;
+              std::cerr << "GetVLANInterfaces: SIOCGIFCAP for '" << name << "' curcap=0x" << std::hex << curcap << std::dec << "\n";
+            if (curcap & IFCAP_RXCSUM) {
+              if (!opts.empty()) opts += ",";
+              opts += "RXCSUM";
+            }
+            if (curcap & IFCAP_TXCSUM) {
+              if (!opts.empty()) opts += ",";
+              opts += "TXCSUM";
+            }
+            if (curcap & IFCAP_LINKSTATE) {
+              if (!opts.empty()) opts += ",";
+              opts += "LINKSTATE";
+            }
+            if (curcap & IFCAP_B_VLAN_HWTAGGING) {
+              if (!opts.empty()) opts += ",";
+              opts += "VLAN_HWTAG";
+            }
+            close(csock);
+            if (!opts.empty()) {
+              std::cerr << "GetVLANInterfaces: capabilities for '" << name << "' -> '" << opts << "'\n";
+              return opts;
+            }
+          } else {
+            close(csock);
+          }
+          return std::nullopt;
+        };
+
+        if (auto o = query_caps(ic.name); o) {
+          vconf.options = *o;
+          std::cerr << "GetVLANInterfaces: options for '" << ic.name << "' = '" << vconf.options.value() << "'\n";
+        } else if (vconf.parent) {
+          if (auto o = query_caps(*vconf.parent); o) {
+            vconf.options = *o;
+            std::cerr << "GetVLANInterfaces: options from parent '" << *vconf.parent << "' = '" << vconf.options.value() << "'\n";
+          }
+        }
+      }
+
+      out.emplace_back(std::move(vconf));
     }
   }
   return out;
