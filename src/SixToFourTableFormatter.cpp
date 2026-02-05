@@ -1,22 +1,25 @@
 #include "AbstractTableFormatter.hpp"
-#include "LoopBackTableFormatter.hpp"
+#include "SixToFourTableFormatter.hpp"
 #include "ConfigData.hpp"
 #include "InterfaceConfig.hpp"
-#include <iomanip>
 #include <sstream>
 
-std::string
-LoopBackTableFormatter::format(const std::vector<ConfigData> &items) const {
+std::string SixToFourTableFormatter::format(const std::vector<ConfigData> &items) const {
   AbstractTableFormatter atf;
   atf.addColumn("Interface", "Interface", 10, 4, true);
   atf.addColumn("Address", "Address", 5, 7, true);
   atf.addColumn("Status", "Status", 6, 6, true);
+  atf.addColumn("VRF", "VRF", 4, 3, true);
 
   for (const auto &cd : items) {
     if (!cd.iface)
       continue;
     const auto &ic = *cd.iface;
-    if (ic.type != InterfaceType::Loopback)
+
+    // Heuristic: treat Tunnel-type interfaces whose name starts with "gif" or "stf" as 6to4/SIT-like
+    if (ic.type != InterfaceType::Tunnel && ic.type != InterfaceType::Gif)
+      continue;
+    if (!(ic.name.rfind("gif", 0) == 0 || ic.name.rfind("stf", 0) == 0 || ic.name.rfind("sit",0)==0))
       continue;
 
     std::vector<std::string> addrs;
@@ -45,7 +48,11 @@ LoopBackTableFormatter::format(const std::vector<ConfigData> &items) const {
         status = "down";
     }
 
-    atf.addRow({ic.name, addrCell, status});
+    std::string vrf = "-";
+    if (ic.vrf && ic.vrf->table)
+      vrf = std::to_string(*ic.vrf->table);
+
+    atf.addRow({ic.name, addrCell, status, vrf});
   }
 
   return atf.format(80);

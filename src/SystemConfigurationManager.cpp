@@ -20,6 +20,7 @@
 #include <string_view>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <net80211/ieee80211_ioctl.h>
 #include <sys/sockio.h>
 #include <sys/sysctl.h>
 #include <unistd.h>
@@ -376,6 +377,12 @@ static void populateInterfaceMetadata(InterfaceConfig &ic) {
     ic.tunnel_vrf = *tf;
   }
 
+  // Interface index
+  unsigned int ifidx = if_nametoindex(ic.name.c_str());
+  if (ifidx != 0) {
+    ic.index = static_cast<int>(ifidx);
+  }
+
   if (auto src = query_ifreq_sockaddr(ic.name, SIOCGIFPSRCADDR); src) {
     if (src->second == AF_INET) {
       if (!ic.tunnel)
@@ -406,6 +413,114 @@ static void populateInterfaceMetadata(InterfaceConfig &ic) {
     ic.groups.emplace_back(g);
   if (auto nd6 = query_ifstatus_nd6(ic.name); nd6)
     ic.nd6_options = *nd6;
+
+  // Wireless attributes: use SIOCG80211 ioctls when available (best-effort)
+  if (ic.type == InterfaceType::Wireless) {
+    int s = socket(AF_INET, SOCK_DGRAM, 0);
+    if (s >= 0) {
+      struct ieee80211req req;
+      std::memset(&req, 0, sizeof(req));
+      std::strncpy(req.i_name, ic.name.c_str(), IFNAMSIZ - 1);
+
+      // SSID
+      {
+        const int bufsize = 256;
+        std::vector<char> buf(bufsize);
+        req.i_type = IEEE80211_IOC_SSID;
+        req.i_len = bufsize;
+        req.i_data = buf.data();
+        if (ioctl(s, SIOCG80211, &req) == 0 && req.i_len > 0) {
+          ic.ssid = std::string(buf.data(), static_cast<size_t>(req.i_len));
+        }
+      }
+
+      // Channel (try CURCHAN then CHANNEL)
+      {
+        int ch = 0;
+        req.i_type = IEEE80211_IOC_CURCHAN;
+        req.i_data = &ch;
+        req.i_len = sizeof(ch);
+        if (ioctl(s, SIOCG80211, &req) == 0) {
+          ic.channel = ch;
+        } else {
+          ch = 0;
+          req.i_type = IEEE80211_IOC_CHANNEL;
+          req.i_data = &ch;
+          req.i_len = sizeof(ch);
+          if (ioctl(s, SIOCG80211, &req) == 0)
+            ic.channel = ch;
+        }
+      }
+
+      // BSSID
+      {
+        const int macsz = 8;
+        std::vector<unsigned char> mac(macsz);
+        req.i_type = IEEE80211_IOC_BSSID;
+        req.i_len = macsz;
+        req.i_data = mac.data();
+        if (ioctl(s, SIOCG80211, &req) == 0 && req.i_len >= 6) {
+          char macbuf[32];
+          std::snprintf(macbuf, sizeof(macbuf), "%02x:%02x:%02x:%02x:%02x:%02x",
+                        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+          ic.bssid = std::string(macbuf);
+        }
+      }
+
+      // Parent (IC_NAME)
+      {
+        const int psize = 64;
+        std::vector<char> pbuf(psize);
+        req.i_type = IEEE80211_IOC_IC_NAME;
+        req.i_len = psize;
+        req.i_data = pbuf.data();
+        if (ioctl(s, SIOCG80211, &req) == 0 && req.i_len > 0)
+          ic.parent = std::string(pbuf.data(), static_cast<size_t>(req.i_len));
+      }
+
+      // Authmode
+      {
+        int am = 0;
+        req.i_type = IEEE80211_IOC_AUTHMODE;
+        req.i_data = &am;
+        req.i_len = sizeof(am);
+        if (ioctl(s, SIOCG80211, &req) == 0) {
+          switch (am) {
+          case 0:
+            ic.authmode = std::string("OPEN");
+            break;
+          case 1:
+            ic.authmode = std::string("SHARED");
+            break;
+          case 2:
+            ic.authmode = std::string("WPA");
+            break;
+          case 3:
+            ic.authmode = std::string("WPA2");
+            break;
+          default:
+            ic.authmode = std::string("unknown");
+            break;
+          }
+        }
+      }
+
+      // Status/media heuristics
+      if (ic.flags && (*ic.flags & IFF_RUNNING)) {
+        if (ic.ssid)
+          ic.status = std::string("associated");
+        else
+          ic.status = std::string("up");
+      } else {
+        ic.status = std::string("down");
+      }
+      if (ic.channel) {
+        ic.media = std::string("IEEE 802.11 channel ") + std::to_string(*ic.channel);
+      }
+
+      close(s);
+    }
+  }
 }
 
 std::vector<InterfaceConfig> SystemConfigurationManager::GetInterfaces(
@@ -452,6 +567,13 @@ std::vector<InterfaceConfig> SystemConfigurationManager::GetInterfaces(
   for (auto &kv : map) {
     // Populate metric, nd6, tunnel endpoints, etc.
     populateInterfaceMetadata(kv.second);
+    // If interface belongs to the 'epair' group, treat it as a virtual pair
+    for (const auto &g : kv.second.groups) {
+      if (g == "epair") {
+        kv.second.type = InterfaceType::Virtual;
+        break;
+      }
+    }
     // If the kernel reports this interface as a LAGG or a bridge, mark its
     // type so formatters display the appropriate specialized type.
     if (interfaceIsLagg(kv.second.name)) {

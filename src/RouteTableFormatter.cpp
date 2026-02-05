@@ -1,3 +1,4 @@
+#include "AbstractTableFormatter.hpp"
 #include "RouteTableFormatter.hpp"
 #include "RouteConfig.hpp"
 #include <iomanip>
@@ -5,21 +6,19 @@
 
 std::string
 RouteTableFormatter::format(const std::vector<ConfigData> &routes) const {
-  if (routes.empty()) {
+  if (routes.empty())
     return "No routes found.\n";
-  }
 
   // Determine VRF context (first route's VRF if present)
   std::string vrfContext = "Global";
   if (!routes.empty() && routes[0].route && routes[0].route->vrf)
     vrfContext = *routes[0].route->vrf;
 
-  std::ostringstream oss;
-  oss << "Routes (FIB: " << vrfContext << ")\n\n";
-  oss << std::left;
-  oss << std::setw(20) << "Destination" << std::setw(18) << "Gateway"
-      << std::setw(12) << "Interface" << "Flags\n";
-  oss << std::string(56, '-') << "\n";
+  AbstractTableFormatter atf;
+  atf.addColumn("Destination", "Destination", 8, 10, true);
+  atf.addColumn("Gateway", "Gateway", 6, 7, true);
+  atf.addColumn("Interface", "Interface", 6, 4, true);
+  atf.addColumn("Flags", "Flags", 3, 2, true);
 
   for (const auto &cd : routes) {
     if (!cd.route)
@@ -39,9 +38,10 @@ RouteTableFormatter::format(const std::vector<ConfigData> &routes) const {
     else if (!route.blackhole && !route.reject)
       flags += "UG"; // Up, Gateway
 
-    oss << std::setw(20) << dest << std::setw(18) << gateway << std::setw(12)
-        << iface << flags << "\n";
+    atf.addRow({dest, gateway, iface, flags});
   }
 
-  return oss.str();
+  auto out = std::string("Routes (FIB: ") + vrfContext + ")\n\n";
+  out += atf.format(80);
+  return out;
 }

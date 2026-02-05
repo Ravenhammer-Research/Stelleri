@@ -37,6 +37,11 @@ InterfaceConfig::InterfaceConfig(const struct ifaddrs *ifa) {
     flags = ifa->ifa_flags;
   }
 
+  // Attempt to populate numeric interface index using if_nametoindex()
+  unsigned int ifidx = if_nametoindex(name.c_str());
+  if (ifidx != 0)
+    index = static_cast<int>(ifidx);
+
   // Get MTU
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock >= 0) {
@@ -269,8 +274,16 @@ InterfaceConfig::InterfaceConfig(const InterfaceConfig &o) {
     vrf.reset();
   flags = o.flags;
   tunnel_vrf = o.tunnel_vrf;
+  index = o.index;
   groups = o.groups;
   mtu = o.mtu;
+  ssid = o.ssid;
+  channel = o.channel;
+  bssid = o.bssid;
+  parent = o.parent;
+  authmode = o.authmode;
+  media = o.media;
+  status = o.status;
 
   if (o.bridge)
     bridge = std::make_shared<BridgeInterfaceConfig>(*o.bridge);
@@ -307,7 +320,15 @@ InterfaceConfig &InterfaceConfig::operator=(const InterfaceConfig &o) {
   flags = o.flags;
   tunnel_vrf = o.tunnel_vrf;
   groups = o.groups;
+  index = o.index;
   mtu = o.mtu;
+  ssid = o.ssid;
+  channel = o.channel;
+  bssid = o.bssid;
+  parent = o.parent;
+  authmode = o.authmode;
+  media = o.media;
+  status = o.status;
 
   if (o.bridge)
     bridge = std::make_shared<BridgeInterfaceConfig>(*o.bridge);

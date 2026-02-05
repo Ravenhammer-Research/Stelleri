@@ -36,6 +36,16 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
     const std::string &a = tokens[start + 1];
     const std::string &b = tokens[start + 2];
 
+    // support `interfaces group <group>`
+    if (a == "group") {
+      std::string grp = b;
+      size_t nnext = start + 3;
+      auto tok = std::make_shared<InterfaceToken>(InterfaceType::Unknown, std::string());
+      tok->group = grp;
+      next = nnext;
+      return tok;
+    }
+
     // support `interfaces name <name>`
     if (a == "name") {
       std::string name = b;
@@ -48,6 +58,11 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
       size_t cur = nnext;
       while (cur < tokens.size()) {
         const std::string &kw = tokens[cur];
+        if (kw == "group" && cur + 1 < tokens.size()) {
+          tok->group = tokens[cur + 1];
+          cur += 2;
+          continue;
+        }
         if ((kw == "fib" || kw == "vrf") && cur + 1 < tokens.size()) {
           tok->vrf = tokens[cur + 1];
           cur += 2;
@@ -166,6 +181,11 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
         size_t cur = next;
         while (cur < tokens.size()) {
           const std::string &kw = tokens[cur];
+          if (kw == "group" && cur + 1 < tokens.size()) {
+            tok->group = tokens[cur + 1];
+            cur += 2;
+            continue;
+          }
           if ((kw == "fib" || kw == "vrf") && cur + 1 < tokens.size()) {
             tok->vrf = tokens[cur + 1];
             cur += 2;
@@ -276,6 +296,11 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
         size_t cur = next;
         while (cur < tokens.size()) {
           const std::string &kw = tokens[cur];
+          if (kw == "group" && cur + 1 < tokens.size()) {
+            tok->group = tokens[cur + 1];
+            cur += 2;
+            continue;
+          }
           if (kw == "vlan") {
             ++cur;
             std::optional<uint16_t> vid;
@@ -347,8 +372,6 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
     }
   }
   // bare interfaces
-  std::cerr << "[InterfaceToken] parseFromTokens: bare 'interfaces' at "
-            << start << "\n";
   return std::make_shared<InterfaceToken>(InterfaceType::Unknown,
                                           std::string());
 }

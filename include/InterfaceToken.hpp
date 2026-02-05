@@ -22,6 +22,7 @@ public:
   const std::string &name() const { return name_; }
   InterfaceType type() const { return type_; }
   std::optional<std::string> vrf;
+  std::optional<std::string> group;
   std::optional<int> tunnel_vrf;
   std::optional<std::string> address;
   std::optional<int> mtu;

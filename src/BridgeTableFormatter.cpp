@@ -1,3 +1,4 @@
+#include "AbstractTableFormatter.hpp"
 #include "BridgeTableFormatter.hpp"
 #include "BridgeInterfaceConfig.hpp"
 #include "InterfaceConfig.hpp"
@@ -12,57 +13,44 @@
 
 std::string
 BridgeTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
-  if (interfaces.empty()) {
+  if (interfaces.empty())
     return "No bridge interfaces found.\n";
-  }
-  // Produce a compact, tabular bridge summary similar to other formatters.
-  std::ostringstream oss;
-  oss << std::left << std::setw(15) << "Interface" << std::setw(8) << "STP"
-      << std::setw(15) << "VLANFiltering" << std::setw(10) << "Priority"
-      << std::setw(20) << "Members" << std::setw(8) << "MTU" << std::setw(8)
-      << "Flags" << "\n";
-  oss << std::string(100, '-') << "\n";
+
+  AbstractTableFormatter atf;
+  atf.addColumn("Interface", "Interface", 10, 4, true);
+  atf.addColumn("STP", "STP", 6, 3, true);
+  atf.addColumn("VLANFiltering", "VLANFiltering", 5, 3, true);
+  atf.addColumn("Priority", "Priority", 4, 3, false);
+  atf.addColumn("Members", "Members", 3, 6, true);
+  atf.addColumn("MTU", "MTU", 4, 3, false);
+  atf.addColumn("Flags", "Flags", 3, 3, true);
 
   for (const auto &cd : interfaces) {
     if (!cd.iface || cd.iface->type != InterfaceType::Bridge)
       continue;
 
     const auto &ic = *cd.iface;
-    const auto *br =
-        dynamic_cast<const BridgeInterfaceConfig *>(cd.iface.get());
+    const auto *br = dynamic_cast<const BridgeInterfaceConfig *>(cd.iface.get());
 
     std::string stp = (br && br->stp) ? "yes" : "no";
     std::string vlanf = (br && br->vlanFiltering) ? "yes" : "no";
-    std::string prio =
-        (br && br->priority) ? std::to_string(*br->priority) : std::string("-");
-    std::vector<std::string> memberList;
-    if (br && !br->members.empty()) {
-      for (const auto &m : br->members)
-        memberList.push_back(m);
-    }
+    std::string prio = (br && br->priority) ? std::to_string(*br->priority) : std::string("-");
     std::string mtu = ic.mtu ? std::to_string(*ic.mtu) : std::string("-");
-    std::string flags =
-        (ic.flags ? flagsToString(*ic.flags) : std::string("-"));
+    std::string flags = (ic.flags ? flagsToString(*ic.flags) : std::string("-"));
 
-    if (memberList.empty()) {
-      oss << std::left << std::setw(15) << ic.name << std::setw(8) << stp
-          << std::setw(15) << vlanf << std::setw(10) << prio << std::setw(20)
-          << "-" << std::setw(8) << mtu << std::setw(8) << flags << "\n";
-    } else {
-      // First member on the primary row
-      oss << std::left << std::setw(15) << ic.name << std::setw(8) << stp
-          << std::setw(15) << vlanf << std::setw(10) << prio << std::setw(20)
-          << memberList[0] << std::setw(8) << mtu << std::setw(8) << flags
-          << "\n";
-      // Remaining members on indented subsequent rows
-      for (size_t i = 1; i < memberList.size(); ++i) {
-        oss << std::left << std::setw(15) << "" << std::setw(8) << ""
-            << std::setw(15) << "" << std::setw(10) << "" << std::setw(20)
-            << memberList[i] << std::setw(8) << "" << std::setw(8) << ""
-            << "\n";
+    std::string membersCell = "-";
+    if (br && !br->members.empty()) {
+      std::ostringstream moss;
+      for (size_t i = 0; i < br->members.size(); ++i) {
+        if (i)
+          moss << '\n';
+        moss << br->members[i];
       }
+      membersCell = moss.str();
     }
+
+    atf.addRow({ic.name, stp, vlanf, prio, membersCell, mtu, flags});
   }
 
-  return oss.str();
+  return atf.format(80);
 }

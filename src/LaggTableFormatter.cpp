@@ -1,3 +1,4 @@
+#include "AbstractTableFormatter.hpp"
 #include "LaggTableFormatter.hpp"
 #include "InterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
@@ -172,103 +173,73 @@ LaggTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
   flagsWidth += 2;
   statusWidth += 2;
 
-  std::ostringstream oss;
-  // Header
-  oss << std::left << std::setw(nameWidth) << "Interface"
-      << std::setw(protoWidth) << "Protocol" << std::setw(hashWidth)
-      << "HashPolicy" << std::setw(membersWidth) << "Members"
-      << std::setw(mtuWidth) << "MTU" << std::setw(flagsWidth) << "Flags"
-      << std::setw(statusWidth) << "Status"
-      << "\n";
+  AbstractTableFormatter atf;
+  atf.addColumn("Interface", "Interface", 10, 4, true);
+  atf.addColumn("Protocol", "Protocol", 8, 4, true);
+  atf.addColumn("HashPolicy", "HashPolicy", 3, 3, true);
+  atf.addColumn("Members", "Members", 3, 6, true);
+  atf.addColumn("MTU", "MTU", 4, 3, false);
+  atf.addColumn("Flags", "Flags", 3, 3, true);
+  atf.addColumn("Status", "Status", 6, 6, true);
 
-  // Separator
-  oss << std::string(nameWidth, '-') << std::string(protoWidth, '-')
-      << std::string(hashWidth, '-') << std::string(membersWidth, '-')
-      << std::string(mtuWidth, '-') << std::string(flagsWidth, '-')
-      << std::string(statusWidth, '-') << "\n";
-
-  // Rows with multiline members and/or hash items
   for (const auto &r : rows) {
-    size_t lines =
-        std::max<size_t>(1, std::max(r.members.size(), r.hash_items.size()));
-    for (size_t i = 0; i < lines; ++i) {
-      if (i == 0) {
-        oss << std::left << std::setw(nameWidth) << r.name
-            << std::setw(protoWidth) << r.proto;
-      } else {
-        oss << std::left << std::setw(nameWidth) << "" << std::setw(protoWidth)
-            << "";
-      }
-
-      // HashPolicy column: print the ith hash item if present
-      if (i < r.hash_items.size())
-        oss << std::setw(hashWidth) << r.hash_items[i];
-      else if (i == 0) {
-        if (r.hash) {
-          if (!r.hash_items.empty())
-            oss << std::setw(hashWidth) << r.hash_items[0];
-          else {
-            uint32_t m = *r.hash;
-            std::string s;
-            if (m & LAGG_F_HASHL2)
-              s += "l2";
-            if (m & LAGG_F_HASHL3) {
-              if (!s.empty())
-                s += ",";
-              s += "l3";
-            }
-            if (m & LAGG_F_HASHL4) {
-              if (!s.empty())
-                s += ",";
-              s += "l4";
-            }
-            if (s.empty())
-              s = "-";
-            oss << std::setw(hashWidth) << s;
-          }
-        } else {
-          oss << std::setw(hashWidth) << "-";
+    // Combine hash items into multiline cell if present
+    std::string hashCell = "-";
+    if (r.hash) {
+      if (!r.hash_items.empty()) {
+        std::ostringstream hoss;
+        for (size_t i = 0; i < r.hash_items.size(); ++i) {
+          if (i)
+            hoss << '\n';
+          hoss << r.hash_items[i];
         }
-      } else
-        oss << std::setw(hashWidth) << "";
-
-      // Members column
-      if (i < r.members.size())
-        oss << std::setw(membersWidth) << r.members[i];
-      else if (i == 0)
-        oss << std::setw(membersWidth) << "-";
-      else
-        oss << std::setw(membersWidth) << "";
-
-      // MTU, Flags, Status only on first line
-      if (i == 0) {
-        if (r.mtu)
-          oss << std::setw(mtuWidth) << *r.mtu;
-        else
-          oss << std::setw(mtuWidth) << "-";
-        // Use first member's flag bits (preferred) or label fallback, otherwise
-        // interface flags
-        if (!r.member_flag_bits.empty()) {
-          std::string lbl = laggFlagsToLabel(r.member_flag_bits[0]);
-          if (lbl.empty())
-            lbl = "-";
-          oss << std::setw(flagsWidth) << lbl;
-        } else if (!r.member_flags.empty() && r.member_flags[0] != "-") {
-          oss << std::setw(flagsWidth) << r.member_flags[0];
-        } else if (r.flags) {
-          oss << std::setw(flagsWidth) << flagsToString(*r.flags);
-        } else {
-          oss << std::setw(flagsWidth) << "-";
-        }
-        oss << std::setw(statusWidth) << r.status;
+        hashCell = hoss.str();
       } else {
-        oss << std::setw(mtuWidth) << "" << std::setw(flagsWidth) << ""
-            << std::setw(statusWidth) << "";
+        uint32_t m = *r.hash;
+        std::string s;
+        if (m & LAGG_F_HASHL2)
+          s += "l2";
+        if (m & LAGG_F_HASHL3) {
+          if (!s.empty())
+            s += ",";
+          s += "l3";
+        }
+        if (m & LAGG_F_HASHL4) {
+          if (!s.empty())
+            s += ",";
+          s += "l4";
+        }
+        if (s.empty())
+          s = "-";
+        hashCell = s;
       }
-
-      oss << "\n";
     }
+
+    std::string membersCell = "-";
+    if (!r.members.empty()) {
+      std::ostringstream moss;
+      for (size_t i = 0; i < r.members.size(); ++i) {
+        if (i)
+          moss << '\n';
+        moss << r.members[i];
+      }
+      membersCell = moss.str();
+    }
+
+    std::string mtuCell = r.mtu ? std::to_string(*r.mtu) : std::string("-");
+
+    std::string flagsCell = "-";
+    if (!r.member_flag_bits.empty()) {
+      std::string lbl = laggFlagsToLabel(r.member_flag_bits[0]);
+      flagsCell = lbl.empty() ? std::string("-") : lbl;
+    } else if (!r.member_flags.empty() && r.member_flags[0] != "-") {
+      flagsCell = r.member_flags[0];
+    } else if (r.flags) {
+      flagsCell = flagsToString(*r.flags);
+    }
+
+    atf.addRow({r.name, r.proto, hashCell, membersCell, mtuCell, flagsCell, r.status});
   }
 
-  return oss.str();
+  return atf.format(80);
 }

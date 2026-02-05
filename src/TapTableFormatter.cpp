@@ -1,22 +1,23 @@
 #include "AbstractTableFormatter.hpp"
-#include "LoopBackTableFormatter.hpp"
+#include "TapTableFormatter.hpp"
 #include "ConfigData.hpp"
 #include "InterfaceConfig.hpp"
-#include <iomanip>
 #include <sstream>
 
-std::string
-LoopBackTableFormatter::format(const std::vector<ConfigData> &items) const {
+std::string TapTableFormatter::format(const std::vector<ConfigData> &items) const {
   AbstractTableFormatter atf;
   atf.addColumn("Interface", "Interface", 10, 4, true);
   atf.addColumn("Address", "Address", 5, 7, true);
   atf.addColumn("Status", "Status", 6, 6, true);
+  atf.addColumn("MTU", "MTU", 6, 6, true);
 
   for (const auto &cd : items) {
     if (!cd.iface)
       continue;
     const auto &ic = *cd.iface;
-    if (ic.type != InterfaceType::Loopback)
+
+    // Heuristic: consider interfaces with names starting with "tap" or type Virtual
+    if (ic.type != InterfaceType::Virtual && ic.name.rfind("tap", 0) != 0)
       continue;
 
     std::vector<std::string> addrs;
@@ -45,7 +46,9 @@ LoopBackTableFormatter::format(const std::vector<ConfigData> &items) const {
         status = "down";
     }
 
-    atf.addRow({ic.name, addrCell, status});
+    std::string mtu = ic.mtu ? std::to_string(*ic.mtu) : std::string("-");
+
+    atf.addRow({ic.name, addrCell, status, mtu});
   }
 
   return atf.format(80);
