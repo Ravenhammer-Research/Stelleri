@@ -57,9 +57,9 @@ inline InterfaceType ifAddrToInterfaceType(const struct ifaddrs *ifa) {
     case IFT_GIGABITETHERNET:
     case IFT_FIBRECHANNEL:
     case IFT_AFLANE8023:
-        return InterfaceType::Ethernet;
-      case IFT_IEEE8023ADLAG:
-        return InterfaceType::Lagg;
+      return InterfaceType::Ethernet;
+    case IFT_IEEE8023ADLAG:
+      return InterfaceType::Lagg;
     case IFT_LOOP:
       return InterfaceType::Loopback;
     case IFT_PPP:

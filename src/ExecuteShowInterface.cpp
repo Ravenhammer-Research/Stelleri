@@ -58,8 +58,12 @@ void netcli::Parser::executeShowInterface(const InterfaceToken &tok,
       for (auto &iface : allIfaces) {
         if (!iface.iface)
           continue;
-        if (tok.type() == InterfaceType::Tunnel || tok.type() == InterfaceType::Gif || tok.type() == InterfaceType::Tun) {
-          if (iface.iface->type == InterfaceType::Tunnel || iface.iface->type == InterfaceType::Gif || iface.iface->type == InterfaceType::Tun) {
+        if (tok.type() == InterfaceType::Tunnel ||
+            tok.type() == InterfaceType::Gif ||
+            tok.type() == InterfaceType::Tun) {
+          if (iface.iface->type == InterfaceType::Tunnel ||
+              iface.iface->type == InterfaceType::Gif ||
+              iface.iface->type == InterfaceType::Tun) {
             interfaces.push_back(std::move(iface));
           }
           continue;
@@ -96,8 +100,8 @@ void netcli::Parser::executeShowInterface(const InterfaceToken &tok,
       allVlan = false;
     // Treat explicit tunnel-ish interface types as tunnels for formatting
     if (!(cd.iface->type == InterfaceType::Tunnel ||
-        cd.iface->type == InterfaceType::Gif ||
-        cd.iface->type == InterfaceType::Tun))
+          cd.iface->type == InterfaceType::Gif ||
+          cd.iface->type == InterfaceType::Tun))
       allTunnel = false;
     if (cd.iface->type != InterfaceType::Virtual)
       allVirtual = false;

@@ -48,7 +48,7 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
       size_t cur = nnext;
       while (cur < tokens.size()) {
         const std::string &kw = tokens[cur];
-        if (kw == "fib" && cur + 1 < tokens.size()) {
+        if ((kw == "fib" || kw == "vrf") && cur + 1 < tokens.size()) {
           tok->vrf = tokens[cur + 1];
           cur += 2;
           continue;
@@ -90,7 +90,8 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
               size_t p = 0, len = m.size();
               while (p < len) {
                 size_t q = m.find(',', p);
-                if (q == std::string::npos) q = len;
+                if (q == std::string::npos)
+                  q = len;
                 lc.members.emplace_back(m.substr(p, q - p));
                 p = q + 1;
               }
@@ -154,7 +155,8 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
           else
             name = tokens[start + 3];
         }
-        next = start + (name.empty() ? 3 : (tokens[start + 3] == "name" ? 5 : 4));
+        next =
+            start + (name.empty() ? 3 : (tokens[start + 3] == "name" ? 5 : 4));
         std::cerr << "[InterfaceToken] parseFromTokens: consumed 'type '" << b
                   << " starting at " << start
                   << " -> type=" << static_cast<int>(itype) << " name='" << name
@@ -164,7 +166,7 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
         size_t cur = next;
         while (cur < tokens.size()) {
           const std::string &kw = tokens[cur];
-          if (kw == "fib" && cur + 1 < tokens.size()) {
+          if ((kw == "fib" || kw == "vrf") && cur + 1 < tokens.size()) {
             tok->vrf = tokens[cur + 1];
             cur += 2;
             continue;
@@ -210,7 +212,8 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
                 size_t p = 0, len = m.size();
                 while (p < len) {
                   size_t q = m.find(',', p);
-                  if (q == std::string::npos) q = len;
+                  if (q == std::string::npos)
+                    q = len;
                   lc.members.emplace_back(m.substr(p, q - p));
                   p = q + 1;
                 }
@@ -264,7 +267,7 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
         itype = InterfaceType::Virtual;
       if (itype != InterfaceType::Unknown) {
         next = start + 3;
-        std::cerr << "[InterfaceToken] parseFromTokens: consumed tokens '" 
+        std::cerr << "[InterfaceToken] parseFromTokens: consumed tokens '"
                   << type << " ' '" << nameTok << "' starting at " << start
                   << " -> type=" << static_cast<int>(itype) << " name='"
                   << nameTok << "' next=" << next << "\n";
@@ -310,7 +313,8 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
                 size_t p = 0, len = m.size();
                 while (p < len) {
                   size_t q = m.find(',', p);
-                  if (q == std::string::npos) q = len;
+                  if (q == std::string::npos)
+                    q = len;
                   lc.members.emplace_back(m.substr(p, q - p));
                   p = q + 1;
                 }

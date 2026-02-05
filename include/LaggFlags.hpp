@@ -5,12 +5,12 @@
 
 namespace LaggFlags {
 
-enum class PortFlag : uint32_t {
-  MASTER = 0x1,
-  STACK = 0x2,
-  ACTIVE = 0x4,
-  COLLECTING = 0x8,
-  DISTRIBUTING = 0x10,
-};
+  enum class PortFlag : uint32_t {
+    MASTER = 0x1,
+    STACK = 0x2,
+    ACTIVE = 0x4,
+    COLLECTING = 0x8,
+    DISTRIBUTING = 0x10,
+  };
 
 } // namespace LaggFlags

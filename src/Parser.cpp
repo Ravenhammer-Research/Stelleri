@@ -58,17 +58,17 @@ namespace netcli {
         rt->parseOptions(tokens, idx + 2);
         cmd->addToken(rt);
       }
-      } else if (target == "route" || target == "routes") {
-        if (idx + 1 < tokens.size()) {
-          auto rt = std::make_shared<RouteToken>(tokens[idx + 1]);
-          // parse options starting after prefix
-          rt->parseOptions(tokens, idx + 2);
-          cmd->addToken(rt);
-        } else {
-          // support `show routes` with no prefix
-          auto rt = std::make_shared<RouteToken>(std::string());
-          cmd->addToken(rt);
-        }
+    } else if (target == "route" || target == "routes") {
+      if (idx + 1 < tokens.size()) {
+        auto rt = std::make_shared<RouteToken>(tokens[idx + 1]);
+        // parse options starting after prefix
+        rt->parseOptions(tokens, idx + 2);
+        cmd->addToken(rt);
+      } else {
+        // support `show routes` with no prefix
+        auto rt = std::make_shared<RouteToken>(std::string());
+        cmd->addToken(rt);
+      }
     } else if (target == "vrf") {
       if (idx + 1 < tokens.size()) {
         auto vt = std::make_shared<VRFToken>(tokens[idx + 1]);

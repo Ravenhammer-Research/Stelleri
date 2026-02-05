@@ -6,24 +6,24 @@
 #include "InterfaceConfig.hpp"
 #include "LaggFlags.hpp"
 
+#include <cstring>
 #include <ifaddrs.h>
+#include <net/ethernet.h>
+#include <net/if.h>
+#include <net/if_bridgevar.h>
+#include <net/if_lagg.h>
+#include <net/if_vlan_var.h>
 #include <net/route.h>
 #include <netinet/in.h>
-#include <net/if.h>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <sys/sysctl.h>
-#include <unordered_map>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <net/ethernet.h>
-#include <net/if_lagg.h>
-#include <net/if_bridgevar.h>
 #include <sys/sockio.h>
-#include <net/if_vlan_var.h>
-#include <cstring>
+#include <sys/sysctl.h>
 #include <unistd.h>
+#include <unordered_map>
 
 // LAGG port flag labeling moved to include/LaggFlags.hpp
 
@@ -37,9 +37,12 @@ static void prepare_ifreq(struct ifreq &ifr, const std::string &name) {
 enum class IfreqIntField { Metric, Fib, Mtu };
 
 // Query an integer-valued `ifreq` attribute (metric, fib, mtu).
-static std::optional<int> query_ifreq_int(const std::string &ifname, unsigned long req, IfreqIntField which) {
+static std::optional<int> query_ifreq_int(const std::string &ifname,
+                                          unsigned long req,
+                                          IfreqIntField which) {
   int s = socket(AF_INET, SOCK_DGRAM, 0);
-  if (s < 0) return std::nullopt;
+  if (s < 0)
+    return std::nullopt;
   struct ifreq ifr;
   prepare_ifreq(ifr, ifname);
   if (ioctl(s, req, &ifr) == 0) {
@@ -64,21 +67,25 @@ static std::optional<int> query_ifreq_int(const std::string &ifname, unsigned lo
 
 // Query an `ifreq` that returns a socket address and convert it to
 // a text representation. Returns (address, family) on success.
-static std::optional<std::pair<std::string,int>> query_ifreq_sockaddr(const std::string &ifname, unsigned long req) {
+static std::optional<std::pair<std::string, int>>
+query_ifreq_sockaddr(const std::string &ifname, unsigned long req) {
   int s = socket(AF_INET, SOCK_DGRAM, 0);
-  if (s < 0) return std::nullopt;
+  if (s < 0)
+    return std::nullopt;
   struct ifreq ifr;
   prepare_ifreq(ifr, ifname);
   if (ioctl(s, req, &ifr) == 0) {
     if (ifr.ifr_addr.sa_family == AF_INET) {
-      struct sockaddr_in *sin = reinterpret_cast<struct sockaddr_in *>(&ifr.ifr_addr);
+      struct sockaddr_in *sin =
+          reinterpret_cast<struct sockaddr_in *>(&ifr.ifr_addr);
       char buf[INET_ADDRSTRLEN] = {0};
       if (inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf))) {
         close(s);
         return std::make_pair(std::string(buf), AF_INET);
       }
     } else if (ifr.ifr_addr.sa_family == AF_INET6) {
-      struct sockaddr_in6 *sin6 = reinterpret_cast<struct sockaddr_in6 *>(&ifr.ifr_addr);
+      struct sockaddr_in6 *sin6 =
+          reinterpret_cast<struct sockaddr_in6 *>(&ifr.ifr_addr);
       char buf[INET6_ADDRSTRLEN] = {0};
       if (inet_ntop(AF_INET6, &sin6->sin6_addr, buf, sizeof(buf))) {
         close(s);
@@ -92,10 +99,12 @@ static std::optional<std::pair<std::string,int>> query_ifreq_sockaddr(const std:
 
 // Obtain interface group membership via SIOCGIFGROUP. Returns group
 // names associated with `ifname`.
-static std::vector<std::string> query_interface_groups(const std::string &ifname) {
+static std::vector<std::string>
+query_interface_groups(const std::string &ifname) {
   std::vector<std::string> out;
   int s = socket(AF_LOCAL, SOCK_DGRAM, 0);
-  if (s < 0) return out;
+  if (s < 0)
+    return out;
   struct ifgroupreq ifgr;
   std::memset(&ifgr, 0, sizeof(ifgr));
   std::strncpy(ifgr.ifgr_name, ifname.c_str(), IFNAMSIZ - 1);
@@ -108,7 +117,8 @@ static std::vector<std::string> query_interface_groups(const std::string &ifname
       if (ioctl(s, SIOCGIFGROUP, &ifgr) == 0) {
         for (size_t i = 0; i < count; ++i) {
           std::string gname(groups[i].ifgrq_group);
-          if (!gname.empty()) out.emplace_back(gname);
+          if (!gname.empty())
+            out.emplace_back(gname);
         }
       }
     }
@@ -120,7 +130,8 @@ static std::vector<std::string> query_interface_groups(const std::string &ifname
 // Detect whether an interface is a kernel LAGG by attempting SIOCGLAGG.
 static bool interfaceIsLagg(const std::string &ifname) {
   int sock = socket(AF_LOCAL, SOCK_DGRAM, 0);
-  if (sock < 0) return false;
+  if (sock < 0)
+    return false;
 
   struct _local_lagg_status {
     struct lagg_reqall ra;
@@ -144,7 +155,8 @@ static bool interfaceIsLagg(const std::string &ifname) {
 // interface as a bridge.
 static bool interfaceIsBridge(const std::string &ifname) {
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
-  if (sock < 0) return false;
+  if (sock < 0)
+    return false;
 
   // Try with a small buffer; success means it's a bridge.
   const size_t entries = 8;
@@ -175,7 +187,8 @@ static bool interfaceIsBridge(const std::string &ifname) {
 // Attempt to extract ND6 (IPv6 neighbor discovery) option flags for
 // an interface. This helper currently does not perform the ioctl and
 // returns `std::nullopt` to avoid platform ABI assumptions.
-static std::optional<std::string> query_ifstatus_nd6(const std::string &ifname) {
+static std::optional<std::string>
+query_ifstatus_nd6(const std::string &ifname) {
   (void)ifname;
   return std::nullopt;
 }
@@ -349,11 +362,13 @@ static bool matches_vrf(const InterfaceConfig &ic,
 static void populateInterfaceMetadata(InterfaceConfig &ic) {
 
   // Metric, fib, tunnelfib, and gif endpoints use ioctls via helpers.
-  if (auto m = query_ifreq_int(ic.name, SIOCGIFMETRIC, IfreqIntField::Metric); m) {
+  if (auto m = query_ifreq_int(ic.name, SIOCGIFMETRIC, IfreqIntField::Metric);
+      m) {
     ic.metric = *m;
   }
   if (auto f = query_ifreq_int(ic.name, SIOCGIFFIB, IfreqIntField::Fib); f) {
-    if (!ic.vrf) ic.vrf = std::make_unique<VRFConfig>();
+    if (!ic.vrf)
+      ic.vrf = std::make_unique<VRFConfig>();
     ic.vrf->table = *f;
     ic.vrf->name = std::string("fib") + std::to_string(*f);
   }
@@ -363,28 +378,34 @@ static void populateInterfaceMetadata(InterfaceConfig &ic) {
 
   if (auto src = query_ifreq_sockaddr(ic.name, SIOCGIFPSRCADDR); src) {
     if (src->second == AF_INET) {
-      if (!ic.tunnel) ic.tunnel = std::make_shared<TunnelConfig>(ic);
+      if (!ic.tunnel)
+        ic.tunnel = std::make_shared<TunnelConfig>(ic);
       ic.tunnel->source = std::make_unique<IPv4Address>(src->first);
     } else if (src->second == AF_INET6) {
-      if (!ic.tunnel) ic.tunnel = std::make_shared<TunnelConfig>(ic);
+      if (!ic.tunnel)
+        ic.tunnel = std::make_shared<TunnelConfig>(ic);
       ic.tunnel->source = std::make_unique<IPv6Address>(src->first);
     }
   }
 
   if (auto dst = query_ifreq_sockaddr(ic.name, SIOCGIFPDSTADDR); dst) {
     if (dst->second == AF_INET) {
-      if (!ic.tunnel) ic.tunnel = std::make_shared<TunnelConfig>(ic);
+      if (!ic.tunnel)
+        ic.tunnel = std::make_shared<TunnelConfig>(ic);
       ic.tunnel->destination = std::make_unique<IPv4Address>(dst->first);
     } else if (dst->second == AF_INET6) {
-      if (!ic.tunnel) ic.tunnel = std::make_shared<TunnelConfig>(ic);
+      if (!ic.tunnel)
+        ic.tunnel = std::make_shared<TunnelConfig>(ic);
       ic.tunnel->destination = std::make_unique<IPv6Address>(dst->first);
     }
   }
 
   // Retrieve group membership and ND6 options using helper functions.
   auto groups = query_interface_groups(ic.name);
-  for (const auto &g : groups) ic.groups.emplace_back(g);
-  if (auto nd6 = query_ifstatus_nd6(ic.name); nd6) ic.nd6_options = *nd6;
+  for (const auto &g : groups)
+    ic.groups.emplace_back(g);
+  if (auto nd6 = query_ifstatus_nd6(ic.name); nd6)
+    ic.nd6_options = *nd6;
 }
 
 std::vector<InterfaceConfig> SystemConfigurationManager::GetInterfaces(
@@ -516,7 +537,8 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
       }
 
       int nports = ls->ra.ra_ports;
-      if (nports > LAGG_MAX_PORTS) nports = LAGG_MAX_PORTS;
+      if (nports > LAGG_MAX_PORTS)
+        nports = LAGG_MAX_PORTS;
       for (int i = 0; i < nports; ++i) {
         std::string pname = ls->rpbuf[i].rp_portname;
         if (!pname.empty()) {
@@ -526,7 +548,8 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
         }
       }
 
-      uint32_t hf = ls->rf.rf_flags & (LAGG_F_HASHL2 | LAGG_F_HASHL3 | LAGG_F_HASHL4);
+      uint32_t hf =
+          ls->rf.rf_flags & (LAGG_F_HASHL2 | LAGG_F_HASHL3 | LAGG_F_HASHL4);
       if (hf) {
         lac.hash_policy = hf;
       }
@@ -592,7 +615,8 @@ std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
         close(vsock);
 
         // Populate options (capabilities) from VLAN iface or parent as raw bits
-        auto query_caps = [&](const std::string &name) -> std::optional<uint32_t> {
+        auto query_caps =
+            [&](const std::string &name) -> std::optional<uint32_t> {
           int csock = socket(AF_INET, SOCK_DGRAM, 0);
           if (csock < 0)
             return std::nullopt;
@@ -612,7 +636,7 @@ std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
 
         if (auto o = query_caps(ic.name); o) {
           vconf.options_bits = *o;
-            (void)0;
+          (void)0;
         } else if (vconf.parent) {
           if (auto o = query_caps(*vconf.parent); o) {
             vconf.options_bits = *o;
@@ -632,7 +656,8 @@ std::vector<TunnelConfig> SystemConfigurationManager::GetTunnelInterfaces(
   auto bases = GetInterfaces(vrf);
   std::vector<TunnelConfig> out;
   for (const auto &ic : bases) {
-    if (ic.type == InterfaceType::Tunnel || ic.type == InterfaceType::Gif || ic.type == InterfaceType::Tun) {
+    if (ic.type == InterfaceType::Tunnel || ic.type == InterfaceType::Gif ||
+        ic.type == InterfaceType::Tun) {
       out.emplace_back(ic);
     }
   }

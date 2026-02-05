@@ -1,12 +1,12 @@
 #include "TunnelTableFormatter.hpp"
 #include "InterfaceConfig.hpp"
-#include "InterfaceType.hpp"
 #include "InterfaceFlags.hpp"
+#include "InterfaceType.hpp"
 #include "TunnelConfig.hpp"
 #include <algorithm>
+#include <cstdio>
 #include <iomanip>
 #include <sstream>
-#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -21,14 +21,14 @@ TunnelTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
   oss << std::string(80, '=') << "\n\n";
 
   // Table header
-    // Columns (condensed): Interface, Source, Destination, Flags, Metric, MTU,
-    // Groups, FIB, TunFIB, ND6Opts
-    oss << std::left << std::setw(10) << "Interface" << std::setw(16)
-      << "Source" << std::setw(16) << "Destination" << std::setw(8)
-      << "Flags" << std::setw(6) << "Metric" << std::setw(6) << "MTU"
-      << std::setw(12) << "Groups" << std::setw(6) << "FIB"
-      << std::setw(8) << "TunFIB" << std::setw(20) << "ND6Opts" << "\n";
-    oss << std::string(100, '-') << "\n";
+  // Columns (condensed): Interface, Source, Destination, Flags, Metric, MTU,
+  // Groups, FIB, TunFIB, ND6Opts
+  oss << std::left << std::setw(10) << "Interface" << std::setw(16) << "Source"
+      << std::setw(16) << "Destination" << std::setw(8) << "Flags"
+      << std::setw(6) << "Metric" << std::setw(6) << "MTU" << std::setw(12)
+      << "Groups" << std::setw(6) << "FIB" << std::setw(8) << "TunFIB"
+      << std::setw(20) << "ND6Opts" << "\n";
+  oss << std::string(100, '-') << "\n";
 
   for (const auto &cd : interfaces) {
     if (!cd.iface)
@@ -76,7 +76,8 @@ TunnelTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
     if (!ic.groups.empty()) {
       std::ostringstream goss;
       for (size_t i = 0; i < ic.groups.size(); ++i) {
-        if (i) goss << ',';
+        if (i)
+          goss << ',';
         goss << ic.groups[i];
       }
       groupsStr = goss.str();
@@ -105,24 +106,32 @@ TunnelTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
       std::string tok;
       while (std::getline(nis, tok, ',')) {
         // trim
-        while (!tok.empty() && isspace((unsigned char)tok.front())) tok.erase(tok.begin());
-        while (!tok.empty() && isspace((unsigned char)tok.back())) tok.pop_back();
-        if (!tok.empty()) nd6Lines.push_back(tok);
+        while (!tok.empty() && isspace((unsigned char)tok.front()))
+          tok.erase(tok.begin());
+        while (!tok.empty() && isspace((unsigned char)tok.back()))
+          tok.pop_back();
+        if (!tok.empty())
+          nd6Lines.push_back(tok);
       }
     }
-    if (nd6Lines.empty()) nd6Lines.push_back("-");
+    if (nd6Lines.empty())
+      nd6Lines.push_back("-");
 
     // Prepare groups as separate lines (one-per-line)
     std::vector<std::string> groupsLines;
     if (!ic.groups.empty()) {
       for (const auto &g : ic.groups) {
         std::string tok = g;
-        while (!tok.empty() && isspace((unsigned char)tok.front())) tok.erase(tok.begin());
-        while (!tok.empty() && isspace((unsigned char)tok.back())) tok.pop_back();
-        if (!tok.empty()) groupsLines.push_back(tok);
+        while (!tok.empty() && isspace((unsigned char)tok.front()))
+          tok.erase(tok.begin());
+        while (!tok.empty() && isspace((unsigned char)tok.back()))
+          tok.pop_back();
+        if (!tok.empty())
+          groupsLines.push_back(tok);
       }
     }
-    if (groupsLines.empty()) groupsLines.push_back("-");
+    if (groupsLines.empty())
+      groupsLines.push_back("-");
 
     // Determine rows needed to show both groups and nd6 options vertically
     size_t rows = std::max(groupsLines.size(), nd6Lines.size());
@@ -137,14 +146,14 @@ TunnelTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
         oss << std::left << std::setw(10) << ic.name << std::setw(16) << source
             << std::setw(16) << destination << std::setw(8) << flagsStr
             << std::setw(7) << metricStr << std::setw(6) << mtuStr
-            << std::setw(12) << gcell << std::setw(6) << fibStr
-            << std::setw(8) << tunnelFibStr << std::setw(20) << nd6cell << "\n";
+            << std::setw(12) << gcell << std::setw(6) << fibStr << std::setw(8)
+            << tunnelFibStr << std::setw(20) << nd6cell << "\n";
       } else {
         // continuation rows: only groups and nd6 cells
         oss << std::left << std::setw(10) << "" << std::setw(16) << ""
             << std::setw(16) << "" << std::setw(8) << "" << std::setw(7) << ""
-            << std::setw(6) << "" << std::setw(12) << gcell << std::setw(6) << ""
-            << std::setw(8) << "" << std::setw(20) << nd6cell << "\n";
+            << std::setw(6) << "" << std::setw(12) << gcell << std::setw(6)
+            << "" << std::setw(8) << "" << std::setw(20) << nd6cell << "\n";
       }
     }
   }

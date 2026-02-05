@@ -10,6 +10,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <sys/sockio.h>
 
 #include "IPAddress.hpp"
 #include "IPNetwork.hpp"
@@ -117,6 +118,22 @@ void InterfaceConfig::save() const {
   std::memset(&ifr, 0, sizeof(ifr));
   std::strncpy(ifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
   configureFlags(sock, ifr);
+
+  // Apply VRF / FIB to the interface if requested
+#ifdef SIOCSIFFIB
+  if (vrf && vrf->table) {
+    struct ifreq fib_ifr;
+    std::memset(&fib_ifr, 0, sizeof(fib_ifr));
+    std::strncpy(fib_ifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
+    fib_ifr.ifr_fib = *vrf->table;
+    if (ioctl(sock, SIOCSIFFIB, &fib_ifr) < 0) {
+      int err = errno;
+      close(sock);
+      throw std::runtime_error("Failed to set interface FIB: " +
+                               std::string(strerror(err)));
+    }
+  }
+#endif
 
   close(sock);
 }

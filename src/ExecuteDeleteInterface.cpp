@@ -25,7 +25,7 @@ void netcli::Parser::executeDeleteInterface(const InterfaceToken &tok,
     ic.destroy();
     std::cout << "delete interface: removed '" << name << "'\n";
   } catch (const std::exception &e) {
-    std::cerr << "delete interface: failed to remove '" << name << "': "
-              << e.what() << "\n";
+    std::cerr << "delete interface: failed to remove '" << name
+              << "': " << e.what() << "\n";
   }
 }
