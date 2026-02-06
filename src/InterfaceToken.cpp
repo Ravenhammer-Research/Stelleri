@@ -52,9 +52,7 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
     if (a == "name") {
       std::string name = b;
       size_t nnext = start + 3;
-      std::cerr << "[InterfaceToken] parseFromTokens: consumed 'name '" << b
-                << " starting at " << start << " -> name='" << name
-                << "' next=" << nnext << "\n";
+      
       auto tok = std::make_shared<InterfaceToken>(InterfaceType::Unknown, name);
       // parse trailing options (vlan/lagg/etc.)
       size_t cur = nnext;
@@ -194,10 +192,7 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
         }
         next =
             start + (name.empty() ? 3 : (tokens[start + 3] == "name" ? 5 : 4));
-        std::cerr << "[InterfaceToken] parseFromTokens: consumed 'type '" << b
-                  << " starting at " << start
-                  << " -> type=" << static_cast<int>(itype) << " name='" << name
-                  << "' next=" << next << "\n";
+        
         auto tok = std::make_shared<InterfaceToken>(itype, name);
         // Parse optional args after the name
         size_t cur = next;
@@ -328,10 +323,7 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
         itype = InterfaceType::Virtual;
       if (itype != InterfaceType::Unknown) {
         next = start + 3;
-        std::cerr << "[InterfaceToken] parseFromTokens: consumed tokens '"
-                  << type << " ' '" << nameTok << "' starting at " << start
-                  << " -> type=" << static_cast<int>(itype) << " name='"
-                  << nameTok << "' next=" << next << "\n";
+        
         auto tok = std::make_shared<InterfaceToken>(itype, nameTok);
         // parse additional args after nameTok
         size_t cur = next;
