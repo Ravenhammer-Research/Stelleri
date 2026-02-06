@@ -19,6 +19,12 @@ public:
 
   // Parse textual address (IPv4 or IPv6)
   static std::unique_ptr<IPAddress> fromString(const std::string &s);
+
+  // Create a subnet mask IPAddress from a CIDR prefix length for the
+  // specified address family (IPv4 or IPv6). Returns nullptr on invalid
+  // input (e.g., cidr > 32 for IPv4 or >128 for IPv6).
+  static std::unique_ptr<IPAddress> maskFromCIDR(AddressFamily fam,
+                                                 uint8_t cidr);
 };
 
 // IPv4 concrete implementation
@@ -113,6 +119,34 @@ inline std::unique_ptr<IPAddress> IPAddress::fromString(const std::string &s) {
       v |= static_cast<unsigned char>(a6.s6_addr[i]);
     }
     return std::make_unique<IPv6Address>(v);
+  }
+  return nullptr;
+}
+
+inline std::unique_ptr<IPAddress> IPAddress::maskFromCIDR(AddressFamily fam,
+                                                          uint8_t cidr) {
+  if (fam == AddressFamily::IPv4) {
+    if (cidr > 32)
+      return nullptr;
+    uint32_t maskVal = 0;
+    if (cidr == 0)
+      maskVal = 0;
+    else
+      maskVal = (cidr == 32) ? ~uint32_t(0) : (~uint32_t(0) << (32 - cidr));
+    return std::make_unique<IPv4Address>(maskVal);
+  } else if (fam == AddressFamily::IPv6) {
+    if (cidr > 128)
+      return nullptr;
+    unsigned __int128 maskVal = 0;
+    if (cidr == 0) {
+      maskVal = 0;
+    } else if (cidr == 128) {
+      maskVal = ~static_cast<unsigned __int128>(0);
+    } else {
+      unsigned __int128 allOnes = ~static_cast<unsigned __int128>(0);
+      maskVal = (allOnes << (128 - cidr));
+    }
+    return std::make_unique<IPv6Address>(maskVal);
   }
   return nullptr;
 }

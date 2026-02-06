@@ -24,7 +24,6 @@ VLANConfig::VLANConfig(const InterfaceConfig &base) {
   if (base.vrf)
     vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
-  tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
   mtu = base.mtu;
 }
@@ -45,7 +44,6 @@ VLANConfig::VLANConfig(const InterfaceConfig &base, uint16_t id_,
   if (base.vrf)
     vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
-  tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
   mtu = base.mtu;
 

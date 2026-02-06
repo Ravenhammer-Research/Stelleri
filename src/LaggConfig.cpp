@@ -29,7 +29,6 @@ LaggConfig::LaggConfig(const InterfaceConfig &base) {
   if (base.vrf)
     vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
-  tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
   mtu = base.mtu;
 }
@@ -51,7 +50,6 @@ LaggConfig::LaggConfig(const InterfaceConfig &base, LaggProtocol protocol_,
   if (base.vrf)
     vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
-  tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
   mtu = base.mtu;
 

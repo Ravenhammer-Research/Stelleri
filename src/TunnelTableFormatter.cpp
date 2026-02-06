@@ -49,11 +49,12 @@ TunnelTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
     std::string tunnelFibStr = "-";
     std::string nd6Cell = "-";
 
-    if (ic.tunnel) {
-      if (ic.tunnel->source)
-        source = ic.tunnel->source->toString();
-      if (ic.tunnel->destination)
-        destination = ic.tunnel->destination->toString();
+    const TunnelConfig *tptr = dynamic_cast<const TunnelConfig *>(&ic);
+    if (tptr) {
+      if (tptr->source)
+        source = tptr->source->toString();
+      if (tptr->destination)
+        destination = tptr->destination->toString();
     }
 
     if (ic.flags)
@@ -80,8 +81,8 @@ TunnelTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
         fibStr = ic.vrf->name;
     }
 
-    if (ic.tunnel_vrf)
-      tunnelFibStr = std::to_string(*ic.tunnel_vrf);
+    if (tptr && tptr->tunnel_vrf)
+      tunnelFibStr = std::to_string(*tptr->tunnel_vrf);
 
     if (ic.nd6_options)
       nd6Cell = *ic.nd6_options;

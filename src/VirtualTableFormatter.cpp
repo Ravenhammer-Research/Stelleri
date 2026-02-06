@@ -52,14 +52,14 @@ VirtualTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
         std::string base = nm.substr(0, nm.size() - 1);
         auto &p = pairs[base];
         if (last == 'a')
-          p.a = ic;
+          p.a.emplace(ic);
         else
-          p.b = ic;
+          p.b.emplace(ic);
         continue;
       }
     }
     // not ending in a/b: put in 'a' slot by default
-    pairs[nm].a = ic;
+    pairs[nm].a.emplace(ic);
   }
 
   for (const auto &kv : pairs) {

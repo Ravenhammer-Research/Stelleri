@@ -32,7 +32,6 @@ BridgeInterfaceConfig::BridgeInterfaceConfig(const InterfaceConfig &base) {
   if (base.vrf)
     vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
-  tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
   mtu = base.mtu;
 }
@@ -57,7 +56,6 @@ BridgeInterfaceConfig::BridgeInterfaceConfig(
   if (base.vrf)
     vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
-  tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
   mtu = base.mtu;
 

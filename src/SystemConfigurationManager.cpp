@@ -5,6 +5,7 @@
 #include "SystemConfigurationManager.hpp"
 #include "InterfaceConfig.hpp"
 #include "LaggFlags.hpp"
+#include "WlanConfig.hpp"
 
 #include <cstring>
 #include <ifaddrs.h>
@@ -373,39 +374,14 @@ static void populateInterfaceMetadata(InterfaceConfig &ic) {
     ic.vrf->table = *f;
     ic.vrf->name = std::string("fib") + std::to_string(*f);
   }
-  if (auto tf = query_ifreq_int(ic.name, SIOCGTUNFIB, IfreqIntField::Fib); tf) {
-    ic.tunnel_vrf = *tf;
-  }
-
   // Interface index
   unsigned int ifidx = if_nametoindex(ic.name.c_str());
   if (ifidx != 0) {
     ic.index = static_cast<int>(ifidx);
   }
 
-  if (auto src = query_ifreq_sockaddr(ic.name, SIOCGIFPSRCADDR); src) {
-    if (src->second == AF_INET) {
-      if (!ic.tunnel)
-        ic.tunnel = std::make_shared<TunnelConfig>(ic);
-      ic.tunnel->source = std::make_unique<IPv4Address>(src->first);
-    } else if (src->second == AF_INET6) {
-      if (!ic.tunnel)
-        ic.tunnel = std::make_shared<TunnelConfig>(ic);
-      ic.tunnel->source = std::make_unique<IPv6Address>(src->first);
-    }
-  }
-
-  if (auto dst = query_ifreq_sockaddr(ic.name, SIOCGIFPDSTADDR); dst) {
-    if (dst->second == AF_INET) {
-      if (!ic.tunnel)
-        ic.tunnel = std::make_shared<TunnelConfig>(ic);
-      ic.tunnel->destination = std::make_unique<IPv4Address>(dst->first);
-    } else if (dst->second == AF_INET6) {
-      if (!ic.tunnel)
-        ic.tunnel = std::make_shared<TunnelConfig>(ic);
-      ic.tunnel->destination = std::make_unique<IPv6Address>(dst->first);
-    }
-  }
+  // Tunnel-specific metadata will be populated when requesting
+  // TunnelConfig objects (see GetTunnelInterfaces()).
 
   // Retrieve group membership and ND6 options using helper functions.
   auto groups = query_interface_groups(ic.name);
@@ -414,112 +390,119 @@ static void populateInterfaceMetadata(InterfaceConfig &ic) {
   if (auto nd6 = query_ifstatus_nd6(ic.name); nd6)
     ic.nd6_options = *nd6;
 
-  // Wireless attributes: use SIOCG80211 ioctls when available (best-effort)
+  // Wireless attributes: populate into WlanConfig when available
   if (ic.type == InterfaceType::Wireless) {
-    int s = socket(AF_INET, SOCK_DGRAM, 0);
-    if (s >= 0) {
-      struct ieee80211req req;
-      std::memset(&req, 0, sizeof(req));
-      std::strncpy(req.i_name, ic.name.c_str(), IFNAMSIZ - 1);
+    // attempt to populate wireless attributes only when caller used a
+    // concrete WlanConfig object; dynamic_cast will return nullptr for a
+    // plain InterfaceConfig.
+    if (auto w = dynamic_cast<WlanConfig *>(&ic)) {
+      int s = socket(AF_INET, SOCK_DGRAM, 0);
+      if (s >= 0) {
+        struct ieee80211req req;
+        std::memset(&req, 0, sizeof(req));
+        std::strncpy(req.i_name, ic.name.c_str(), IFNAMSIZ - 1);
 
-      // SSID
-      {
-        const int bufsize = 256;
-        std::vector<char> buf(bufsize);
-        req.i_type = IEEE80211_IOC_SSID;
-        req.i_len = bufsize;
-        req.i_data = buf.data();
-        if (ioctl(s, SIOCG80211, &req) == 0 && req.i_len > 0) {
-          ic.ssid = std::string(buf.data(), static_cast<size_t>(req.i_len));
-        }
-      }
-
-      // Channel (try CURCHAN then CHANNEL)
-      {
-        int ch = 0;
-        req.i_type = IEEE80211_IOC_CURCHAN;
-        req.i_data = &ch;
-        req.i_len = sizeof(ch);
-        if (ioctl(s, SIOCG80211, &req) == 0) {
-          ic.channel = ch;
-        } else {
-          ch = 0;
-          req.i_type = IEEE80211_IOC_CHANNEL;
-          req.i_data = &ch;
-          req.i_len = sizeof(ch);
-          if (ioctl(s, SIOCG80211, &req) == 0)
-            ic.channel = ch;
-        }
-      }
-
-      // BSSID
-      {
-        const int macsz = 8;
-        std::vector<unsigned char> mac(macsz);
-        req.i_type = IEEE80211_IOC_BSSID;
-        req.i_len = macsz;
-        req.i_data = mac.data();
-        if (ioctl(s, SIOCG80211, &req) == 0 && req.i_len >= 6) {
-          char macbuf[32];
-          std::snprintf(macbuf, sizeof(macbuf), "%02x:%02x:%02x:%02x:%02x:%02x",
-                        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-          ic.bssid = std::string(macbuf);
-        }
-      }
-
-      // Parent (IC_NAME)
-      {
-        const int psize = 64;
-        std::vector<char> pbuf(psize);
-        req.i_type = IEEE80211_IOC_IC_NAME;
-        req.i_len = psize;
-        req.i_data = pbuf.data();
-        if (ioctl(s, SIOCG80211, &req) == 0 && req.i_len > 0)
-          ic.parent = std::string(pbuf.data(), static_cast<size_t>(req.i_len));
-      }
-
-      // Authmode
-      {
-        int am = 0;
-        req.i_type = IEEE80211_IOC_AUTHMODE;
-        req.i_data = &am;
-        req.i_len = sizeof(am);
-        if (ioctl(s, SIOCG80211, &req) == 0) {
-          switch (am) {
-          case 0:
-            ic.authmode = std::string("OPEN");
-            break;
-          case 1:
-            ic.authmode = std::string("SHARED");
-            break;
-          case 2:
-            ic.authmode = std::string("WPA");
-            break;
-          case 3:
-            ic.authmode = std::string("WPA2");
-            break;
-          default:
-            ic.authmode = std::string("unknown");
-            break;
+        // SSID
+        {
+          const int bufsize = 256;
+          std::vector<char> buf(bufsize);
+          req.i_type = IEEE80211_IOC_SSID;
+          req.i_len = bufsize;
+          req.i_data = buf.data();
+          if (ioctl(s, SIOCG80211, &req) == 0 && req.i_len > 0) {
+            w->ssid = std::string(buf.data(), static_cast<size_t>(req.i_len));
           }
         }
-      }
 
-      // Status/media heuristics
-      if (ic.flags && (*ic.flags & IFF_RUNNING)) {
-        if (ic.ssid)
-          ic.status = std::string("associated");
-        else
-          ic.status = std::string("up");
-      } else {
-        ic.status = std::string("down");
-      }
-      if (ic.channel) {
-        ic.media =
-            std::string("IEEE 802.11 channel ") + std::to_string(*ic.channel);
-      }
+        // Channel (try CURCHAN then CHANNEL)
+        {
+          int ch = 0;
+          req.i_type = IEEE80211_IOC_CURCHAN;
+          req.i_data = &ch;
+          req.i_len = sizeof(ch);
+          if (ioctl(s, SIOCG80211, &req) == 0) {
+            w->channel = ch;
+          } else {
+            ch = 0;
+            req.i_type = IEEE80211_IOC_CHANNEL;
+            req.i_data = &ch;
+            req.i_len = sizeof(ch);
+            if (ioctl(s, SIOCG80211, &req) == 0)
+              w->channel = ch;
+          }
+        }
 
-      close(s);
+        // BSSID
+        {
+          const int macsz = 8;
+          std::vector<unsigned char> mac(macsz);
+          req.i_type = IEEE80211_IOC_BSSID;
+          req.i_len = macsz;
+          req.i_data = mac.data();
+          if (ioctl(s, SIOCG80211, &req) == 0 && req.i_len >= 6) {
+            char macbuf[32];
+            std::snprintf(macbuf, sizeof(macbuf),
+                          "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1],
+                          mac[2], mac[3], mac[4], mac[5]);
+            w->bssid = std::string(macbuf);
+          }
+        }
+
+        // Parent (IC_NAME)
+        {
+          const int psize = 64;
+          std::vector<char> pbuf(psize);
+          req.i_type = IEEE80211_IOC_IC_NAME;
+          req.i_len = psize;
+          req.i_data = pbuf.data();
+          if (ioctl(s, SIOCG80211, &req) == 0 && req.i_len > 0)
+            w->parent =
+                std::string(pbuf.data(), static_cast<size_t>(req.i_len));
+        }
+
+        // Authmode
+        {
+          int am = 0;
+          req.i_type = IEEE80211_IOC_AUTHMODE;
+          req.i_data = &am;
+          req.i_len = sizeof(am);
+          if (ioctl(s, SIOCG80211, &req) == 0) {
+            switch (am) {
+            case 0:
+              w->authmode = std::string("OPEN");
+              break;
+            case 1:
+              w->authmode = std::string("SHARED");
+              break;
+            case 2:
+              w->authmode = std::string("WPA");
+              break;
+            case 3:
+              w->authmode = std::string("WPA2");
+              break;
+            default:
+              w->authmode = std::string("unknown");
+              break;
+            }
+          }
+        }
+
+        // Status/media heuristics
+        if (ic.flags && (*ic.flags & IFF_RUNNING)) {
+          if (w->ssid)
+            w->status = std::string("associated");
+          else
+            w->status = std::string("up");
+        } else {
+          w->status = std::string("down");
+        }
+        if (w->channel) {
+          w->media =
+              std::string("IEEE 802.11 channel ") + std::to_string(*w->channel);
+        }
+
+        close(s);
+      }
     }
   }
 }
@@ -534,7 +517,7 @@ std::vector<InterfaceConfig> SystemConfigurationManager::GetInterfaces(
   // Aggregate per-interface entries: some systems provide multiple ifaddrs
   // entries per logical interface (link, IPv4, IPv6). Build a map and merge
   // address entries so primary and aliases are captured.
-  std::unordered_map<std::string, InterfaceConfig> map;
+  std::unordered_map<std::string, std::shared_ptr<InterfaceConfig>> map;
   for (struct ifaddrs *ifa = ifs; ifa; ifa = ifa->ifa_next) {
     if (!ifa->ifa_name)
       continue;
@@ -542,20 +525,26 @@ std::vector<InterfaceConfig> SystemConfigurationManager::GetInterfaces(
     auto it = map.find(name);
     if (it == map.end()) {
       // First time seeing this interface: construct from this ifa
-      InterfaceConfig ic(ifa);
-      map.emplace(name, std::move(ic));
+      auto ic = std::make_shared<InterfaceConfig>(ifa);
+      // If this is a wireless interface, promote to WlanConfig
+      if (ic->type == InterfaceType::Wireless) {
+        auto w = std::make_shared<WlanConfig>(*ic);
+        map.emplace(name, std::move(w));
+      } else {
+        map.emplace(name, std::move(ic));
+      }
     } else {
       // Merge address information from subsequent ifaddrs entries
-      InterfaceConfig &existing = it->second;
+      auto existing = it->second;
       if (ifa->ifa_addr) {
         if (ifa->ifa_addr->sa_family == AF_INET ||
             ifa->ifa_addr->sa_family == AF_INET6) {
           InterfaceConfig tmp(ifa);
           if (tmp.address) {
-            if (!existing.address) {
-              existing.address = std::move(tmp.address);
+            if (!existing->address) {
+              existing->address = std::move(tmp.address);
             } else {
-              existing.aliases.emplace_back(std::move(tmp.address));
+              existing->aliases.emplace_back(std::move(tmp.address));
             }
           }
         }
@@ -567,23 +556,23 @@ std::vector<InterfaceConfig> SystemConfigurationManager::GetInterfaces(
   // Populate additional per-interface metadata from system and move entries
   for (auto &kv : map) {
     // Populate metric, nd6, tunnel endpoints, etc.
-    populateInterfaceMetadata(kv.second);
+    populateInterfaceMetadata(*kv.second);
     // If interface belongs to the 'epair' group, treat it as a virtual pair
-    for (const auto &g : kv.second.groups) {
+    for (const auto &g : kv.second->groups) {
       if (g == "epair") {
-        kv.second.type = InterfaceType::Virtual;
+        kv.second->type = InterfaceType::Virtual;
         break;
       }
     }
     // If the kernel reports this interface as a LAGG or a bridge, mark its
     // type so formatters display the appropriate specialized type.
-    if (interfaceIsLagg(kv.second.name)) {
-      kv.second.type = InterfaceType::Lagg;
-    } else if (interfaceIsBridge(kv.second.name)) {
-      kv.second.type = InterfaceType::Bridge;
+    if (interfaceIsLagg(kv.second->name)) {
+      kv.second->type = InterfaceType::Lagg;
+    } else if (interfaceIsBridge(kv.second->name)) {
+      kv.second->type = InterfaceType::Bridge;
     }
-    if (matches_vrf(kv.second, vrf))
-      out.emplace_back(std::move(kv.second));
+    if (matches_vrf(*kv.second, vrf))
+      out.emplace_back(std::move(*kv.second));
   }
 
   freeifaddrs(ifs);
@@ -781,7 +770,27 @@ std::vector<TunnelConfig> SystemConfigurationManager::GetTunnelInterfaces(
   for (const auto &ic : bases) {
     if (ic.type == InterfaceType::Tunnel || ic.type == InterfaceType::Gif ||
         ic.type == InterfaceType::Tun) {
-      out.emplace_back(ic);
+      TunnelConfig tconf(ic);
+
+      // Populate tunnel-specific fields via ioctls
+      if (auto tf = query_ifreq_int(ic.name, SIOCGTUNFIB, IfreqIntField::Fib);
+          tf) {
+        tconf.tunnel_vrf = *tf;
+      }
+      if (auto src = query_ifreq_sockaddr(ic.name, SIOCGIFPSRCADDR); src) {
+        if (src->second == AF_INET)
+          tconf.source = std::make_unique<IPv4Address>(src->first);
+        else if (src->second == AF_INET6)
+          tconf.source = std::make_unique<IPv6Address>(src->first);
+      }
+      if (auto dst = query_ifreq_sockaddr(ic.name, SIOCGIFPDSTADDR); dst) {
+        if (dst->second == AF_INET)
+          tconf.destination = std::make_unique<IPv4Address>(dst->first);
+        else if (dst->second == AF_INET6)
+          tconf.destination = std::make_unique<IPv6Address>(dst->first);
+      }
+
+      out.emplace_back(std::move(tconf));
     }
   }
   return out;

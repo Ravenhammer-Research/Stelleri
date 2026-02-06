@@ -25,15 +25,13 @@ TunnelConfig::TunnelConfig(const InterfaceConfig &base) {
   if (base.vrf)
     vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
-  tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
   mtu = base.mtu;
 }
 
 TunnelConfig::TunnelConfig(const InterfaceConfig &base, TunnelType type_,
                            std::unique_ptr<IPAddress> source_,
-                           std::unique_ptr<IPAddress> destination_,
-                           std::optional<int> ttl_, std::optional<int> tos_) {
+                           std::unique_ptr<IPAddress> destination_) {
   name = base.name;
   InterfaceConfig::type = base.type;
   if (base.address)
@@ -46,15 +44,12 @@ TunnelConfig::TunnelConfig(const InterfaceConfig &base, TunnelType type_,
   if (base.vrf)
     vrf = std::make_unique<VRFConfig>(*base.vrf);
   flags = base.flags;
-  tunnel_vrf = base.tunnel_vrf;
   groups = base.groups;
   mtu = base.mtu;
 
   type = type_;
   source = std::move(source_);
   destination = std::move(destination_);
-  ttl = ttl_;
-  tos = tos_;
 }
 
 void TunnelConfig::save() const {
@@ -117,9 +112,7 @@ void TunnelConfig::save() const {
                  "not fully implemented\n";
   }
 
-  if (ttl) {
-    // No-op: TTL for tunnels may be configured per-tunnel via other ioctls.
-  }
+  (void)0;
 
   close(tsock);
 }

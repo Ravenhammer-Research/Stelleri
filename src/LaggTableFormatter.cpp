@@ -93,11 +93,8 @@ LaggTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
       continue;
     const auto &ic = *cd.iface;
 
-    const LaggConfig *laggPtr = nullptr;
-    if (ic.lagg)
-      laggPtr = ic.lagg.get();
-    else
-      laggPtr = dynamic_cast<const LaggConfig *>(cd.iface.get());
+    const LaggConfig *laggPtr =
+        dynamic_cast<const LaggConfig *>(cd.iface.get());
 
     if (!laggPtr)
       continue;

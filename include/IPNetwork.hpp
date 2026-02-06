@@ -23,6 +23,10 @@ public:
   // Compatibility helper used by older call sites
   std::unique_ptr<IPNetwork> cloneNetwork() const { return clone(); }
 
+  // Helper: derive CIDR mask length from a sockaddr netmask pointer.
+  // Returns 32 for IPv4 when `sa` is null, 128 for IPv6 when null.
+  static uint8_t masklenFromSockaddr(const struct sockaddr *sa);
+
   // Parse network string like "192.0.2.0/24" or IPv6 notation.
   static std::unique_ptr<IPNetwork> fromString(const std::string &s);
 };
@@ -166,4 +170,38 @@ inline std::unique_ptr<IPNetwork> IPNetwork::fromString(const std::string &s) {
     return std::make_unique<IPv6Network>(v, m);
   }
   return nullptr;
+}
+
+inline uint8_t IPNetwork::masklenFromSockaddr(const struct sockaddr *sa) {
+  if (!sa)
+    return 0; // caller should supply default depending on family
+  if (sa->sa_family == AF_INET) {
+    const struct sockaddr_in *m =
+        reinterpret_cast<const struct sockaddr_in *>(sa);
+    uint32_t mv = ntohl(m->sin_addr.s_addr);
+    uint8_t masklen = 0;
+    for (int i = 31; i >= 0; --i) {
+      if ((mv >> i) & 1u)
+        ++masklen;
+      else
+        break;
+    }
+    return masklen;
+  }
+  if (sa->sa_family == AF_INET6) {
+    const struct sockaddr_in6 *m6 =
+        reinterpret_cast<const struct sockaddr_in6 *>(sa);
+    uint8_t masklen = 0;
+    for (int byte = 0; byte < 16; ++byte) {
+      unsigned char b = m6->sin6_addr.s6_addr[byte];
+      for (int bit = 7; bit >= 0; --bit) {
+        if ((b >> bit) & 1u)
+          ++masklen;
+        else
+          return masklen;
+      }
+    }
+    return masklen;
+  }
+  return 0;
 }

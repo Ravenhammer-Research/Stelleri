@@ -24,49 +24,26 @@ public:
   TunnelConfig(const InterfaceConfig &base);
   TunnelConfig(const InterfaceConfig &base, TunnelType type,
                std::unique_ptr<IPAddress> source,
-               std::unique_ptr<IPAddress> destination, std::optional<int> ttl,
-               std::optional<int> tos);
+               std::unique_ptr<IPAddress> destination);
 
   TunnelType type = TunnelType::UNKNOWN; ///< Tunnel implementation/type
   std::unique_ptr<IPAddress>
       source; ///< Tunnel source network/address (nullable)
   std::unique_ptr<IPAddress>
-      destination;        ///< Tunnel destination network/address (nullable)
-  std::optional<int> ttl; ///< Tunnel TTL
-  std::optional<int> tos; ///< Type of Service
+      destination; ///< Tunnel destination network/address (nullable)
+  // TTL and TOS removed from TunnelConfig; managed elsewhere if needed
+  std::optional<int> tunnel_vrf; ///< Tunnel-specific VRF/FIB (TunFIB)
 
   // Copy semantics: clone underlying IPNetwork objects
   TunnelConfig(const TunnelConfig &o)
-      : InterfaceConfig(o), type(o.type), ttl(o.ttl), tos(o.tos) {
+      : InterfaceConfig(o), type(o.type), tunnel_vrf(o.tunnel_vrf) {
     if (o.source)
       source = o.source->clone();
     if (o.destination)
       destination = o.destination->clone();
-  }
-
-  TunnelConfig &operator=(const TunnelConfig &o) {
-    if (this == &o)
-      return *this;
-    InterfaceConfig::operator=(o);
-    type = o.type;
-    ttl = o.ttl;
-    tos = o.tos;
-    if (o.source)
-      source = o.source->clone();
-    else
-      source.reset();
-    if (o.destination)
-      destination = o.destination->clone();
-    else
-      destination.reset();
-    return *this;
   }
 
 public:
-  // Allow moving
-  TunnelConfig(TunnelConfig &&) = default;
-  TunnelConfig &operator=(TunnelConfig &&) = default;
-
   void save() const override;
 
 private:

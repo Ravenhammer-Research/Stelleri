@@ -47,29 +47,23 @@ SingleInterfaceSummaryFormatter::format(const ConfigData &cd) const {
     oss << "VRF:       " << ic.vrf->name << "\n";
   }
 
-  if (ic.tunnel_vrf) {
-    oss << "Tunnel VRF: " << *ic.tunnel_vrf << "\n";
-  }
-
-  // Show tunnel details
-  if (ic.tunnel) {
-    if (ic.tunnel->source)
-      oss << "Tunnel Src: " << ic.tunnel->source->toString() << "\n";
-    if (ic.tunnel->destination)
-      oss << "Tunnel Dst: " << ic.tunnel->destination->toString() << "\n";
-    if (ic.tunnel->ttl)
-      oss << "Tunnel TTL: " << *ic.tunnel->ttl << "\n";
-    if (ic.tunnel->tos)
-      oss << "Tunnel TOS: " << *ic.tunnel->tos << "\n";
+  // Tunnel details (use dynamic_cast to access derived TunnelConfig)
+  if (auto tptr = dynamic_cast<const TunnelConfig *>(&ic)) {
+    if (tptr->tunnel_vrf)
+      oss << "Tunnel VRF: " << *tptr->tunnel_vrf << "\n";
+    if (tptr->source)
+      oss << "Tunnel Src: " << tptr->source->toString() << "\n";
+    if (tptr->destination)
+      oss << "Tunnel Dst: " << tptr->destination->toString() << "\n";
   }
 
   // Show bridge details
-  if (ic.bridge) {
-    oss << "Bridge STP: " << (ic.bridge->stp ? "enabled" : "disabled") << "\n";
-    if (!ic.bridge->members.empty()) {
+  if (auto bptr = dynamic_cast<const BridgeInterfaceConfig *>(&ic)) {
+    oss << "Bridge STP: " << (bptr->stp ? "enabled" : "disabled") << "\n";
+    if (!bptr->members.empty()) {
       oss << "Members:   ";
       bool first = true;
-      for (const auto &m : ic.bridge->members) {
+      for (const auto &m : bptr->members) {
         if (!first)
           oss << ", ";
         oss << m;
@@ -80,9 +74,9 @@ SingleInterfaceSummaryFormatter::format(const ConfigData &cd) const {
   }
 
   // Show LAGG details
-  if (ic.lagg) {
+  if (auto lptr = dynamic_cast<const LaggConfig *>(&ic)) {
     oss << "LAGG Proto: ";
-    switch (ic.lagg->protocol) {
+    switch (lptr->protocol) {
     case LaggProtocol::LACP:
       oss << "LACP";
       break;
@@ -98,10 +92,10 @@ SingleInterfaceSummaryFormatter::format(const ConfigData &cd) const {
     }
     oss << "\n";
 
-    if (!ic.lagg->members.empty()) {
+    if (!lptr->members.empty()) {
       oss << "Members:   ";
       bool first = true;
-      for (const auto &m : ic.lagg->members) {
+      for (const auto &m : lptr->members) {
         if (!first)
           oss << ", ";
         oss << m;
@@ -112,12 +106,12 @@ SingleInterfaceSummaryFormatter::format(const ConfigData &cd) const {
   }
 
   // Show VLAN details
-  if (ic.vlan) {
-    oss << "VLAN ID:   " << ic.vlan->id << "\n";
-    if (ic.vlan->parent)
-      oss << "Parent:    " << *ic.vlan->parent << "\n";
-    if (ic.vlan->pcp)
-      oss << "PCP:       " << static_cast<int>(*ic.vlan->pcp) << "\n";
+  if (auto vptr = dynamic_cast<const VLANConfig *>(&ic)) {
+    oss << "VLAN ID:   " << vptr->id << "\n";
+    if (vptr->parent)
+      oss << "Parent:    " << *vptr->parent << "\n";
+    if (vptr->pcp)
+      oss << "PCP:       " << static_cast<int>(*vptr->pcp) << "\n";
   }
 
   if (ic.flags) {

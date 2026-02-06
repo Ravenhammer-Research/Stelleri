@@ -25,6 +25,7 @@ public:
   std::optional<std::string> group;
   std::optional<int> tunnel_vrf;
   std::optional<std::string> address;
+  std::optional<int> address_family; // AF_INET or AF_INET6 when inet/inet6 used
   std::optional<int> mtu;
   std::optional<BridgeInterfaceConfig> bridge;
   std::optional<LaggConfig> lagg;

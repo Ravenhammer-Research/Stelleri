@@ -77,11 +77,12 @@ VLANTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
     int vid = -1;
     std::string parent = "-";
     std::optional<int> pcp;
-    if (ic.vlan) {
-      vid = ic.vlan->id;
-      parent = ic.vlan->parent ? *ic.vlan->parent : std::string("-");
-      if (ic.vlan->pcp)
-        pcp = static_cast<int>(*ic.vlan->pcp);
+    const VLANConfig *vptr = dynamic_cast<const VLANConfig *>(&ic);
+    if (vptr) {
+      vid = vptr->id;
+      parent = vptr->parent ? *vptr->parent : std::string("-");
+      if (vptr->pcp)
+        pcp = static_cast<int>(*vptr->pcp);
     } else {
       // Attempt to parse forms like "re0.25" (parent.name notation).
       auto pos = ic.name.find('.');
@@ -99,15 +100,14 @@ VLANTableFormatter::format(const std::vector<ConfigData> &interfaces) const {
     std::string vidStr = (vid >= 0) ? std::to_string(vid) : std::string("-");
     std::string pcpStr =
         pcp ? std::to_string(static_cast<int>(*pcp)) : std::string("-");
-    std::string nameStr =
-        (ic.vlan && ic.vlan->name) ? *ic.vlan->name : std::string("-");
+    std::string nameStr = (vptr && vptr->name) ? *vptr->name : std::string("-");
     std::string protoStr =
-        (ic.vlan ? vlanProtoToString(ic.vlan->proto) : std::string("-"));
+        (vptr ? vlanProtoToString(vptr->proto) : std::string("-"));
     std::string flagsStr =
         (ic.flags ? flagsToString(*ic.flags) : std::string("-"));
     std::string optionsStr = "-";
-    if (ic.vlan && ic.vlan->options_bits) {
-      auto s = vlanCapsToString(*ic.vlan->options_bits);
+    if (vptr && vptr->options_bits) {
+      auto s = vlanCapsToString(*vptr->options_bits);
       if (!s.empty())
         optionsStr = s;
     }

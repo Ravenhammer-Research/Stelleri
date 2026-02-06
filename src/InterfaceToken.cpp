@@ -8,6 +8,7 @@
 #include "VLANTableFormatter.hpp"
 #include "VirtualTableFormatter.hpp"
 #include <iostream>
+#include <netinet/in.h>
 #include <sstream>
 
 InterfaceToken::InterfaceToken(InterfaceType t, std::string name)
@@ -59,6 +60,21 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
       size_t cur = nnext;
       while (cur < tokens.size()) {
         const std::string &kw = tokens[cur];
+        if ((kw == "inet") || (kw == "inet6")) {
+          if (kw == "inet")
+            tok->address_family = AF_INET;
+          else
+            tok->address_family = AF_INET6;
+          // optional: address <addr>
+          if (cur + 1 < tokens.size() && tokens[cur + 1] == "address" &&
+              cur + 2 < tokens.size()) {
+            tok->address = tokens[cur + 2];
+            cur += 3;
+            continue;
+          }
+          ++cur;
+          continue;
+        }
         if (kw == "group" && cur + 1 < tokens.size()) {
           tok->group = tokens[cur + 1];
           cur += 2;
@@ -88,11 +104,10 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
             break;
           }
           if (vid && parent) {
-            VLANConfig vc;
-            vc.name = tok->name();
-            vc.id = *vid;
-            vc.parent = *parent;
-            tok->vlan = std::move(vc);
+            tok->vlan.emplace();
+            tok->vlan->name = tok->name();
+            tok->vlan->id = *vid;
+            tok->vlan->parent = *parent;
           }
           continue;
         }
@@ -127,8 +142,14 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
             }
             break;
           }
-          if (!lc.members.empty())
-            tok->lagg = std::move(lc);
+          if (!lc.members.empty()) {
+            tok->lagg.emplace();
+            tok->lagg->members = std::move(lc.members);
+            tok->lagg->protocol = lc.protocol;
+            tok->lagg->hash_policy = lc.hash_policy;
+            tok->lagg->lacp_rate = lc.lacp_rate;
+            tok->lagg->min_links = lc.min_links;
+          }
           continue;
         }
         break;
@@ -182,6 +203,20 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
         size_t cur = next;
         while (cur < tokens.size()) {
           const std::string &kw = tokens[cur];
+          if ((kw == "inet") || (kw == "inet6")) {
+            if (kw == "inet")
+              tok->address_family = AF_INET;
+            else
+              tok->address_family = AF_INET6;
+            if (cur + 1 < tokens.size() && tokens[cur + 1] == "address" &&
+                cur + 2 < tokens.size()) {
+              tok->address = tokens[cur + 2];
+              cur += 3;
+              continue;
+            }
+            ++cur;
+            continue;
+          }
           if (kw == "group" && cur + 1 < tokens.size()) {
             tok->group = tokens[cur + 1];
             cur += 2;
@@ -212,11 +247,10 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
               break;
             }
             if (vid && parent) {
-              VLANConfig vc;
-              vc.name = tok->name();
-              vc.id = *vid;
-              vc.parent = *parent;
-              tok->vlan = std::move(vc);
+              tok->vlan.emplace();
+              tok->vlan->name = tok->name();
+              tok->vlan->id = *vid;
+              tok->vlan->parent = *parent;
             }
             continue;
           }
@@ -254,8 +288,14 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
               }
               break;
             }
-            if (!lc.members.empty())
-              tok->lagg = std::move(lc);
+            if (!lc.members.empty()) {
+              tok->lagg.emplace();
+              tok->lagg->members = std::move(lc.members);
+              tok->lagg->protocol = lc.protocol;
+              tok->lagg->hash_policy = lc.hash_policy;
+              tok->lagg->lacp_rate = lc.lacp_rate;
+              tok->lagg->min_links = lc.min_links;
+            }
             continue;
           }
 
@@ -297,6 +337,20 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
         size_t cur = next;
         while (cur < tokens.size()) {
           const std::string &kw = tokens[cur];
+          if ((kw == "inet") || (kw == "inet6")) {
+            if (kw == "inet")
+              tok->address_family = AF_INET;
+            else
+              tok->address_family = AF_INET6;
+            if (cur + 1 < tokens.size() && tokens[cur + 1] == "address" &&
+                cur + 2 < tokens.size()) {
+              tok->address = tokens[cur + 2];
+              cur += 3;
+              continue;
+            }
+            ++cur;
+            continue;
+          }
           if (kw == "group" && cur + 1 < tokens.size()) {
             tok->group = tokens[cur + 1];
             cur += 2;
@@ -321,11 +375,10 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
               break;
             }
             if (vid && parent) {
-              VLANConfig vc;
-              vc.name = tok->name();
-              vc.id = *vid;
-              vc.parent = *parent;
-              tok->vlan = std::move(vc);
+              tok->vlan.emplace();
+              tok->vlan->name = tok->name();
+              tok->vlan->id = *vid;
+              tok->vlan->parent = *parent;
             }
             continue;
           }
@@ -360,8 +413,14 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
               }
               break;
             }
-            if (!lc.members.empty())
-              tok->lagg = std::move(lc);
+            if (!lc.members.empty()) {
+              tok->lagg.emplace();
+              tok->lagg->members = std::move(lc.members);
+              tok->lagg->protocol = lc.protocol;
+              tok->lagg->hash_policy = lc.hash_policy;
+              tok->lagg->lacp_rate = lc.lacp_rate;
+              tok->lagg->min_links = lc.min_links;
+            }
             continue;
           }
           break;

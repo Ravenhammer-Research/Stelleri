@@ -2,6 +2,7 @@
 #include "AbstractTableFormatter.hpp"
 #include "ConfigData.hpp"
 #include "InterfaceConfig.hpp"
+#include "WlanConfig.hpp"
 #include <sstream>
 
 std::string
@@ -39,22 +40,35 @@ WlanTableFormatter::format(const std::vector<ConfigData> &items) const {
     std::string addrCell = addrs.empty() ? std::string("-") : aoss.str();
 
     std::string status = "-";
-    if (ic.status)
-      status = *ic.status;
-    else if (ic.flags) {
-      if (*ic.flags & IFF_RUNNING)
-        status = "active";
-      else if (*ic.flags & IFF_UP)
-        status = "no-carrier";
-      else
-        status = "down";
-    }
-
     std::string mtu = ic.mtu ? std::to_string(*ic.mtu) : std::string("-");
-    std::string ssid = ic.ssid ? *ic.ssid : std::string("-");
-    std::string channel =
-        ic.channel ? std::to_string(*ic.channel) : std::string("-");
-    std::string parent = ic.parent ? *ic.parent : std::string("-");
+    std::string ssid = "-";
+    std::string channel = "-";
+    std::string parent = "-";
+    // If this InterfaceConfig is actually a WlanConfig, read wireless fields
+    if (auto w = dynamic_cast<const WlanConfig *>(&ic)) {
+      if (w->status)
+        status = *w->status;
+      else if (ic.flags) {
+        if (*ic.flags & IFF_RUNNING)
+          status = "active";
+        else if (*ic.flags & IFF_UP)
+          status = "no-carrier";
+        else
+          status = "down";
+      }
+      ssid = w->ssid ? *w->ssid : std::string("-");
+      channel = w->channel ? std::to_string(*w->channel) : std::string("-");
+      parent = w->parent ? *w->parent : std::string("-");
+    } else {
+      if (ic.flags) {
+        if (*ic.flags & IFF_RUNNING)
+          status = "active";
+        else if (*ic.flags & IFF_UP)
+          status = "no-carrier";
+        else
+          status = "down";
+      }
+    }
 
     atf.addRow({ssid, channel, parent, status, ic.name, addrCell, mtu});
   }

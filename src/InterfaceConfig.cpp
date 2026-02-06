@@ -7,6 +7,7 @@
 #include <iostream>
 #include <net/if.h>
 #include <netinet/in.h>
+#include <optional>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
@@ -15,12 +16,9 @@
 #include "IPAddress.hpp"
 #include "IPNetwork.hpp"
 
-#include "BridgeInterfaceConfig.hpp"
-#include "LaggConfig.hpp"
-#include "TunnelConfig.hpp"
-#include "VLANConfig.hpp"
 #include "VRFConfig.hpp"
-#include "VirtualInterfaceConfig.hpp"
+
+// (no helpers) prepare `ifreq` inline where needed
 
 InterfaceConfig::InterfaceConfig(const struct ifaddrs *ifa) {
   if (!ifa || !ifa->ifa_name)
@@ -60,19 +58,21 @@ InterfaceConfig::InterfaceConfig(const struct ifaddrs *ifa) {
       struct sockaddr_in *a =
           reinterpret_cast<struct sockaddr_in *>(ifa->ifa_addr);
       if (inet_ntop(AF_INET, &a->sin_addr, buf, sizeof(buf))) {
-        uint32_t v = ntohl(a->sin_addr.s_addr);
-        address = std::make_unique<IPv4Network>(v, 32);
+        uint8_t masklen = 32;
+        if (ifa->ifa_netmask)
+          masklen = IPNetwork::masklenFromSockaddr(ifa->ifa_netmask);
+        address = IPNetwork::fromString(std::string(buf) + "/" +
+                                        std::to_string(masklen));
       }
     } else if (ifa->ifa_addr->sa_family == AF_INET6) {
       struct sockaddr_in6 *a6 =
           reinterpret_cast<struct sockaddr_in6 *>(ifa->ifa_addr);
       if (inet_ntop(AF_INET6, &a6->sin6_addr, buf, sizeof(buf))) {
-        unsigned __int128 v = 0;
-        for (int i = 0; i < 16; ++i) {
-          v <<= 8;
-          v |= static_cast<unsigned char>(a6->sin6_addr.s6_addr[i]);
-        }
-        address = std::make_unique<IPv6Network>(v, 128);
+        uint8_t masklen = 128;
+        if (ifa->ifa_netmask)
+          masklen = IPNetwork::masklenFromSockaddr(ifa->ifa_netmask);
+        address = IPNetwork::fromString(std::string(buf) + "/" +
+                                        std::to_string(masklen));
       }
     }
   }
@@ -82,11 +82,10 @@ InterfaceConfig::InterfaceConfig(
     std::string name_, InterfaceType type_, std::unique_ptr<IPNetwork> address_,
     std::vector<std::unique_ptr<IPNetwork>> aliases_,
     std::unique_ptr<VRFConfig> vrf_, std::optional<uint32_t> flags_,
-    std::optional<int> tunnel_vrf_, std::vector<std::string> groups_,
-    std::optional<int> mtu_)
+    std::vector<std::string> groups_, std::optional<int> mtu_)
     : name(std::move(name_)), type(type_), address(std::move(address_)),
       aliases(std::move(aliases_)), vrf(std::move(vrf_)), flags(flags_),
-      tunnel_vrf(tunnel_vrf_), groups(std::move(groups_)), mtu(mtu_) {}
+      groups(std::move(groups_)), mtu(mtu_) {}
 
 void InterfaceConfig::save() const {
   // Do not create interfaces here; subclasses handle creation if necessary.
@@ -125,7 +124,6 @@ void InterfaceConfig::save() const {
   configureFlags(sock, ifr);
 
   // Apply VRF / FIB to the interface if requested
-#ifdef SIOCSIFFIB
   if (vrf && vrf->table) {
     struct ifreq fib_ifr;
     std::memset(&fib_ifr, 0, sizeof(fib_ifr));
@@ -138,7 +136,6 @@ void InterfaceConfig::save() const {
                                std::string(strerror(err)));
     }
   }
-#endif
 
   close(sock);
 }
@@ -146,74 +143,151 @@ void InterfaceConfig::save() const {
 // Interface existence helper is provided by `ConfigData::exists`
 
 void InterfaceConfig::configureAddresses(int sock, struct ifreq &ifr) const {
-  (void)ifr;
-  auto handleNetwork = [&](const IPNetwork *net) {
-    if (!net)
-      return;
-    if (net->family() == AddressFamily::IPv4) {
-      auto v4net = dynamic_cast<const IPv4Network *>(net);
-      if (!v4net)
-        return;
-      auto netAddr = v4net->address();
+  (void)ifr; // caller provided a generic ifr; we build per-ioctl structs here
+
+  // Configure primary IPv4 address if requested
+  if (address && address->family() == AddressFamily::IPv4) {
+    auto v4 = dynamic_cast<IPv4Network *>(address.get());
+    if (v4) {
+      auto netAddr = v4->address();
       auto v4addr = dynamic_cast<IPv4Address *>(netAddr.get());
-      if (!v4addr)
-        return;
-      struct ifreq tmp_ifr;
-      std::memset(&tmp_ifr, 0, sizeof(tmp_ifr));
-      std::strncpy(tmp_ifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
-      struct sockaddr_in *a =
-          reinterpret_cast<struct sockaddr_in *>(&tmp_ifr.ifr_addr);
-      a->sin_family = AF_INET;
-      a->sin_addr.s_addr = htonl(v4addr->value());
+      if (v4addr) {
+        struct sockaddr_in sa;
+        std::memset(&sa, 0, sizeof(sa));
+        sa.sin_len = sizeof(sa);
+        sa.sin_family = AF_INET;
+        sa.sin_addr.s_addr = htonl(v4addr->value());
 
-      if (ioctl(sock, SIOCSIFADDR, &tmp_ifr) < 0) {
-        close(sock);
-        throw std::runtime_error("Failed to set interface address: " +
-                                 std::string(strerror(errno)));
-      }
+        struct ifreq aifr;
+        std::memset(&aifr, 0, sizeof(aifr));
+        std::strncpy(aifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
+        std::memcpy(&aifr.ifr_addr, &sa, sizeof(sa));
+        if (ioctl(sock, SIOCSIFADDR, &aifr) < 0) {
+          std::cerr << "Warning: SIOCSIFADDR failed for " << name << ": "
+                    << strerror(errno) << "\n";
+        }
 
-      // Set netmask if prefix < 32
-      if (v4net->mask() < 32) {
-        struct ifreq mask_ifr;
-        std::memset(&mask_ifr, 0, sizeof(mask_ifr));
-        std::strncpy(mask_ifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
-        struct sockaddr_in *mask =
-            reinterpret_cast<struct sockaddr_in *>(&mask_ifr.ifr_addr);
-        mask->sin_family = AF_INET;
-        uint32_t maskval =
-            (v4net->mask() == 0) ? 0 : (~0u << (32 - v4net->mask()));
-        mask->sin_addr.s_addr = htonl(maskval);
+        // set netmask if provided
+        if (v4->mask() < 32) {
+          uint32_t maskval =
+              (v4->mask() == 0) ? 0u : (~0u << (32 - v4->mask()));
+          struct sockaddr_in mask;
+          std::memset(&mask, 0, sizeof(mask));
+          mask.sin_len = sizeof(mask);
+          mask.sin_family = AF_INET;
+          mask.sin_addr.s_addr = htonl(maskval);
+          struct ifreq mifr;
+          std::memset(&mifr, 0, sizeof(mifr));
+          std::strncpy(mifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
+          std::memcpy(&mifr.ifr_addr, &mask, sizeof(mask));
+          if (ioctl(sock, SIOCSIFNETMASK, &mifr) < 0) {
+            std::cerr << "Warning: SIOCSIFNETMASK failed for " << name << ": "
+                      << strerror(errno) << "\n";
+          }
+        }
 
-        if (ioctl(sock, SIOCSIFNETMASK, &mask_ifr) < 0) {
-          close(sock);
-          throw std::runtime_error("Failed to set netmask: " +
-                                   std::string(strerror(errno)));
+        // /31 peer -> set dstaddr
+        if (v4->mask() == 31) {
+          uint32_t host = v4addr->value();
+          uint32_t peer = host ^ 1u;
+          struct ifreq pfr;
+          std::memset(&pfr, 0, sizeof(pfr));
+          std::strncpy(pfr.ifr_name, name.c_str(), IFNAMSIZ - 1);
+          struct sockaddr_in dst;
+          std::memset(&dst, 0, sizeof(dst));
+          dst.sin_len = sizeof(dst);
+          dst.sin_family = AF_INET;
+          dst.sin_addr.s_addr = htonl(peer);
+          std::memcpy(&pfr.ifr_dstaddr, &dst, sizeof(dst));
+          if (ioctl(sock, SIOCSIFDSTADDR, &pfr) < 0) {
+            std::cerr << "Warning: SIOCSIFDSTADDR failed for " << name << ": "
+                      << strerror(errno) << "\n";
+          }
         }
       }
-    } else if (net->family() == AddressFamily::IPv6) {
-      std::cerr
-          << "Warning: IPv6 address configuration not fully implemented\n";
     }
-  };
-
-  // primary
-  if (address)
-    handleNetwork(address.get());
-
-  // aliases
-  for (const auto &a : aliases) {
-    if (a)
-      handleNetwork(a.get());
   }
-}
 
-void InterfaceConfig::configureMTU(int sock, struct ifreq &ifr) const {
-  ifr.ifr_mtu = *mtu;
+  // Configure IPv4 aliases
+  for (const auto &aptr : aliases) {
+    if (!aptr)
+      continue;
+    if (aptr->family() != AddressFamily::IPv4)
+      continue;
+    auto a4net = dynamic_cast<IPv4Network *>(aptr.get());
+    if (!a4net)
+      continue;
 
-  if (ioctl(sock, SIOCSIFMTU, &ifr) < 0) {
-    close(sock);
-    throw std::runtime_error("Failed to set MTU: " +
-                             std::string(strerror(errno)));
+    struct ifaliasreq iar;
+    std::memset(&iar, 0, sizeof(iar));
+    std::strncpy(iar.ifra_name, name.c_str(), IFNAMSIZ - 1);
+
+    struct sockaddr_in sa;
+    std::memset(&sa, 0, sizeof(sa));
+    sa.sin_len = sizeof(sa);
+    sa.sin_family = AF_INET;
+    auto netAddr = a4net->address();
+    auto v4addr = dynamic_cast<IPv4Address *>(netAddr.get());
+    if (!v4addr)
+      continue;
+    sa.sin_addr.s_addr = htonl(v4addr->value());
+    std::memcpy(&iar.ifra_addr, &sa, sizeof(sa));
+
+    uint32_t maskval =
+        (a4net->mask() == 0) ? 0u : (~0u << (32 - a4net->mask()));
+    struct sockaddr_in mask;
+    std::memset(&mask, 0, sizeof(mask));
+    mask.sin_len = sizeof(mask);
+    mask.sin_family = AF_INET;
+    mask.sin_addr.s_addr = htonl(maskval);
+    std::memcpy(&iar.ifra_mask, &mask, sizeof(mask));
+
+    uint32_t host = v4addr->value();
+    uint32_t netn = host & maskval;
+    uint32_t bcast = netn | (~maskval);
+    struct sockaddr_in broad;
+    std::memset(&broad, 0, sizeof(broad));
+    broad.sin_len = sizeof(broad);
+    broad.sin_family = AF_INET;
+    broad.sin_addr.s_addr = htonl(bcast);
+    std::memcpy(&iar.ifra_broadaddr, &broad, sizeof(broad));
+
+    if (ioctl(sock, SIOCAIFADDR, &iar) < 0) {
+      // fallback to set addr/netmask (and dst for /31)
+      struct ifreq rifr;
+      std::memset(&rifr, 0, sizeof(rifr));
+      std::strncpy(rifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
+      std::memcpy(&rifr.ifr_addr, &sa, sizeof(sa));
+      if (ioctl(sock, SIOCSIFADDR, &rifr) < 0) {
+        std::cerr << "Warning: SIOCSIFADDR failed when adding alias to " << name
+                  << ": " << strerror(errno) << "\n";
+        continue;
+      }
+      if (a4net->mask() < 32) {
+        struct ifreq mifr;
+        std::memset(&mifr, 0, sizeof(mifr));
+        std::strncpy(mifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
+        std::memcpy(&mifr.ifr_addr, &mask, sizeof(mask));
+        if (ioctl(sock, SIOCSIFNETMASK, &mifr) < 0) {
+          std::cerr << "Warning: SIOCSIFNETMASK failed when adding alias to "
+                    << name << ": " << strerror(errno) << "\n";
+          continue;
+        }
+      }
+      if (a4net->mask() == 31) {
+        uint32_t peer = host ^ 1u;
+        struct ifreq pfr;
+        std::memset(&pfr, 0, sizeof(pfr));
+        std::strncpy(pfr.ifr_name, name.c_str(), IFNAMSIZ - 1);
+        struct sockaddr_in dst;
+        std::memset(&dst, 0, sizeof(dst));
+        dst.sin_len = sizeof(dst);
+        dst.sin_family = AF_INET;
+        dst.sin_addr.s_addr = htonl(peer);
+        std::memcpy(&pfr.ifr_dstaddr, &dst, sizeof(dst));
+        ioctl(sock, SIOCSIFDSTADDR, &pfr);
+      }
+    }
   }
 }
 
@@ -224,6 +298,16 @@ void InterfaceConfig::configureFlags(int sock, struct ifreq &ifr) const {
       std::cerr << "Warning: Failed to bring interface up: " << strerror(errno)
                 << "\n";
     }
+  }
+}
+
+void InterfaceConfig::configureMTU(int sock, struct ifreq &ifr) const {
+  if (!mtu)
+    return;
+  ifr.ifr_mtu = *mtu;
+  if (ioctl(sock, SIOCSIFMTU, &ifr) < 0) {
+    std::cerr << "Warning: Failed to set MTU on " << name << ": "
+              << strerror(errno) << "\n";
   }
 }
 
@@ -273,85 +357,10 @@ InterfaceConfig::InterfaceConfig(const InterfaceConfig &o) {
   else
     vrf.reset();
   flags = o.flags;
-  tunnel_vrf = o.tunnel_vrf;
   index = o.index;
   groups = o.groups;
   mtu = o.mtu;
-  ssid = o.ssid;
-  channel = o.channel;
-  bssid = o.bssid;
-  parent = o.parent;
-  authmode = o.authmode;
-  media = o.media;
-  status = o.status;
-
-  if (o.bridge)
-    bridge = std::make_shared<BridgeInterfaceConfig>(*o.bridge);
-  if (o.lagg)
-    lagg = std::make_shared<LaggConfig>(*o.lagg);
-  if (o.tunnel)
-    tunnel = std::make_shared<TunnelConfig>(*o.tunnel);
-  if (o.vlan)
-    vlan = std::make_shared<VLANConfig>(*o.vlan);
-  if (o.virtual_iface)
-    virtual_iface = std::make_shared<VirtualInterfaceConfig>(*o.virtual_iface);
-}
-
-InterfaceConfig &InterfaceConfig::operator=(const InterfaceConfig &o) {
-  if (this == &o)
-    return *this;
-  name = o.name;
-  type = o.type;
-  if (o.address)
-    address = o.address->clone();
-  else
-    address.reset();
-  aliases.clear();
-  for (const auto &a : o.aliases) {
-    if (a)
-      aliases.emplace_back(a->clone());
-    else
-      aliases.emplace_back(nullptr);
-  }
-  if (o.vrf)
-    vrf = std::make_unique<VRFConfig>(*o.vrf);
-  else
-    vrf.reset();
-  flags = o.flags;
-  tunnel_vrf = o.tunnel_vrf;
-  groups = o.groups;
-  index = o.index;
-  mtu = o.mtu;
-  ssid = o.ssid;
-  channel = o.channel;
-  bssid = o.bssid;
-  parent = o.parent;
-  authmode = o.authmode;
-  media = o.media;
-  status = o.status;
-
-  if (o.bridge)
-    bridge = std::make_shared<BridgeInterfaceConfig>(*o.bridge);
-  else
-    bridge.reset();
-  if (o.lagg)
-    lagg = std::make_shared<LaggConfig>(*o.lagg);
-  else
-    lagg.reset();
-  if (o.tunnel)
-    tunnel = std::make_shared<TunnelConfig>(*o.tunnel);
-  else
-    tunnel.reset();
-  if (o.vlan)
-    vlan = std::make_shared<VLANConfig>(*o.vlan);
-  else
-    vlan.reset();
-  if (o.virtual_iface)
-    virtual_iface = std::make_shared<VirtualInterfaceConfig>(*o.virtual_iface);
-  else
-    virtual_iface.reset();
-
-  return *this;
+  (void)0; // wireless attributes moved to WlanConfig
 }
 
 // Static helper: check whether a named interface exists on the system.
