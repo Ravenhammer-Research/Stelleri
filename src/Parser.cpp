@@ -26,9 +26,11 @@
  */
 
 #include "Parser.hpp"
+#include "ArpToken.hpp"
 #include "Command.hpp"
 #include "DeleteToken.hpp"
 #include "InterfaceToken.hpp"
+#include "NdpToken.hpp"
 #include "RouteToken.hpp"
 #include "SetToken.hpp"
 #include "ShowToken.hpp"
@@ -78,22 +80,25 @@ namespace netcli {
       if (itok)
         cmd->addToken(itok);
     } else if (target == "route" || target == "routes") {
-      if (idx + 1 < tokens.size()) {
-        // Pass the next token as the potential prefix to the RouteToken and
-        // let the token decide whether it's an actual prefix or an option.
-        auto rt = std::make_shared<RouteToken>(tokens[idx + 1]);
-        rt->parseOptions(tokens, idx + 1);
+      size_t next = 0;
+      auto rt = RouteToken::parseFromTokens(tokens, idx, next);
+      if (rt)
         cmd->addToken(rt);
-      } else {
-        // support `show routes` with no prefix
-        auto rt = std::make_shared<RouteToken>(std::string());
-        cmd->addToken(rt);
-      }
     } else if (target == "vrf") {
-      if (idx + 1 < tokens.size()) {
-        auto vt = std::make_shared<VRFToken>(std::stoi(tokens[idx + 1]));
+      size_t next = 0;
+      auto vt = VRFToken::parseFromTokens(tokens, idx, next);
+      if (vt)
         cmd->addToken(vt);
-      }
+    } else if (target == "arp") {
+      size_t next = 0;
+      auto at = ArpToken::parseFromTokens(tokens, idx, next);
+      if (at)
+        cmd->addToken(at);
+    } else if (target == "ndp") {
+      size_t next = 0;
+      auto nt = NdpToken::parseFromTokens(tokens, idx, next);
+      if (nt)
+        cmd->addToken(nt);
     }
 
     return cmd;

@@ -58,6 +58,9 @@ public:
   /** @brief Clone the token */
   std::unique_ptr<Token> clone() const override;
 
+  /** @brief Parse VRF tokens starting at `start` and return a VRFToken */
+  static std::shared_ptr<VRFToken> parseFromTokens(const std::vector<std::string> &tokens, size_t start, size_t &next);
+
   /** @brief Get VRF table ID */
   int table() const { return table_; }
 

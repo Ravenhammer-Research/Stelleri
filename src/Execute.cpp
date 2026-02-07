@@ -26,8 +26,10 @@
  */
 
 #include "ConfigurationManager.hpp"
+#include "ArpToken.hpp"
 #include "DeleteToken.hpp"
 #include "InterfaceToken.hpp"
+#include "NdpToken.hpp"
 #include "Parser.hpp"
 #include "RouteToken.hpp"
 #include "SetToken.hpp"
@@ -44,8 +46,10 @@ namespace netcli {
 
     if (dynamic_cast<ShowToken *>(head.get())) {
       auto next = head->getNext();
-      if (!next)
+      if (!next) {
+        std::cerr << "show: missing object to show\n";
         return;
+      }
       if (auto iftok = dynamic_cast<InterfaceToken *>(next.get())) {
         executeShowInterface(*iftok, mgr);
         return;
@@ -58,12 +62,24 @@ namespace netcli {
         executeShowVRF(*vt, mgr);
         return;
       }
+      if (auto at = dynamic_cast<ArpToken *>(next.get())) {
+        executeShowArp(*at, mgr);
+        return;
+      }
+      if (auto nt = dynamic_cast<NdpToken *>(next.get())) {
+        executeShowNdp(*nt, mgr);
+        return;
+      }
+      std::cerr << "show: unknown object type\n";
+      return;
     }
 
     if (dynamic_cast<SetToken *>(head.get())) {
       auto next = head->getNext();
-      if (!next)
+      if (!next) {
+        std::cerr << "set: missing object to set\n";
         return;
+      }
       if (auto iftok = dynamic_cast<InterfaceToken *>(next.get())) {
         executeSetInterface(*iftok, mgr);
         return;
@@ -76,12 +92,24 @@ namespace netcli {
         executeSetVRF(*vt, mgr);
         return;
       }
+      if (auto at = dynamic_cast<ArpToken *>(next.get())) {
+        executeSetArp(*at, mgr);
+        return;
+      }
+      if (auto nt = dynamic_cast<NdpToken *>(next.get())) {
+        executeSetNdp(*nt, mgr);
+        return;
+      }
+      std::cerr << "set: unknown object type\n";
+      return;
     }
 
     if (dynamic_cast<DeleteToken *>(head.get())) {
       auto next = head->getNext();
-      if (!next)
+      if (!next) {
+        std::cerr << "delete: missing object to delete\n";
         return;
+      }
       if (auto iftok = dynamic_cast<InterfaceToken *>(next.get())) {
         executeDeleteInterface(*iftok, mgr);
         return;
@@ -94,9 +122,19 @@ namespace netcli {
         executeDeleteVRF(*vt, mgr);
         return;
       }
+      if (auto at = dynamic_cast<ArpToken *>(next.get())) {
+        executeDeleteArp(*at, mgr);
+        return;
+      }
+      if (auto nt = dynamic_cast<NdpToken *>(next.get())) {
+        executeDeleteNdp(*nt, mgr);
+        return;
+      }
+      std::cerr << "delete: unknown object type\n";
+      return;
     }
 
-    std::cout << "execute: unknown or unsupported command\n";
+    std::cerr << "execute: unknown or unsupported command\n";
   }
 
 } // namespace netcli

@@ -66,3 +66,39 @@ std::unique_ptr<Token> ArpToken::clone() const {
   t->pub = pub;
   return t;
 }
+
+std::shared_ptr<ArpToken> ArpToken::parseFromTokens(const std::vector<std::string> &tokens, size_t start, size_t &next) {
+  auto tok = std::make_shared<ArpToken>(std::string());
+  next = start + 1;  // consume the 'arp' token
+  
+  size_t i = next;
+  while (i < tokens.size()) {
+    const std::string &kw = tokens[i];
+    if (kw == "ip" && i + 1 < tokens.size()) {
+      tok->ip_ = tokens[i + 1];
+      i += 2;
+    } else if (kw == "mac" && i + 1 < tokens.size()) {
+      tok->mac = tokens[i + 1];
+      i += 2;
+    } else if (kw == "interface" && i + 1 < tokens.size()) {
+      tok->iface = tokens[i + 1];
+      i += 2;
+    } else if (kw == "permanent") {
+      tok->permanent = true;
+      tok->temp = false;
+      ++i;
+    } else if (kw == "temp") {
+      tok->temp = true;
+      tok->permanent = false;
+      ++i;
+    } else if (kw == "pub") {
+      tok->pub = true;
+      ++i;
+    } else {
+      break;  // unknown keyword, stop parsing
+    }
+  }
+  
+  next = i;
+  return tok;
+}

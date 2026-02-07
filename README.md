@@ -359,15 +359,6 @@ This project follows BSD coding conventions. When contributing:
 
 Currently tested on FreeBSD 15+. The code uses BSD-specific APIs (`ioctl`, `sysctl`, routing sockets) and is not yet been ported to any other platform.
 
-## Known Limitations
-
-- ARP/NDP set and delete operations are partially implemented (show commands fully working)
-- No support for wireless interface configuration beyond display
-- CARP (Common Address Redundancy Protocol) display only, no configuration
-- Limited tunnel protocol support (GIF tested, other tunnel types may work)
-- No DHCPv4/v6 client control
-- No firewall rule management (use pf/ipfw directly)
-
 ## Troubleshooting
 
 ### Permission Denied Errors
@@ -402,6 +393,35 @@ rm -rf build/
 cmake -S . -B build
 cmake --build build
 ```
+
+## TODO
+
+### Stelleri NETCONF
+
+A full-featured NETCONF implementation (non-lite version) is planned for future development. This will provide standardized network management protocol support for integration with enterprise management systems.
+
+The only impediment to starting this was getting libyang to function properly with the ietf-network-instance schema, and that item can now be crossed off the list—it's been realized at [libyang-ni-example](https://github.com/Ravenhammer-Research/libyang-ni-example) thanks to the CESNET/libyang developers.
+
+### Planned Features for Lite Version
+
+The following features are planned for the `net` utility:
+
+- **FIB Algorithm Configuration** (Medium Priority): Configure and display FIB (Forwarding Information Base) lookup algorithms specific to routing table lookups. FreeBSD supports multiple routing lookup algorithms optimized for different table sizes and use cases:
+  - `radix` - Base system radix backend
+  - `bsearch` - Lockless binary search for small FIBs (<16 routes, IPv4 only)
+  - `radix_lockless` - Lockless immutable radix for small FIBs (<1000 routes)
+  - `dpdk_lpm` - DPDK DIR24-8 lookups optimized for large FIBs (requires dpdk_lpm4.ko/dpdk_lpm6.ko modules)
+  - `dxr` - IPv4 only, compressed lookup structure optimized for large BGP FIBs (requires fib_dxr.ko module)
+  
+  Algorithms are selected automatically based on routing table size, but manual configuration will allow tuning for specific workloads and performance requirements.
+
+The following features are slated as lowest priority but open to discussion:
+
+- **Switch Management** (`set/show/delete switch`): Configure and display switch settings via etherswitchcfg(8) and etherswitch(4) APIs. Devices with this type of hardware are where Stelleri really shines, enabling them to function as both L2 and L3 switches with management of hardware switch features like VLANs, port settings, and switch fabric configuration.
+
+- **Netgraph Support** (`set/show/delete ng`): Integration with netgraph(4) for advanced network graph configuration. Relevance is still being evaluated, but netgraph's flexibility may prove useful for complex network topologies.
+
+- **Firewall Management** (`set/show/delete fw`): Firewall rule management using the same kernel API as ipfw. This will provide a consistent CLI syntax for firewall configuration alongside other network settings.
 
 ## See Also
 

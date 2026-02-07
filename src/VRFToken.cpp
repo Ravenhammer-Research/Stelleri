@@ -44,3 +44,15 @@ std::vector<std::string> VRFToken::autoComplete(std::string_view) const {
 std::unique_ptr<Token> VRFToken::clone() const {
   return std::make_unique<VRFToken>(*this);
 }
+
+std::shared_ptr<VRFToken> VRFToken::parseFromTokens(const std::vector<std::string> &tokens, size_t start, size_t &next) {
+  next = start + 1;  // consume the 'vrf' token
+  
+  int table = 0;
+  if (next < tokens.size()) {
+    table = std::stoi(tokens[next]);
+    ++next;
+  }
+  
+  return std::make_shared<VRFToken>(table);
+}

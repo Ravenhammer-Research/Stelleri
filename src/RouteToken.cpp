@@ -88,42 +88,36 @@ void RouteToken::debugOutput(std::ostream &os) const {
   os << '\n';
 }
 
-size_t RouteToken::parseOptions(const std::vector<std::string> &tokens,
-                                size_t start) {
-  size_t j = start;
-
-  // Determine whether the provided `prefix_` is actually a network prefix or
-  // whether the next token(s) are option keywords. If `prefix_` parses as a
-  // network, treat it as the prefix and begin option parsing after it. If
-  // `prefix_` does not parse as a network (for example it equals "vrf"),
-  // clear it and treat the next tokens as options.
-  if (!prefix_.empty()) {
-    if (IPNetwork::fromString(prefix_)) {
-      // prefix_ looks like a network; skip the token at `start` (caller
-      // passed the prefix as tokens[start]).
-      if (start < tokens.size() && tokens[start] == prefix_)
-        j = start + 1;
-      else
-        j = start + 1; // still advance past the presumed prefix
-    } else {
-      // prefix_ is not a network (likely an option keyword); clear it and
-      // start parsing options from `start`.
-      prefix_.clear();
-      j = start;
+std::shared_ptr<RouteToken> RouteToken::parseFromTokens(const std::vector<std::string> &tokens, size_t start, size_t &next) {
+  next = start + 1;  // consume the 'route' or 'routes' token
+  
+  std::string prefix;
+  size_t j = next;
+  
+  // Check if there's a potential prefix at the next position
+  if (j < tokens.size()) {
+    const std::string &candidate = tokens[j];
+    // If it parses as a network, use it as the prefix
+    if (IPNetwork::fromString(candidate)) {
+      prefix = candidate;
+      ++j;
     }
   }
+  
+  auto tok = std::make_shared<RouteToken>(prefix);
+  
   while (j < tokens.size()) {
     const auto &opt = tokens[j];
     if ((opt == "next-hop" || opt == "nexthop") && j + 1 < tokens.size()) {
       const std::string nh = tokens[j + 1];
       // support shorthand: "nexthop reject" or "nexthop blackhole"
       if (nh == "reject") {
-        reject = true;
+        tok->reject = true;
         j += 2;
         continue;
       }
       if (nh == "blackhole") {
-        blackhole = true;
+        tok->blackhole = true;
         j += 2;
         continue;
       }
@@ -133,7 +127,7 @@ size_t RouteToken::parseOptions(const std::vector<std::string> &tokens,
         if (net)
           addr = net->address();
       }
-      nexthop = std::move(addr);
+      tok->nexthop = std::move(addr);
       j += 2;
       continue;
     }
@@ -145,40 +139,42 @@ size_t RouteToken::parseOptions(const std::vector<std::string> &tokens,
         if (net)
           addr = net->address();
       }
-      nexthop = std::move(addr);
+      tok->nexthop = std::move(addr);
       j += 2;
       continue;
     }
     if (opt == "dest" && j + 1 < tokens.size()) {
       // allow explicit 'dest <prefix>' syntax
-      prefix_ = tokens[j + 1];
+      tok->prefix_ = tokens[j + 1];
       j += 2;
       continue;
     }
     if (opt == "vrf" && j + 1 < tokens.size()) {
-      vrf = std::make_unique<VRFToken>(std::stoi(tokens[j + 1]));
+      tok->vrf = std::make_unique<VRFToken>(std::stoi(tokens[j + 1]));
       j += 2;
       continue;
     }
     if (opt == "interface" && j + 1 < tokens.size()) {
-      interface = std::make_unique<InterfaceToken>(InterfaceType::Unknown,
+      tok->interface = std::make_unique<InterfaceToken>(InterfaceType::Unknown,
                                                    tokens[j + 1]);
       j += 2;
       continue;
     }
     if (opt == "blackhole") {
-      blackhole = true;
+      tok->blackhole = true;
       // blackhole represented by boolean only
       ++j;
       continue;
     }
     if (opt == "reject") {
-      reject = true;
+      tok->reject = true;
       // reject represented by boolean only
       ++j;
       continue;
     }
     break;
   }
-  return j;
+  
+  next = j;
+  return tok;
 }
