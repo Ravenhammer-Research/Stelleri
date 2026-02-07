@@ -209,46 +209,38 @@ Index     Interface Group  Type          Address      Status   MTU VRF Flags
 ### Show routes
 
 ```text
-sudo ./build/netcli -c "show routes"
-Routes (FIB: Global)
+msi% build/netcli -c "show routes"
+Routes (VRF: 0)
 
-Destination       Gateway  Interface Flags
------------------ -------- --------- -----
-0.0.0.0/0         10.1.0.1 re0.25    UG   
-10.1.0.0/18       -        re0.25    C    
-10.1.0.21/32      -        lo0       C    
-127.0.0.1/32      -        lo0       C    
-192.0.0.2/31      -        epair14b  C    
-192.0.0.2/32      -        lo0       C    
-::/96             ::1      lo0       R    
-::1/128           -        lo0       C    
-::ffff:0.0.0.0/96 ::1      lo0       R    
-fe80::/10         ::1      lo0       R    
-fe80::/64         -        lo0       C    
-fe80::/64         -        lo1       C    
-fe80::1/128       -        lo0       C    
-fe80::1/128       -        lo0       C    
-ff02::/16         ::1      lo0       R    
-```
+Flags: U=up, G=gateway, H=host, S=static, B=blackhole, R=reject
 
-## Notes
+Destination       Gateway  Interface Flags Scope Expire
+----------------- -------- --------- ----- ----- ------
+0.0.0.0/0         10.1.0.1 re0.25    UGS   -     -     
+10.1.0.0/18       link#3   re0.25    U     -     -     
+10.1.0.21/32      link#3   lo0       UHS   -     -     
+127.0.0.1/32      link#2   lo0       UH    -     -     
+192.0.0.2/31      link#9   epair14b  U     -     -     
+192.0.0.2/32      link#9   lo0       UHS   -     -     
+::/96             ::1      lo0       USR   -     -     
+::1/128           link#2   lo0       UHS   -     -     
+::ffff:0.0.0.0/96 ::1      lo0       USR   -     -     
+fe80::/10         ::1      lo0       USR   -     -     
+fe80::/64         link#2   lo0       U     lo0   -     
+fe80::/64         link#7   lo1       U     lo1   -     
+fe80::1/128       link#2   lo0       UHS   lo0   -     
+fe80::1/128       link#7   lo0       UHS   lo1   -     
+ff02::/16         ::1      lo0       USR   -     -     
 
-- Many operations that modify system network state require root privileges — use `sudo` when necessary.
-- The project is intended as a small example CLI; consult the source under `src/` and headers under `include/` for implementation details.
+msi% build/netcli -c "show routes vrf 2"
+Routes (VRF: 2)
 
-If you'd like, I can add a command reference or examples of `set` and `show` subcommands next.
+Flags: U=up, G=gateway, H=host, S=static, B=blackhole, R=reject
 
-### Add route (with sudo)
-
-```text
-msi% sudo  ./build/netcli -c "set route add 192.168.0.0/16 blackhole vrf 2"
-set route: add (stub saved)
-```
-
-### Show routes (vrf 2)
-
-```text
-msi% sudo  ./build/netcli -c "show routes vrf 2"
-No routes found.
+Destination  Gateway Interface Flags Scope Expire
+------------ ------- --------- ----- ----- ------
+192.0.0.8/31 link#9  epair14b  U     -     -     
+192.0.0.8/32 link#9  lo0       UHS   -     -     
+msi%
 ```
 
