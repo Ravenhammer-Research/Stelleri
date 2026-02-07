@@ -1,6 +1,6 @@
-# netcli
+# net
 
-netcli is a small command-line network interface management utility. It provides a simple interactive shell for showing and modifying network interface configuration (listing interfaces, showing details by type/group, and adding/removing addresses).
+net is a small command-line network interface management utility. It provides a simple interactive shell for showing and modifying network interface configuration (listing interfaces, showing details by type/group, and adding/removing addresses).
 
 Prerequisites
 - C++ toolchain (g++/clang++)
@@ -16,12 +16,12 @@ Build
 
 	cmake --build build -- -j2
 
-This produces the `netcli` executable at `build/netcli`.
+This produces the `net` executable at `build/net`.
 
 Run
 Launch the interactive CLI:
 
-	./build/netcli
+	./build/net
 
 The prompt is `net>` and supports commands such as `show interface`, `delete interface`, `set`, and others.
 
@@ -31,13 +31,13 @@ Below is the exact CLI session transcript you provided demonstrating build, run,
 
 ```text
 msi%  cmake --build build -- -j2
-[  1%] Building CXX object CMakeFiles/netcli.dir/src/InterfaceToken.cpp.o
-[  3%] Linking CXX executable netcli
-# netcli
+[  1%] Building CXX object CMakeFiles/net.dir/src/InterfaceToken.cpp.o
+[  3%] Linking CXX executable net
+# net
 
 ## Overview
 
-netcli is a small command-line network interface management utility. It provides a simple interactive shell for showing and modifying network interface configuration (listing interfaces, showing details by type/group, and adding/removing addresses).
+net is a small command-line network interface management utility. It provides a simple interactive shell for showing and modifying network interface configuration (listing interfaces, showing details by type/group, and adding/removing addresses).
 
 ## Prerequisites
 
@@ -59,14 +59,14 @@ cmake -S . -B build
 cmake --build build -- -j2
 ```
 
-This produces the `netcli` executable at `build/netcli`.
+This produces the `net` executable at `build/net`.
 
 ## Running
 
 Launch the interactive CLI:
 
 ```bash
-./build/netcli
+./build/net
 ```
 
 The prompt is `net>` and supports commands such as `show interface`, `delete interface`, `set`, and others.
@@ -77,15 +77,15 @@ The prompt is `net>` and supports commands such as `show interface`, `delete int
 
 ```text
 msi%  cmake --build build -- -j2
-[  1%] Building CXX object CMakeFiles/netcli.dir/src/InterfaceToken.cpp.o
-[  3%] Linking CXX executable netcli
-[100%] Built target netcli
+[  1%] Building CXX object CMakeFiles/net.dir/src/InterfaceToken.cpp.o
+[  3%] Linking CXX executable net
+[100%] Built target net
 ```
 
 ### Start CLI
 
 ```text
-msi% ./build/netcli
+msi% ./build/net
 ```
 
 ### Show all interfaces
@@ -158,7 +158,7 @@ delete interface: failed to remove address '192.0.0.4/31': Operation not permitt
 ### Delete address (with sudo)
 
 ```text
-msi% sudo ./build/netcli
+msi% sudo ./build/net
 net> delete interface name epair14b inet address 192.0.0.4/31
 delete interface: removed address '192.0.0.4/31' from 'epair14b'
 
@@ -177,14 +177,14 @@ Index     Interface Group Type    Address      Status  MTU VRF Flags
 ### Set address (with sudo)
 
 ```text
-sudo build/netcli -c "set interface name epair14b inet address 192.0.0.8/31"
+sudo build/net -c "set interface name epair14b inet address 192.0.0.8/31"
 set interface: updated virtual iface 'epair14b'
 ```
 
 ### Show after set
 
 ```text
-sudo ./build/netcli -c "show interface"
+sudo ./build/net -c "show interface"
 Flags: U=UP, B=BROADCAST, D=DEBUG, L=LOOPBACK, P=POINTOPOINT,
 	   e=NEEDSEPOCH, R=RUNNING, N=NOARP, O=PROMISC, p=PPROMISC,
 	   A=ALLMULTI, a=PALLMULTI, M=MULTICAST, s=SIMPLEX, q=OACTIVE,
@@ -209,7 +209,7 @@ Index     Interface Group  Type          Address      Status   MTU VRF Flags
 ### Show routes
 
 ```text
-msi% build/netcli -c "show routes"
+msi% build/net -c "show routes"
 Routes (VRF: 0)
 
 Flags: U=up, G=gateway, H=host, S=static, B=blackhole, R=reject
@@ -232,7 +232,7 @@ fe80::1/128       link#2   lo0       UHS   lo0   -
 fe80::1/128       link#7   lo0       UHS   lo1   -     
 ff02::/16         ::1      lo0       USR   -     -     
 
-msi% build/netcli -c "show routes vrf 2"
+msi% build/net -c "show routes vrf 2"
 Routes (VRF: 2)
 
 Flags: U=up, G=gateway, H=host, S=static, B=blackhole, R=reject
@@ -246,11 +246,11 @@ msi%
 ### Set / Delete routes
 
 ```text
-msi% sudo build/netcli -c "set route dest 192.168.52.0/32 nexthop reject vrf 2"
+msi% sudo build/net -c "set route dest 192.168.52.0/32 nexthop reject vrf 2"
 set route: 192.168.52.0/32 added
-msi% sudo build/netcli -c "delete route dest 192.168.52.0/32 nexthop reject vrf 2"
+msi% sudo build/net -c "delete route dest 192.168.52.0/32 nexthop reject vrf 2"
 delete route: 192.168.52.0/32 removed
-msi% build/netcli -c "show routes vrf 2"
+msi% build/net -c "show routes vrf 2"
 Routes (VRF: 2)
 
 Flags: U=up, G=gateway, H=host, S=static, B=blackhole, R=reject
@@ -267,7 +267,7 @@ msi%
 Generate CLI commands from the current system state:
 
 ```bash
-build/netcli -g
+build/net -g
 ```
 
 This will output a series of `set` commands that can recreate the current network configuration:

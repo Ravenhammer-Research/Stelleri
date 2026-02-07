@@ -11,11 +11,11 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
-add_executable(netcli ${SOURCES})
-target_include_directories(netcli PRIVATE include)
+add_executable(net ${SOURCES})
+target_include_directories(net PRIVATE include)
 
 ## No libedit/readline linking required.
 
-target_compile_options(netcli PRIVATE -Wall -Wextra -Werror -pedantic)
+target_compile_options(net PRIVATE -Wall -Wextra -Werror -pedantic)
 
-install(TARGETS netcli DESTINATION bin)
+install(TARGETS net DESTINATION bin)
