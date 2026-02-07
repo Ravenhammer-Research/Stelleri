@@ -242,5 +242,23 @@ Destination  Gateway Interface Flags Scope Expire
 192.0.0.8/31 link#9  epair14b  U     -     -     
 192.0.0.8/32 link#9  lo0       UHS   -     -     
 msi%
+
+### Set / Delete routes
+
+```text
+msi% sudo build/netcli -c "set route dest 192.168.52.0/32 nexthop reject vrf 2"
+set route: 192.168.52.0/32 added
+msi% sudo build/netcli -c "delete route dest 192.168.52.0/32 nexthop reject vrf 2"
+delete route: 192.168.52.0/32 removed
+msi% build/netcli -c "show routes vrf 2"
+Routes (VRF: 2)
+
+Flags: U=up, G=gateway, H=host, S=static, B=blackhole, R=reject
+
+Destination  Gateway Interface Flags Scope Expire
+------------ ------- --------- ----- ----- ------
+192.0.0.8/31 link#9  epair14b  U     -     -     
+192.0.0.8/32 link#9  lo0       UHS   -     -     
+msi%
 ```
 
