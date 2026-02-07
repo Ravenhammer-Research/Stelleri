@@ -25,23 +25,17 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @file GenerateConfig.hpp
- * @brief Configuration generation utilities
- */
-
-#pragma once
+#include "CommandGenerator.hpp"
+#include <iostream>
 
 namespace netcli {
 
-  /**
-   * @brief Generate netcli commands from current system configuration
-   *
-   * Queries all interface and route configurations from the system,
-   * builds token trees, and outputs executable netcli commands to stdout.
-   * Commands are ordered to handle dependencies: interface creation first,
-   * then address assignment, finally routes.
-   */
-  void generateConfiguration();
+  void CommandGenerator::generateVRFs(SystemConfigurationManager &mgr) {
+    // Get the current net.fibs value from sysctl
+    int fibs = mgr.GetFibs();
+    if (fibs > 1) {
+      std::cout << "set vrf fibs " << fibs << "\n";
+    }
+  }
 
 } // namespace netcli

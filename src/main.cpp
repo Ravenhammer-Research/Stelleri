@@ -26,7 +26,7 @@
  */
 
 #include "CLI.hpp"
-#include "GenerateConfig.hpp"
+#include "CommandGenerator.hpp"
 #include "SystemConfigurationManager.hpp"
 #include <getopt.h>
 #include <iostream>
@@ -67,7 +67,8 @@ int main(int argc, char *argv[]) {
   }
 
   if (generate) {
-    netcli::generateConfiguration();
+    netcli::CommandGenerator generator;
+    generator.generateConfiguration();
     return 0;
   }
 

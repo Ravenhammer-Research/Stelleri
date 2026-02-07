@@ -262,3 +262,47 @@ Destination  Gateway Interface Flags Scope Expire
 msi%
 ```
 
+## Configuration Generation
+
+Generate CLI commands from the current system state:
+
+```bash
+build/netcli -g
+```
+
+This will output a series of `set` commands that can recreate the current network configuration:
+
+```text
+set vrf fibs 255
+set interface name lo1 type loopback inet6 address fe80::1/64 mtu 16384 status up
+set interface name lo0 type loopback inet6 address ::1/128 mtu 16384 status up
+set interface name lo0 type loopback inet6 address fe80::1/64
+set interface name lo0 type loopback inet address 127.0.0.1/8
+set interface name epair1b type epair status up
+set interface name epair14a type epair status down
+set interface name epair0b type epair status up
+set interface name epair0a type epair status up
+set interface name epair1a type epair status up
+set interface name epair14b type epair vrf 2 inet address 192.0.0.2/31 status up
+set interface name epair14b type epair inet address 192.0.0.8/31
+set interface name re0 mtu 1500 status up
+set interface name bridge0 type bridge member epair0a member epair1a status up
+set interface name lagg0 type lagg vrf 2 member epair0b member epair1b status up
+set interface name re0.25 type vlan inet address 10.1.0.21/18 vid 25 parent re0 status up
+set interface name gif0 type tunnel vrf 2 source 192.0.0.0 destination 192.0.0.1 tunnel-vrf 3 status down
+set route protocol static dest 0.0.0.0/0 nexthop 10.1.0.1 interface re0.25
+set route protocol static dest 10.1.0.0/18 nexthop-interface re0.25
+set route protocol static dest 10.1.0.21/32 nexthop-interface lo0
+set route protocol static dest 127.0.0.1/32 nexthop-interface lo0
+set route protocol static dest 192.0.0.2/32 nexthop-interface lo0
+set route protocol static dest 192.0.0.2/31 nexthop-interface epair14b
+set route protocol static dest ::/96 nexthop reject
+set route protocol static dest ::1/128 nexthop-interface lo0
+set route protocol static dest ::ffff:0.0.0.0/96 nexthop reject
+set route protocol static dest fe80::/10 nexthop reject
+set route protocol static dest fe80::/64 nexthop-interface lo0
+set route protocol static dest fe80::1/128 nexthop-interface lo0
+set route protocol static dest fe80::/64 nexthop-interface lo1
+set route protocol static dest fe80::1/128 nexthop-interface lo0
+set route protocol static dest ff02::/16 nexthop reject
+```
