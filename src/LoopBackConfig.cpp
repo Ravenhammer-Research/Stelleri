@@ -26,6 +26,7 @@
  */
 
 #include "LoopBackConfig.hpp"
+#include "SystemConfigurationManager.hpp"
 #include <cerrno>
 #include <cstring>
 #include <net/if.h>
@@ -38,24 +39,8 @@ void LoopBackConfig::create() const {
   if (InterfaceConfig::exists(name))
     return;
 
-  int sock = socket(AF_INET, SOCK_DGRAM, 0);
-  if (sock < 0) {
-    throw std::runtime_error("Failed to create socket: " +
-                             std::string(strerror(errno)));
-  }
-
-  struct ifreq ifr;
-  std::memset(&ifr, 0, sizeof(ifr));
-  std::strncpy(ifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
-
-  if (ioctl(sock, SIOCIFCREATE, &ifr) < 0) {
-    int err = errno;
-    close(sock);
-    throw std::runtime_error("Failed to create interface '" + name +
-                             "': " + std::string(strerror(err)));
-  }
-
-  close(sock);
+  SystemConfigurationManager scm;
+  scm.CreateInterface(name);
 }
 
 void LoopBackConfig::save() const {
@@ -67,3 +52,9 @@ void LoopBackConfig::save() const {
 }
 
 // Minimal implementation file; constructor is inline in header
+
+void LoopBackConfig::destroy() const {
+  SystemConfigurationManager scm;
+  scm.DestroyInterface(name);
+}
+

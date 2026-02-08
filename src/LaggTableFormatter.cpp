@@ -35,38 +35,15 @@
 #include <iostream>
 #include <net/ethernet.h>
 #include <net/if.h>
-#include <net/if_lagg.h>
 #include <sstream>
 
 // Local helper to render member flag bits into a human-readable label.
 static std::string laggFlagsToLabel(uint32_t f) {
-  std::string s;
-  if (f & LAGG_PORT_MASTER) {
-    if (!s.empty())
-      s += ',';
-    s += "MASTER";
-  }
-  if (f & LAGG_PORT_STACK) {
-    if (!s.empty())
-      s += ',';
-    s += "STACK";
-  }
-  if (f & LAGG_PORT_ACTIVE) {
-    if (!s.empty())
-      s += ',';
-    s += "ACTIVE";
-  }
-  if (f & LAGG_PORT_COLLECTING) {
-    if (!s.empty())
-      s += ',';
-    s += "COLLECTING";
-  }
-  if (f & LAGG_PORT_DISTRIBUTING) {
-    if (!s.empty())
-      s += ',';
-    s += "DISTRIBUTING";
-  }
-  return s;
+  if (f == 0)
+    return std::string();
+  char buf[32];
+  std::snprintf(buf, sizeof(buf), "0x%08x", f);
+  return std::string(buf);
 }
 
 static std::string protocolToString(LaggProtocol proto) {
@@ -124,15 +101,9 @@ std::string LaggTableFormatter::format(
     r.name = ic.name;
     r.proto = protocolToString(laggPtr->protocol);
     r.hash = laggPtr->hash_policy;
-    // split hash policy bits into items for multiline display (l2,l3,l4)
+    // Hash policy is platform-specific; display numeric hex if present.
     if (r.hash) {
-      uint32_t m = *r.hash;
-      if (m & LAGG_F_HASHL2)
-        r.hash_items.emplace_back("l2");
-      if (m & LAGG_F_HASHL3)
-        r.hash_items.emplace_back("l3");
-      if (m & LAGG_F_HASHL4)
-        r.hash_items.emplace_back("l4");
+      // leave r.hash_items empty — formatter will display hex fallback
     }
     r.members = laggPtr->members;
     // Prefer numeric flag bits when available; keep string labels as fallback.
@@ -203,33 +174,9 @@ std::string LaggTableFormatter::format(
     // Combine hash items into multiline cell if present
     std::string hashCell = "-";
     if (r.hash) {
-      if (!r.hash_items.empty()) {
-        std::ostringstream hoss;
-        for (size_t i = 0; i < r.hash_items.size(); ++i) {
-          if (i)
-            hoss << '\n';
-          hoss << r.hash_items[i];
-        }
-        hashCell = hoss.str();
-      } else {
-        uint32_t m = *r.hash;
-        std::string s;
-        if (m & LAGG_F_HASHL2)
-          s += "l2";
-        if (m & LAGG_F_HASHL3) {
-          if (!s.empty())
-            s += ",";
-          s += "l3";
-        }
-        if (m & LAGG_F_HASHL4) {
-          if (!s.empty())
-            s += ",";
-          s += "l4";
-        }
-        if (s.empty())
-          s = "-";
-        hashCell = s;
-      }
+      char hbuf[32];
+      std::snprintf(hbuf, sizeof(hbuf), "0x%08x", *r.hash);
+      hashCell = std::string(hbuf);
     }
 
     std::string membersCell = "-";

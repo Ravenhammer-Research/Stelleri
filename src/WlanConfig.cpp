@@ -26,6 +26,7 @@
  */
 
 #include "WlanConfig.hpp"
+#include "SystemConfigurationManager.hpp"
 #include <cerrno>
 #include <cstring>
 #include <net/if.h>
@@ -35,35 +36,11 @@
 #include <unistd.h>
 
 void WlanConfig::create() const {
-  if (InterfaceConfig::exists(name))
-    return;
-
-  int sock = socket(AF_INET, SOCK_DGRAM, 0);
-  if (sock < 0) {
-    throw std::runtime_error("Failed to create socket: " +
-                             std::string(strerror(errno)));
-  }
-
-  struct ifreq ifr;
-  std::memset(&ifr, 0, sizeof(ifr));
-  std::strncpy(ifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
-
-  if (ioctl(sock, SIOCIFCREATE, &ifr) < 0) {
-    int err = errno;
-    close(sock);
-    throw std::runtime_error("Failed to create interface '" + name +
-                             "': " + std::string(strerror(err)));
-  }
-
-  close(sock);
+  SystemConfigurationManager scm;
+  scm.CreateWlan(name);
 }
 
 void WlanConfig::save() const {
-  if (name.empty())
-    throw std::runtime_error("WlanConfig has no interface name set");
-
-  if (!InterfaceConfig::exists(name))
-    create();
-
-  InterfaceConfig::save();
+  SystemConfigurationManager scm;
+  scm.SaveWlan(*this);
 }

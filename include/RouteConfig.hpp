@@ -53,5 +53,6 @@ public:
   unsigned int flags = 0;    ///< raw rtm_flags from kernel
 
   // Persist route configuration (no-op for now)
-  void save() const override {}
+  void save() const override;
+  void destroy() const override;
 };

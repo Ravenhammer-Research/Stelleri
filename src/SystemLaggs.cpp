@@ -30,6 +30,7 @@
 #include "SystemConfigurationManager.hpp"
 
 #include <cstring>
+#include <iostream>
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_lagg.h>
@@ -118,6 +119,34 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
           uint32_t flags = ls->rpbuf[i].rp_flags;
           lac.members.emplace_back(pname);
           lac.member_flag_bits.emplace_back(flags);
+          // Convert known flag bits into human-readable label
+          std::string lbl;
+          if (flags & LAGG_PORT_MASTER) {
+            if (!lbl.empty())
+              lbl += ',';
+            lbl += "MASTER";
+          }
+          if (flags & LAGG_PORT_STACK) {
+            if (!lbl.empty())
+              lbl += ',';
+            lbl += "STACK";
+          }
+          if (flags & LAGG_PORT_ACTIVE) {
+            if (!lbl.empty())
+              lbl += ',';
+            lbl += "ACTIVE";
+          }
+          if (flags & LAGG_PORT_COLLECTING) {
+            if (!lbl.empty())
+              lbl += ',';
+            lbl += "COLLECTING";
+          }
+          if (flags & LAGG_PORT_DISTRIBUTING) {
+            if (!lbl.empty())
+              lbl += ',';
+            lbl += "DISTRIBUTING";
+          }
+          lac.member_flags.emplace_back(lbl);
         }
       }
 
@@ -143,4 +172,102 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
   }
 
   return out;
+}
+
+void SystemConfigurationManager::SaveLagg(const LaggConfig &lac) const {
+  if (lac.name.empty())
+    throw std::runtime_error("LaggConfig has no interface name set");
+
+  if (!InterfaceConfig::exists(lac.name))
+    CreateLagg(lac.name);
+  else
+    SaveInterface(static_cast<const InterfaceConfig &>(lac));
+
+  int sock = socket(AF_INET, SOCK_DGRAM, 0);
+  if (sock < 0) {
+    throw std::runtime_error("Failed to create socket: " +
+                             std::string(strerror(errno)));
+  }
+
+  int proto_value = 0;
+  switch (lac.protocol) {
+  case LaggProtocol::FAILOVER:
+    proto_value = 1;
+    break;
+  case LaggProtocol::LOADBALANCE:
+    proto_value = 4;
+    break;
+  case LaggProtocol::LACP:
+    proto_value = 3;
+    break;
+  case LaggProtocol::NONE:
+    proto_value = 0;
+    break;
+  }
+
+  if (proto_value > 0) {
+    struct lagg_reqall ra;
+    std::memset(&ra, 0, sizeof(ra));
+    ra.ra_proto = proto_value;
+
+    struct ifreq ifr;
+    std::memset(&ifr, 0, sizeof(ifr));
+    std::strncpy(ifr.ifr_name, lac.name.c_str(), IFNAMSIZ - 1);
+    ifr.ifr_data = reinterpret_cast<char *>(&ra);
+
+    if (ioctl(sock, SIOCSLAGG, &ifr) < 0) {
+      close(sock);
+      throw std::runtime_error("Failed to set LAGG protocol: " +
+                               std::string(strerror(errno)));
+    }
+  }
+
+  for (const auto &member : lac.members) {
+    struct lagg_reqport rp;
+    std::memset(&rp, 0, sizeof(rp));
+    std::strncpy(rp.rp_portname, member.c_str(), IFNAMSIZ - 1);
+
+    struct ifreq ifr;
+    std::memset(&ifr, 0, sizeof(ifr));
+    std::strncpy(ifr.ifr_name, lac.name.c_str(), IFNAMSIZ - 1);
+    ifr.ifr_data = reinterpret_cast<char *>(&rp);
+
+    if (ioctl(sock, SIOCSLAGGPORT, &ifr) < 0) {
+      close(sock);
+      throw std::runtime_error("Failed to add port '" + member + "' to LAGG '" +
+                               lac.name + "': " + std::string(strerror(errno)));
+    }
+  }
+
+  if (lac.hash_policy) {
+    std::cerr << "Note: Hash policy configuration for LAGG '" << lac.name
+              << "' may require sysctl settings\n";
+  }
+
+  if (lac.lacp_rate) {
+    std::cerr << "Note: LACP rate configuration for LAGG '" << lac.name
+              << "' may require per-port settings\n";
+  }
+
+  close(sock);
+}
+
+void SystemConfigurationManager::CreateLagg(const std::string &nm) const {
+  int sock = socket(AF_INET, SOCK_DGRAM, 0);
+  if (sock < 0) {
+    throw std::runtime_error("Failed to create socket: " +
+                             std::string(strerror(errno)));
+  }
+
+  struct ifreq ifr;
+  std::memset(&ifr, 0, sizeof(ifr));
+  std::strncpy(ifr.ifr_name, nm.c_str(), IFNAMSIZ - 1);
+
+  if (ioctl(sock, SIOCIFCREATE, &ifr) < 0) {
+    close(sock);
+    throw std::runtime_error("Failed to create interface '" + nm + "': " +
+                             std::string(strerror(errno)));
+  }
+
+  close(sock);
 }

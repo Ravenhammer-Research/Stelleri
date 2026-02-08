@@ -62,6 +62,8 @@ public:
 
   void save() const override;
 
+  void destroy() const override;
+
 private:
   void create() const;
 };

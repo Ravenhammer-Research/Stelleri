@@ -109,3 +109,50 @@ std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
   }
   return out;
 }
+
+void SystemConfigurationManager::SaveVlan(const VLANConfig &vlan) const {
+  if (vlan.name.empty())
+    throw std::runtime_error("VLANConfig has no interface name set");
+
+  if (!vlan.parent || vlan.id == 0) {
+    throw std::runtime_error(
+        "VLAN configuration requires parent interface and VLAN ID");
+  }
+
+  if (!InterfaceConfig::exists(vlan.name)) {
+    CreateInterface(vlan.name);
+  } else {
+    SaveInterface(InterfaceConfig(vlan));
+  }
+
+#if defined(SIOCSETVLAN)
+  int vsock = socket(AF_INET, SOCK_DGRAM, 0);
+  if (vsock < 0) {
+    throw std::runtime_error("Failed to create socket: " +
+                             std::string(strerror(errno)));
+  }
+
+  struct vlanreq vreq;
+  std::memset(&vreq, 0, sizeof(vreq));
+  std::strncpy(vreq.vlr_parent, vlan.parent->c_str(), IFNAMSIZ - 1);
+  vreq.vlr_tag = vlan.id;
+  if (vlan.pcp) {
+    vreq.vlr_tag |= (static_cast<int>(*vlan.pcp) & 0x7) << 13;
+  }
+
+  struct ifreq ifr;
+  std::memset(&ifr, 0, sizeof(ifr));
+  std::strncpy(ifr.ifr_name, vlan.name.c_str(), IFNAMSIZ - 1);
+  ifr.ifr_data = reinterpret_cast<char *>(&vreq);
+
+  if (ioctl(vsock, SIOCSETVLAN, &ifr) < 0) {
+    close(vsock);
+    throw std::runtime_error("Failed to configure VLAN: " +
+                             std::string(strerror(errno)));
+  }
+
+  close(vsock);
+#else
+  throw std::runtime_error("VLAN configuration not supported on this platform");
+#endif
+}

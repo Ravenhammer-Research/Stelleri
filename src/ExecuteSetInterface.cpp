@@ -174,80 +174,13 @@ void netcli::Parser::executeSetInterface(const InterfaceToken &tok,
                   << "'\n";
         return;
       }
-      if (net->family() == AddressFamily::IPv4) {
-        auto v4 = dynamic_cast<IPv4Network *>(net.get());
-        if (!v4) {
-          std::cerr << "set interface: invalid IPv4 address\n";
-          return;
-        }
-        int sock = socket(AF_INET, SOCK_DGRAM, 0);
-        if (sock < 0) {
-          std::cerr << "set interface: failed to create socket: "
-                    << strerror(errno) << "\n";
-          return;
-        }
-        struct ifaliasreq iar;
-        std::memset(&iar, 0, sizeof(iar));
-        std::strncpy(iar.ifra_name, name.c_str(), IFNAMSIZ - 1);
-        struct sockaddr_in sa;
-        std::memset(&sa, 0, sizeof(sa));
-        sa.sin_len = sizeof(sa);
-        sa.sin_family = AF_INET;
-        auto netAddr = v4->address();
-        auto v4addr = dynamic_cast<IPv4Address *>(netAddr.get());
-        if (!v4addr) {
-          std::cerr << "set interface: invalid IPv4 address object\n";
-          close(sock);
-          return;
-        }
-        sa.sin_addr.s_addr = htonl(v4addr->value());
-        std::memcpy(&iar.ifra_addr, &sa, sizeof(sa));
-        uint32_t maskval = (v4->mask() == 0) ? 0 : (~0u << (32 - v4->mask()));
-        struct sockaddr_in mask;
-        std::memset(&mask, 0, sizeof(mask));
-        mask.sin_len = sizeof(mask);
-        mask.sin_family = AF_INET;
-        mask.sin_addr.s_addr = htonl(maskval);
-        std::memcpy(&iar.ifra_mask, &mask, sizeof(mask));
-        uint32_t host = v4addr->value();
-        uint32_t netn = host & maskval;
-        uint32_t bcast = netn | (~maskval);
-        struct sockaddr_in broad;
-        std::memset(&broad, 0, sizeof(broad));
-        broad.sin_len = sizeof(broad);
-        broad.sin_family = AF_INET;
-        broad.sin_addr.s_addr = htonl(bcast);
-        std::memcpy(&iar.ifra_broadaddr, &broad, sizeof(broad));
-
-        if (ioctl(sock, SIOCAIFADDR, &iar) < 0) {
-          // fallback: try SIOCSIFADDR + SIOCSIFNETMASK (+ SIOCSIFDSTADDR for
-          // /31)
-          struct ifreq ifr;
-          std::memset(&ifr, 0, sizeof(ifr));
-          std::strncpy(ifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
-          std::memcpy(&ifr.ifr_addr, &sa, sizeof(sa));
-          if (ioctl(sock, SIOCSIFADDR, &ifr) < 0) {
-            std::cerr << "set interface: SIOCSIFADDR failed: "
-                      << strerror(errno) << "\n";
-            close(sock);
-            return;
-          }
-          // Rely on SIOCAIFADDR/kernel behavior for netmask/peer handling.
-          // Specific prefix handling removed from here to keep this path
-          // generic.
-          close(sock);
-          std::cout << "set interface: added alias '" << *tok.address
-                    << "' to '" << name << "'\n";
-          return;
-        }
-        close(sock);
-        std::cout << "set interface: added alias '" << *tok.address << "' to '"
-                  << name << "'\n";
-        return;
-      } else {
-        std::cerr << "set interface: IPv6 aliasing not yet implemented\n";
-        return;
-      }
+      // Prefer to let InterfaceConfig / SystemConfigurationManager handle
+      // adding aliases so system-specific ioctls remain in the System layer.
+      base.aliases.emplace_back(net->clone());
+      base.save();
+      std::cout << "set interface: added alias '" << *tok.address << "' to '"
+                << name << "'\n";
+      return;
     }
 
     // Default: apply generic interface updates

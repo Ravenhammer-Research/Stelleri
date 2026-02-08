@@ -34,6 +34,6 @@ void netcli::Parser::executeDeleteVRF(const VRFToken &tok,
                                       ConfigurationManager *mgr) const {
   (void)tok;
   (void)mgr;
-  // Stub: VRF deletion will be implemented later
+  // Stub: VRF deletion will be implemented never
   std::cout << "delete vrf: (stub)\n";
 }

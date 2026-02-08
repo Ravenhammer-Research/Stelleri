@@ -28,6 +28,17 @@
 #include "SystemConfigurationManager.hpp"
 #include "VirtualInterfaceConfig.hpp"
 
+#include <cerrno>
+#include <cstring>
+#include <iostream>
+#include <stdexcept>
+#include <string>
+#include <sys/ioctl.h>
+#include <sys/socket.h>
+#include <sys/sockio.h>
+#include <sys/types.h>
+#include <sys/linker.h>
+#include <unistd.h>
 std::vector<VirtualInterfaceConfig>
 SystemConfigurationManager::GetVirtualInterfaces(
     const std::optional<VRFConfig> &vrf) const {
@@ -39,4 +50,108 @@ SystemConfigurationManager::GetVirtualInterfaces(
     }
   }
   return out;
+}
+
+void SystemConfigurationManager::CreateVirtual(const std::string &nm) const {
+  if (InterfaceConfig::exists(nm))
+    return;
+
+  int sock = socket(AF_INET, SOCK_DGRAM, 0);
+  if (sock < 0) {
+    throw std::runtime_error("Failed to create socket: " +
+                             std::string(strerror(errno)));
+  }
+
+  struct ifreq ifr;
+  std::memset(&ifr, 0, sizeof(ifr));
+  std::strncpy(ifr.ifr_name, nm.c_str(), IFNAMSIZ - 1);
+
+  if (ioctl(sock, SIOCIFCREATE2, &ifr) < 0) {
+    int err = errno;
+    // Special-case epair clones similar to original logic
+    if (err == EINVAL && nm.rfind("epair", 0) == 0) {
+      struct ifreq tmp_ifr;
+      std::memset(&tmp_ifr, 0, sizeof(tmp_ifr));
+      std::strncpy(tmp_ifr.ifr_name, "epair", IFNAMSIZ - 1);
+      if (ioctl(sock, SIOCIFCREATE2, &tmp_ifr) < 0) {
+        int e = errno;
+        // Try to load module and retry
+        if (kldfind("if_epair.ko") == -1) {
+          int kid = kldload("if_epair.ko");
+          if (kid == -1) {
+            close(sock);
+            throw std::runtime_error("Failed to create epair interface: " +
+                                     std::string(strerror(e)));
+          }
+        }
+        std::memset(&tmp_ifr, 0, sizeof(tmp_ifr));
+        std::strncpy(tmp_ifr.ifr_name, "epair", IFNAMSIZ - 1);
+        if (ioctl(sock, SIOCIFCREATE2, &tmp_ifr) < 0) {
+          int e2 = errno;
+          close(sock);
+          throw std::runtime_error("Failed to create epair interface: " +
+                                   std::string(strerror(e2)));
+        }
+      }
+
+      std::string created = tmp_ifr.ifr_name;
+      if (created.empty()) {
+        close(sock);
+        throw std::runtime_error("Failed to determine created epair name");
+      }
+
+      std::string targetBase = nm;
+      if (!targetBase.empty() && (targetBase.back() == 'a' ||
+                                  targetBase.back() == 'b'))
+        targetBase.pop_back();
+
+      std::string srcPeerA = created;
+      std::string srcPeerB = created;
+      if (!srcPeerA.empty() && srcPeerA.back() == 'a')
+        srcPeerB.back() = 'b';
+      else
+        srcPeerB = srcPeerA + "b";
+
+      std::string tgtA = targetBase + "a";
+      std::string tgtB = targetBase + "b";
+
+      auto rename_iface = [&](const std::string &cur, const std::string &newn) {
+        struct ifreq nr;
+        std::memset(&nr, 0, sizeof(nr));
+        std::strncpy(nr.ifr_name, cur.c_str(), IFNAMSIZ - 1);
+        nr.ifr_data = const_cast<char *>(newn.c_str());
+        if (ioctl(sock, SIOCSIFNAME, &nr) < 0) {
+          return false;
+        }
+        return true;
+      };
+
+      bool okA = rename_iface(srcPeerA, tgtA);
+      bool okB = rename_iface(srcPeerB, tgtB);
+      if (!okB && okA) {
+        rename_iface(tgtA, srcPeerA);
+      }
+
+      close(sock);
+      if (!okA || !okB) {
+        throw std::runtime_error("Failed to create/rename epair interfaces");
+      }
+      return;
+    }
+
+    close(sock);
+    throw std::runtime_error("Failed to create interface '" + nm + "': " +
+                             std::string(strerror(err)));
+  }
+
+  close(sock);
+}
+
+void SystemConfigurationManager::SaveVirtual(const VirtualInterfaceConfig &vic) const {
+  // For now, virtual interfaces only need generic interface saving
+  if (!InterfaceConfig::exists(vic.name))
+    CreateVirtual(vic.name);
+  else
+    SaveInterface(static_cast<const InterfaceConfig &>(vic));
+  // Promiscuous or other virtual-specific settings could be applied here
 }

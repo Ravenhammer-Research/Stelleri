@@ -53,7 +53,7 @@
 class InterfaceConfig : public ConfigData {
 public:
   InterfaceConfig() = default;
-  InterfaceConfig(const struct ifaddrs *ifa);
+  // Platform-specific constructor removed; system layer builds instances.
   InterfaceConfig(std::string name, InterfaceType type,
                   std::unique_ptr<IPNetwork> address,
                   std::vector<std::unique_ptr<IPNetwork>> aliases,
@@ -79,20 +79,12 @@ public:
   // Destroy this interface from the system.
   void destroy() const override;
 
+  // Remove an address from this interface (e.g., "192.0.2.1/32").
+  void removeAddress(const std::string &addr) const;
+
   // Check whether the named interface exists on the system.
   static bool exists(std::string_view name);
 
 protected:
-  // Helper to configure addresses (primary + aliases) using the provided
-  // socket and `ifr`. Performs necessary SIOCSIFADDR / SIOCSIFNETMASK calls.
-  void configureAddresses(int sock, struct ifreq &ifr) const;
-
-  // Helper to configure MTU using the provided socket and `ifr`.
-  void configureMTU(int sock, struct ifreq &ifr) const;
-
-  // Helper to configure flags (bring interface up) using the provided socket
-  // and `ifr`.
-  void configureFlags(int sock, struct ifreq &ifr) const;
-
   // (Interface existence check moved to `ConfigData::exists`)
 };

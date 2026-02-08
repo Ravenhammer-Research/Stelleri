@@ -34,4 +34,5 @@ public:
   explicit CarpConfig(const InterfaceConfig &base) : InterfaceConfig(base) {}
   void save() const override;
   void create() const;
+  void destroy() const override;
 };
