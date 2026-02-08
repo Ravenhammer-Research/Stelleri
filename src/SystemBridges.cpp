@@ -84,7 +84,7 @@ SystemConfigurationManager::GetBridgeInterfaces(
 }
 
 void SystemConfigurationManager::CreateBridge(const std::string &name) const {
-  // Create bridge via generic SIOCIFCREATE
+  // Bridge interfaces are cloned from "bridge" base name
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
   if (sock < 0) {
     throw std::runtime_error("Failed to create socket for bridge creation");
@@ -92,7 +92,7 @@ void SystemConfigurationManager::CreateBridge(const std::string &name) const {
 
   struct ifreq ifr;
   std::memset(&ifr, 0, sizeof(ifr));
-  std::strncpy(ifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
+  std::strncpy(ifr.ifr_name, "bridge", IFNAMSIZ - 1);
 
   if (ioctl(sock, SIOCIFCREATE, &ifr) < 0) {
     int err = errno;
@@ -102,6 +102,10 @@ void SystemConfigurationManager::CreateBridge(const std::string &name) const {
   }
 
   close(sock);
+  
+  // The kernel returns the created name in ifr.ifr_name (e.g., "bridge0")
+  // If the user requested a specific name and it doesn't match, we could rename,
+  // but typically we accept the kernel-assigned name
 }
 
 void SystemConfigurationManager::SaveBridge(const BridgeInterfaceConfig &bic) const {

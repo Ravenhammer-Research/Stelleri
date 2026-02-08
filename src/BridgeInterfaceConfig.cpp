@@ -95,12 +95,13 @@ BridgeInterfaceConfig::BridgeInterfaceConfig(
 
 void BridgeInterfaceConfig::save() const {
   SystemConfigurationManager scm;
-  // Ensure generic interface settings are applied via InterfaceConfig
+  // Create bridge if it doesn't exist, then apply all settings
   if (!InterfaceConfig::exists(name)) {
     scm.CreateBridge(name);
-  } else {
-    InterfaceConfig::save();
   }
+  
+  // Always apply generic interface settings (VRF, MTU, flags, groups, etc.)
+  InterfaceConfig::save();
 
   // Delegate platform-specific bridge configuration to System layer
   scm.SaveBridge(*this);

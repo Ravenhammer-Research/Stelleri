@@ -98,6 +98,40 @@ void netcli::Parser::executeSetInterface(const InterfaceToken &tok,
       }
     }
 
+    // Handle group assignment
+    if (tok.group) {
+      // Add group to base config if not already present
+      bool has_group = false;
+      for (const auto &g : base.groups) {
+        if (g == *tok.group) {
+          has_group = true;
+          break;
+        }
+      }
+      if (!has_group) {
+        base.groups.push_back(*tok.group);
+      }
+    }
+
+    // Handle MTU
+    if (tok.mtu) {
+      base.mtu = *tok.mtu;
+    }
+
+    // Handle status (up/down)
+    if (tok.status) {
+      if (base.flags) {
+        if (*tok.status) {
+          *base.flags |= IFF_UP;
+        } else {
+          *base.flags &= ~IFF_UP;
+        }
+      } else {
+        // If no flags set yet, initialize with UP if requested
+        base.flags = *tok.status ? IFF_UP : 0;
+      }
+    }
+
     if (effectiveType == InterfaceType::Bridge) {
       BridgeInterfaceConfig bic(base);
       bic.save();
@@ -143,6 +177,13 @@ void netcli::Parser::executeSetInterface(const InterfaceToken &tok,
         effectiveType == InterfaceType::Gif ||
         effectiveType == InterfaceType::Tun) {
       TunnelConfig tc(base);
+      // Handle tunnel-specific VRF if provided
+      if (tok.tunnel_vrf) {
+        if (!tc.vrf)
+          tc.vrf = std::make_unique<VRFConfig>(*tok.tunnel_vrf);
+        else
+          tc.vrf->table = *tok.tunnel_vrf;
+      }
       tc.save();
       std::cout << "set interface: " << (exists ? "updated" : "created")
                 << " tunnel '" << name << "'\n";

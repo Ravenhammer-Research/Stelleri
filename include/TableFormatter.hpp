@@ -169,14 +169,14 @@ std::string TableFormatter<T>::renderTable(int maxWidth) const {
 
   std::vector<int> widths(ncol, 0);
   for (size_t i = 0; i < ncol; ++i) {
-    widths[i] = static_cast<int>(columns_[i].title.size());
+    widths[i] = visibleLength(columns_[i].title);
   }
 
   for (const auto &r : rows_) {
     for (size_t i = 0; i < ncol; ++i) {
       auto lines = splitLines(r[i]);
       for (const auto &l : lines)
-        widths[i] = std::max(widths[i], static_cast<int>(l.size()));
+        widths[i] = std::max(widths[i], visibleLength(l));
     }
   }
 
@@ -260,10 +260,25 @@ std::string TableFormatter<T>::renderTable(int maxWidth) const {
           auto parseInt = [&](const std::string &s, long long &out) -> bool {
             if (s.empty() || s == "-")
               return false;
+            // Strip ANSI escape codes before parsing
+            std::string clean;
+            bool inEscape = false;
+            for (char c : s) {
+              if (c == '\x1b') {
+                inEscape = true;
+              } else if (inEscape) {
+                if (c == 'm' || c == 'K' || c == 'J' || c == 'H')
+                  inEscape = false;
+              } else {
+                clean += c;
+              }
+            }
+            if (clean.empty() || clean == "-")
+              return false;
             try {
               size_t pos = 0;
-              out = std::stoll(s, &pos);
-              return pos == s.size();
+              out = std::stoll(clean, &pos);
+              return pos == clean.size();
             } catch (...) {
               return false;
             }

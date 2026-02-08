@@ -85,6 +85,23 @@ public:
   // Check whether the named interface exists on the system.
   static bool exists(std::string_view name);
 
+  // Type checking predicates
+  bool isBridge() const;
+  bool isLagg() const;
+  bool isVlan() const;
+  bool isTunnelish() const;
+  bool isVirtual() const;
+  bool isWlan() const;
+  bool isSixToFour() const;
+  bool isTap() const;
+  bool isCarp() const;
+
+  // Check if this interface matches a requested type (handles tunnel special cases)
+  bool matchesType(InterfaceType requestedType) const;
+
+  // Format a collection of interfaces using the appropriate formatter
+  static std::string formatInterfaces(const std::vector<InterfaceConfig> &ifaces);
+
 protected:
   // (Interface existence check moved to `ConfigData::exists`)
 };

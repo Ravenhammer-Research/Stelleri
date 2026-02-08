@@ -57,6 +57,15 @@ void netcli::Parser::executeDeleteInterface(const InterfaceToken &tok,
   InterfaceConfig ic;
   ic.name = name;
   try {
+    // If token requests group deletion, remove just the group
+    if (tok.group) {
+      SystemConfigurationManager scm;
+      scm.RemoveInterfaceGroup(name, *tok.group);
+      std::cout << "delete interface: removed group '" << *tok.group
+                << "' from '" << name << "'\n";
+      return;
+    }
+
     // If token requests address-level deletion (inet/inet6), handle
     // targeted removal rather than destroying the entire interface.
     if (tok.address || tok.address_family) {

@@ -80,15 +80,15 @@ std::string InterfaceTableFormatter::format(
   }
 
   // Define columns (key, title, priority, minWidth)
-  addColumn("Index", "Index", 8, 2, true);
-  addColumn("Interface", "Interface", 10, 4, true);
-  addColumn("Group", "Group", 8, 4, true);
-  addColumn("Type", "Type", 8, 6, true);
-  addColumn("Address", "Address", 5, 7, true);
-  addColumn("Status", "Status", 6, 6, true);
-  addColumn("MTU", "MTU", 4, 3, false);
-  addColumn("VRF", "VRF", 5, 3, false);
-  addColumn("Flags", "Flags", 3, 3, true);
+  addColumn("Index", "Index", 8, 5, true);
+  addColumn("Interface", "Interface", 10, 9, true);
+  addColumn("Group", "Group", 6, 5, true);
+  addColumn("Type", "Type", 9, 13, true);
+  addColumn("Address", "Address", 10, 40, true);
+  addColumn("Status", "Status", 7, 6, true);
+  addColumn("MTU", "MTU", 5, 3, false);
+  addColumn("VRF", "VRF", 4, 3, false);
+  addColumn("Flags", "Flags", 3, 5, true);
 
   for (const auto &ic : interfaces) {
 
@@ -195,7 +195,7 @@ std::string InterfaceTableFormatter::format(
   legend += "\n\n";
 
   // Bold index numbers in rows: wrap when adding rows above. Call format
-  auto out = renderTable(80);
+  auto out = renderTable(1000);
   out = legend + out;
   return out;
 }

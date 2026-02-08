@@ -38,6 +38,7 @@
 #include <net/if.h>
 #include <net80211/ieee80211_ioctl.h>
 #include <netinet/in.h>
+#include <netinet6/in6_var.h>
 #include <string>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -233,6 +234,9 @@ void SystemConfigurationManager::populateInterfaceMetadata(
       ic.vrf = std::make_unique<VRFConfig>(*f);
     else
       ic.vrf->table = *f;
+  }
+  if (auto mtu = query_ifreq_int(ic.name, SIOCGIFMTU, IfreqIntField::Mtu); mtu) {
+    ic.mtu = *mtu;
   }
   unsigned int ifidx = if_nametoindex(ic.name.c_str());
   if (ifidx != 0) {
@@ -454,6 +458,125 @@ void SystemConfigurationManager::SaveInterface(const InterfaceConfig &ic) const 
         }
       }
     }
+    
+    // Configure primary IPv6 address if requested
+    if (ic.address && ic.address->family() == AddressFamily::IPv6) {
+      auto v6 = dynamic_cast<IPv6Network *>(ic.address.get());
+      if (v6) {
+        // Use AF_INET6 socket for IPv6 operations
+        int sock6 = socket(AF_INET6, SOCK_DGRAM, 0);
+        if (sock6 < 0) {
+          std::cerr << "Warning: Failed to create AF_INET6 socket: " << strerror(errno) << "\n";
+        } else {
+          struct in6_aliasreq iar6;
+          std::memset(&iar6, 0, sizeof(iar6));
+          std::strncpy(iar6.ifra_name, ic.name.c_str(), IFNAMSIZ - 1);
+        
+        auto netAddr = v6->address();
+        auto v6addr = dynamic_cast<IPv6Address *>(netAddr.get());
+        if (v6addr) {
+          struct sockaddr_in6 sa6;
+          std::memset(&sa6, 0, sizeof(sa6));
+          sa6.sin6_len = sizeof(sa6);
+          sa6.sin6_family = AF_INET6;
+          unsigned __int128 v = v6addr->value();
+          for (int i = 15; i >= 0; --i) {
+            sa6.sin6_addr.s6_addr[i] = static_cast<uint8_t>(v & 0xFF);
+            v >>= 8;
+          }
+          std::memcpy(&iar6.ifra_addr, &sa6, sizeof(sa6));
+          
+          // Set prefix length
+          struct sockaddr_in6 mask6;
+          std::memset(&mask6, 0, sizeof(mask6));
+          mask6.sin6_len = sizeof(mask6);
+          mask6.sin6_family = AF_INET6;
+          int prefixlen = v6->mask();
+          for (int i = 0; i < 16; i++) {
+            if (prefixlen >= 8) {
+              mask6.sin6_addr.s6_addr[i] = 0xff;
+              prefixlen -= 8;
+            } else if (prefixlen > 0) {
+              mask6.sin6_addr.s6_addr[i] = (0xff << (8 - prefixlen)) & 0xff;
+              prefixlen = 0;
+            } else {
+              mask6.sin6_addr.s6_addr[i] = 0;
+            }
+          }
+          std::memcpy(&iar6.ifra_prefixmask, &mask6, sizeof(mask6));
+          
+          iar6.ifra_flags = 0; // Let kernel handle DAD
+          iar6.ifra_lifetime.ia6t_expire = 0;
+          iar6.ifra_lifetime.ia6t_preferred = 0;
+          iar6.ifra_lifetime.ia6t_vltime = 0xffffffff; // ND6_INFINITE_LIFETIME
+          iar6.ifra_lifetime.ia6t_pltime = 0xffffffff; // ND6_INFINITE_LIFETIME
+          
+          if (ioctl(sock6, SIOCAIFADDR_IN6, &iar6) < 0) {
+            std::cerr << "Warning: SIOCAIFADDR_IN6 failed for " << ic.name << ": "
+                      << strerror(errno) << "\n";
+          }
+        }
+        close(sock6);
+      }
+    }
+    }
+    
+    // Configure IPv6 aliases
+    for (const auto &aptr : ic.aliases) {
+      if (!aptr || aptr->family() != AddressFamily::IPv6)
+        continue;
+      auto a6net = dynamic_cast<IPv6Network *>(aptr.get());
+      if (!a6net)
+        continue;
+        
+      struct in6_aliasreq iar6;
+      std::memset(&iar6, 0, sizeof(iar6));
+      std::strncpy(iar6.ifra_name, ic.name.c_str(), IFNAMSIZ - 1);
+      
+      auto netAddr = a6net->address();
+      auto v6addr = dynamic_cast<IPv6Address *>(netAddr.get());
+      if (!v6addr)
+        continue;
+        
+      struct sockaddr_in6 sa6;
+      std::memset(&sa6, 0, sizeof(sa6));
+      sa6.sin6_len = sizeof(sa6);
+      sa6.sin6_family = AF_INET6;
+      unsigned __int128 v = v6addr->value();
+      for (int i = 15; i >= 0; --i) {
+        sa6.sin6_addr.s6_addr[i] = static_cast<uint8_t>(v & 0xFF);
+        v >>= 8;
+      }
+      std::memcpy(&iar6.ifra_addr, &sa6, sizeof(sa6));
+      
+      // Set prefix length
+      struct sockaddr_in6 mask6;
+      std::memset(&mask6, 0, sizeof(mask6));
+      mask6.sin6_len = sizeof(mask6);
+      mask6.sin6_family = AF_INET6;
+      int prefixlen = a6net->mask();
+      for (int i = 0; i < 16; i++) {
+        if (prefixlen >= 8) {
+          mask6.sin6_addr.s6_addr[i] = 0xff;
+          prefixlen -= 8;
+        } else if (prefixlen > 0) {
+          mask6.sin6_addr.s6_addr[i] = (0xff << (8 - prefixlen)) & 0xff;
+          prefixlen = 0;
+        } else {
+          mask6.sin6_addr.s6_addr[i] = 0;
+        }
+      }
+      std::memcpy(&iar6.ifra_prefixmask, &mask6, sizeof(mask6));
+      
+      iar6.ifra_flags = 0x20; // IN6_IFF_NODAD - skip duplicate address detection
+      iar6.ifra_lifetime.ia6t_vltime = 0xffffffff; // ND6_INFINITE_LIFETIME
+      iar6.ifra_lifetime.ia6t_pltime = 0xffffffff; // ND6_INFINITE_LIFETIME
+      
+      if (ioctl(sock, SIOCAIFADDR_IN6, &iar6) < 0) {
+        std::cerr << "Warning: SIOCAIFADDR_IN6 failed when adding IPv6 alias to " 
+                  << ic.name << ": " << strerror(errno) << "\n";
+      }
+    }
   }
 
   // Configure MTU
@@ -463,8 +586,10 @@ void SystemConfigurationManager::SaveInterface(const InterfaceConfig &ic) const 
     std::strncpy(ifr_mtu_req.ifr_name, ic.name.c_str(), IFNAMSIZ - 1);
     ifr_mtu_req.ifr_mtu = *ic.mtu;
     if (ioctl(sock, SIOCSIFMTU, &ifr_mtu_req) < 0) {
-      std::cerr << "Warning: Failed to set MTU on " << ic.name << ": "
-                << strerror(errno) << "\n";
+      int err = errno;
+      close(sock);
+      throw std::runtime_error("Failed to set MTU on " + ic.name + ": " +
+                               std::string(strerror(err)));
     }
   }
 
@@ -475,8 +600,10 @@ void SystemConfigurationManager::SaveInterface(const InterfaceConfig &ic) const 
   if (ioctl(sock, SIOCGIFFLAGS, &ifr_flags_req) >= 0) {
     ifr_flags_req.ifr_flags |= IFF_UP;
     if (ioctl(sock, SIOCSIFFLAGS, &ifr_flags_req) < 0) {
-      std::cerr << "Warning: Failed to bring interface up: " << strerror(errno)
-                << "\n";
+      int err = errno;
+      close(sock);
+      throw std::runtime_error("Failed to bring interface up: " +
+                               std::string(strerror(err)));
     }
   }
 
@@ -491,6 +618,32 @@ void SystemConfigurationManager::SaveInterface(const InterfaceConfig &ic) const 
       close(sock);
       throw std::runtime_error("Failed to set interface FIB: " +
                                std::string(strerror(err)));
+    }
+  }
+
+  // Apply interface groups (only add new ones)
+  auto existing_groups = query_interface_groups(ic.name);
+  for (const auto &group : ic.groups) {
+    // Skip if group already exists
+    bool already_exists = false;
+    for (const auto &eg : existing_groups) {
+      if (eg == group) {
+        already_exists = true;
+        break;
+      }
+    }
+    if (already_exists)
+      continue;
+
+    struct ifgroupreq ifgr;
+    std::memset(&ifgr, 0, sizeof(ifgr));
+    std::strncpy(ifgr.ifgr_name, ic.name.c_str(), IFNAMSIZ - 1);
+    std::strncpy(ifgr.ifgr_group, group.c_str(), IFNAMSIZ - 1);
+    if (ioctl(sock, SIOCAIFGROUP, &ifgr) < 0) {
+      int err = errno;
+      close(sock);
+      throw std::runtime_error("Failed to add interface group '" + group +
+                               "': " + std::string(strerror(err)));
     }
   }
 
@@ -606,6 +759,28 @@ void SystemConfigurationManager::RemoveInterfaceAddress(const std::string &ifnam
 
   // IPv6 removal: not fully implemented here
   throw std::runtime_error("IPv6 address removal not implemented: " + addr);
+}
+
+void SystemConfigurationManager::RemoveInterfaceGroup(const std::string &ifname, const std::string &group) const {
+  int sock = socket(AF_LOCAL, SOCK_DGRAM, 0);
+  if (sock < 0) {
+    throw std::runtime_error("Failed to create socket: " +
+                             std::string(strerror(errno)));
+  }
+
+  struct ifgroupreq ifgr;
+  std::memset(&ifgr, 0, sizeof(ifgr));
+  std::strncpy(ifgr.ifgr_name, ifname.c_str(), IFNAMSIZ - 1);
+  std::strncpy(ifgr.ifgr_group, group.c_str(), IFNAMSIZ - 1);
+
+  if (ioctl(sock, SIOCDIFGROUP, &ifgr) < 0) {
+    int err = errno;
+    close(sock);
+    throw std::runtime_error("Failed to remove group '" + group + "': " +
+                             std::string(strerror(err)));
+  }
+
+  close(sock);
 }
 
 void SystemConfigurationManager::CreateInterface(const std::string &name) const {

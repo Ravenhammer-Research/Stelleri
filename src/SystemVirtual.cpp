@@ -53,7 +53,15 @@ SystemConfigurationManager::GetVirtualInterfaces(
 }
 
 void SystemConfigurationManager::CreateVirtual(const std::string &nm) const {
-  if (InterfaceConfig::exists(nm))
+  // For epair interfaces, check if the pair already exists
+  std::string check_name = nm;
+  if (nm.rfind("epair", 0) == 0 && 
+      !nm.empty() && 
+      nm.back() != 'a' && 
+      nm.back() != 'b') {
+    check_name = nm + "a";
+  }
+  if (InterfaceConfig::exists(check_name))
     return;
 
   int sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -148,10 +156,25 @@ void SystemConfigurationManager::CreateVirtual(const std::string &nm) const {
 }
 
 void SystemConfigurationManager::SaveVirtual(const VirtualInterfaceConfig &vic) const {
-  // For now, virtual interfaces only need generic interface saving
-  if (!InterfaceConfig::exists(vic.name))
+  // Create virtual interface if it doesn't exist, then apply all settings
+  // For epair interfaces, check if the 'a' side exists since epairs come in pairs
+  std::string actual_name = vic.name;
+  std::string check_name = vic.name;
+  if (vic.name.rfind("epair", 0) == 0 && 
+      !vic.name.empty() && 
+      vic.name.back() != 'a' && 
+      vic.name.back() != 'b') {
+    check_name = vic.name + "a";
+    actual_name = vic.name + "a"; // Operate on the 'a' side
+  }
+  
+  if (!InterfaceConfig::exists(check_name))
     CreateVirtual(vic.name);
-  else
-    SaveInterface(static_cast<const InterfaceConfig &>(vic));
+  
+  // Always call SaveInterface to apply VRF, groups, MTU, etc.
+  // Use actual_name which includes 'a' suffix for epairs
+  VirtualInterfaceConfig actual_vic = vic;
+  actual_vic.name = actual_name;
+  SaveInterface(static_cast<const InterfaceConfig &>(actual_vic));
   // Promiscuous or other virtual-specific settings could be applied here
 }

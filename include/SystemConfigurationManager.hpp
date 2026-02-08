@@ -144,6 +144,7 @@ public:
     void SaveInterface(const InterfaceConfig &ic) const;
     void DestroyInterface(const std::string &name) const;
     void RemoveInterfaceAddress(const std::string &ifname, const std::string &addr) const;
+    void RemoveInterfaceGroup(const std::string &ifname, const std::string &group) const;
     // Query whether a named interface exists on the system
     bool InterfaceExists(std::string_view name) const;
 

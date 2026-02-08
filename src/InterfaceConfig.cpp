@@ -37,6 +37,16 @@
 
 #include "VRFConfig.hpp"
 #include "SystemConfigurationManager.hpp"
+#include "BridgeTableFormatter.hpp"
+#include "CarpTableFormatter.hpp"
+#include "InterfaceTableFormatter.hpp"
+#include "LaggTableFormatter.hpp"
+#include "SixToFourTableFormatter.hpp"
+#include "TapTableFormatter.hpp"
+#include "TunnelTableFormatter.hpp"
+#include "VLANTableFormatter.hpp"
+#include "VirtualTableFormatter.hpp"
+#include "WlanTableFormatter.hpp"
 
 // (no helpers) prepare `ifreq` inline where needed
 
@@ -101,4 +111,114 @@ InterfaceConfig::InterfaceConfig(const InterfaceConfig &o) {
 bool InterfaceConfig::exists(std::string_view name) {
   SystemConfigurationManager scm;
   return scm.InterfaceExists(name);
+}
+
+// Type checking predicates
+bool InterfaceConfig::isBridge() const { return type == InterfaceType::Bridge; }
+
+bool InterfaceConfig::isLagg() const { return type == InterfaceType::Lagg; }
+
+bool InterfaceConfig::isVlan() const { return type == InterfaceType::VLAN; }
+
+bool InterfaceConfig::isTunnelish() const {
+  return type == InterfaceType::Tunnel || type == InterfaceType::Gif ||
+         type == InterfaceType::Tun;
+}
+
+bool InterfaceConfig::isVirtual() const {
+  return type == InterfaceType::Virtual;
+}
+
+bool InterfaceConfig::isWlan() const { return type == InterfaceType::Wireless; }
+
+bool InterfaceConfig::isSixToFour() const {
+  if (!isTunnelish())
+    return false;
+  return name.rfind("gif", 0) == 0 || name.rfind("stf", 0) == 0 ||
+         name.rfind("sit", 0) == 0;
+}
+
+bool InterfaceConfig::isTap() const {
+  return isVirtual() || name.rfind("tap", 0) == 0;
+}
+
+bool InterfaceConfig::isCarp() const {
+  return name.rfind("carp", 0) == 0 || name.rfind("vh", 0) == 0 ||
+         isVirtual();
+}
+
+// Check if this interface matches a requested type (handles tunnel special cases)
+bool InterfaceConfig::matchesType(InterfaceType requestedType) const {
+  // Special handling for tunnel-ish types: they all match each other
+  if (requestedType == InterfaceType::Tunnel ||
+      requestedType == InterfaceType::Gif ||
+      requestedType == InterfaceType::Tun) {
+    return isTunnelish();
+  }
+  return type == requestedType;
+}
+
+// Format a collection of interfaces using the appropriate formatter
+std::string InterfaceConfig::formatInterfaces(const std::vector<InterfaceConfig> &ifaces) {
+  if (ifaces.empty())
+    return "No interfaces found.\n";
+
+  // Determine which specialized formatter to use based on the collection
+  bool allSame = true;
+  auto checkType = ifaces[0].type;
+  
+  for (const auto &iface : ifaces) {
+    if (iface.type != checkType) {
+      allSame = false;
+      break;
+    }
+  }
+
+  if (!allSame) {
+    // Mixed types - use generic formatter
+    InterfaceTableFormatter formatter;
+    return formatter.format(ifaces);
+  }
+
+  // All same type - check which specialized formatter to use
+  if (ifaces[0].isBridge()) {
+    BridgeTableFormatter formatter;
+    return formatter.format(ifaces);
+  }
+  if (ifaces[0].isLagg()) {
+    LaggTableFormatter formatter;
+    return formatter.format(ifaces);
+  }
+  if (ifaces[0].isVlan()) {
+    VLANTableFormatter formatter;
+    return formatter.format(ifaces);
+  }
+  if (ifaces[0].isWlan()) {
+    WlanTableFormatter formatter;
+    return formatter.format(ifaces);
+  }
+  if (ifaces[0].isSixToFour()) {
+    SixToFourTableFormatter formatter;
+    return formatter.format(ifaces);
+  }
+  if (ifaces[0].isTunnelish()) {
+    TunnelTableFormatter formatter;
+    return formatter.format(ifaces);
+  }
+  if (ifaces[0].isTap()) {
+    TapTableFormatter formatter;
+    return formatter.format(ifaces);
+  }
+  if (ifaces[0].isCarp()) {
+    CarpTableFormatter formatter;
+    return formatter.format(ifaces);
+  }
+  if (ifaces[0].isVirtual()) {
+    VirtualTableFormatter formatter;
+    return formatter.format(ifaces);
+  }
+
+  // Default to generic formatter
+  InterfaceTableFormatter formatter;
+  return formatter.format(ifaces);
 }

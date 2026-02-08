@@ -176,6 +176,11 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
           cur += 2;
           continue;
         }
+        if (kw == "mtu" && cur + 1 < tokens.size()) {
+          tok->mtu = std::stoi(tokens[cur + 1]);
+          cur += 2;
+          continue;
+        }
         if ((kw == "fib" || kw == "vrf") && cur + 1 < tokens.size()) {
           tok->vrf = std::stoi(tokens[cur + 1]);
           cur += 2;
@@ -277,7 +282,7 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
         itype = InterfaceType::Gif;
       else if (type == "tun")
         itype = InterfaceType::Tun;
-      else if (type == "epair" || type == "virtual")
+      else if (type == "epair" || type == "virtual" || type == "tap")
         itype = InterfaceType::Virtual;
 
       if (itype != InterfaceType::Unknown) {
