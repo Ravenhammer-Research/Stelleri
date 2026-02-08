@@ -25,14 +25,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file LoopBackConfig.hpp
+ * @brief Loopback interface configuration
+ */
+
 #pragma once
 
 #include "InterfaceConfig.hpp"
-
-/**
- * @file LoopBackConfig.hpp
- * @brief Configuration holder for loopback-specific settings
- */
 
 class LoopBackConfig : public InterfaceConfig {
 public:
@@ -40,6 +40,7 @@ public:
       : InterfaceConfig(base) {}
 
   // No extra fields for now; placeholder for future loopback-specific options
-  void save() const override;
-  void create() const;
+  void save(ConfigurationManager &mgr) const override;
+  void create(ConfigurationManager &mgr) const;
+  void destroy(ConfigurationManager &mgr) const override;
 };

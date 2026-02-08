@@ -25,6 +25,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file ArpConfig.hpp
+ * @brief ARP table entry configuration
+ */
+
 #pragma once
 
 #include "ConfigData.hpp"
@@ -39,6 +44,6 @@ struct ArpConfig : public ConfigData {
   bool permanent = false;           // Static/permanent entry
   bool published = false;           // Proxy ARP (published)
 
-  void save() const override {}
-  void destroy() const override {}
+  void save(ConfigurationManager &mgr) const override;
+  void destroy(ConfigurationManager &mgr) const override;
 };

@@ -25,6 +25,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file CommandGenerator.hpp
+ * @brief CLI command-based configuration generator
+ */
+
 #pragma once
 
 #include "ConfigurationGenerator.hpp"
@@ -42,25 +47,25 @@ namespace netcli {
     ~CommandGenerator() override = default;
 
   protected:
-    void generateVRFs(SystemConfigurationManager &mgr) override;
-    void generateLoopbacks(SystemConfigurationManager &mgr,
+    void generateVRFs(ConfigurationManager &mgr) override;
+    void generateLoopbacks(ConfigurationManager &mgr,
                            std::set<std::string> &processedInterfaces) override;
-    void generateEpairs(SystemConfigurationManager &mgr,
+    void generateEpairs(ConfigurationManager &mgr,
                         std::set<std::string> &processedInterfaces) override;
     void generateBasicInterfaces(
-        SystemConfigurationManager &mgr,
+        ConfigurationManager &mgr,
         std::set<std::string> &processedInterfaces) override;
-    void generateBridges(SystemConfigurationManager &mgr,
+    void generateBridges(ConfigurationManager &mgr,
                          std::set<std::string> &processedInterfaces) override;
-    void generateLaggs(SystemConfigurationManager &mgr,
+    void generateLaggs(ConfigurationManager &mgr,
                        std::set<std::string> &processedInterfaces) override;
-    void generateVLANs(SystemConfigurationManager &mgr,
+    void generateVLANs(ConfigurationManager &mgr,
                        std::set<std::string> &processedInterfaces) override;
-    void generateTunnels(SystemConfigurationManager &mgr,
+    void generateTunnels(ConfigurationManager &mgr,
                          std::set<std::string> &processedInterfaces) override;
-    void generateVirtuals(SystemConfigurationManager &mgr,
+    void generateVirtuals(ConfigurationManager &mgr,
                           std::set<std::string> &processedInterfaces) override;
-    void generateRoutes(SystemConfigurationManager &mgr) override;
+    void generateRoutes(ConfigurationManager &mgr) override;
   };
 
 } // namespace netcli

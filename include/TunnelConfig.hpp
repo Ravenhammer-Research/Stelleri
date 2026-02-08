@@ -58,12 +58,13 @@ public:
       source; ///< Tunnel source network/address (nullable)
   std::unique_ptr<IPAddress>
       destination; ///< Tunnel destination network/address (nullable)
-  // TTL and TOS removed from TunnelConfig; managed elsewhere if needed
-  std::optional<int> tunnel_vrf; ///< Tunnel-specific VRF/FIB (TunFIB)
+  std::optional<uint32_t> options; ///< GIF options bitmask (GIF_NOCLAMP, GIF_IGNORE_SOURCE)
+  std::optional<int> tunnel_vrf;   ///< Tunnel-specific VRF/FIB (TunFIB)
 
   // Copy semantics: clone underlying IPNetwork objects
   TunnelConfig(const TunnelConfig &o)
-      : InterfaceConfig(o), type(o.type), tunnel_vrf(o.tunnel_vrf) {
+      : InterfaceConfig(o), type(o.type), options(o.options),
+        tunnel_vrf(o.tunnel_vrf) {
     if (o.source)
       source = o.source->clone();
     if (o.destination)
@@ -71,8 +72,8 @@ public:
   }
 
 public:
-  void save() const override;
+  void save(ConfigurationManager &mgr) const override;
 
 private:
-  void create() const;
+  void create(ConfigurationManager &mgr) const;
 };

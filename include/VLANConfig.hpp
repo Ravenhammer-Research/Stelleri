@@ -60,8 +60,10 @@ public:
   std::optional<uint32_t>
       options_bits; ///< Raw interface capability bits (IFCAP_*)
 
-  void save() const override;
+  void save(ConfigurationManager &mgr) const override;
+
+  void destroy(ConfigurationManager &mgr) const override;
 
 private:
-  void create() const;
+  void create(ConfigurationManager &mgr) const;
 };

@@ -31,72 +31,32 @@
 #include "InterfaceType.hpp"
 #include <algorithm>
 #include <iomanip>
-#include <net/if.h>
 #include <sstream>
 
-static std::string interfaceTypeToString(InterfaceType t) {
-  switch (t) {
-  case InterfaceType::Unknown:
-    return "Unknown";
-  case InterfaceType::Loopback:
-    return "Loopback";
-  case InterfaceType::Ethernet:
-    return "Ethernet";
-  case InterfaceType::PointToPoint:
-    return "PointToPoint";
-  case InterfaceType::Wireless:
-    return "Wireless";
-  case InterfaceType::Bridge:
-    return "Bridge";
-  case InterfaceType::Lagg:
-    return "LinkAggregate";
-  case InterfaceType::VLAN:
-    return "VLAN";
-  case InterfaceType::PPP:
-    return "PPP";
-  case InterfaceType::Tunnel:
-    return "Tunnel";
-  case InterfaceType::Gif:
-    return "GenericTunnel";
-  case InterfaceType::FDDI:
-    return "FDDI";
-  case InterfaceType::TokenRing:
-    return "TokenRing";
-  case InterfaceType::ATM:
-    return "ATM";
-  case InterfaceType::Virtual:
-    return "Virtual";
-  case InterfaceType::Other:
-    return "Other";
-  default:
-    return "Unknown";
-  }
-}
-
 std::string InterfaceTableFormatter::format(
-    const std::vector<InterfaceConfig> &interfaces) const {
+    const std::vector<InterfaceConfig> &interfaces) {
   if (interfaces.empty()) {
     return "No interfaces found.\n";
   }
 
   // Define columns (key, title, priority, minWidth)
-  addColumn("Index", "Index", 8, 2, true);
-  addColumn("Interface", "Interface", 10, 4, true);
-  addColumn("Group", "Group", 8, 4, true);
-  addColumn("Type", "Type", 8, 6, true);
-  addColumn("Address", "Address", 5, 7, true);
-  addColumn("Status", "Status", 6, 6, true);
-  addColumn("MTU", "MTU", 4, 3, false);
-  addColumn("VRF", "VRF", 5, 3, false);
-  addColumn("Flags", "Flags", 3, 3, true);
+  addColumn("Index", "Index", 8, 5, true);
+  addColumn("Interface", "Interface", 10, 9, true);
+  addColumn("Group", "Group", 6, 5, true);
+  addColumn("Type", "Type", 9, 13, true);
+  addColumn("Address", "Address", 10, 40, true);
+  addColumn("Status", "Status", 7, 6, true);
+  addColumn("MTU", "MTU", 5, 3, false);
+  addColumn("VRF", "VRF", 4, 3, false);
+  addColumn("Flags", "Flags", 3, 5, true);
 
   for (const auto &ic : interfaces) {
 
     std::string status = "-";
     if (ic.flags) {
-      if (*ic.flags & IFF_RUNNING)
+      if (hasFlag(*ic.flags, InterfaceFlag::RUNNING))
         status = "active";
-      else if (*ic.flags & IFF_UP)
+      else if (hasFlag(*ic.flags, InterfaceFlag::UP))
         status = "no-carrier";
       else
         status = "down";
@@ -195,7 +155,7 @@ std::string InterfaceTableFormatter::format(
   legend += "\n\n";
 
   // Bold index numbers in rows: wrap when adding rows above. Call format
-  auto out = renderTable(80);
+  auto out = renderTable(1000);
   out = legend + out;
   return out;
 }

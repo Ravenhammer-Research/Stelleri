@@ -26,6 +26,7 @@
  */
 
 #include "CommandGenerator.hpp"
+#include "InterfaceFlags.hpp"
 #include "InterfaceToken.hpp"
 #include "SetToken.hpp"
 #include <iostream>
@@ -33,7 +34,7 @@
 namespace netcli {
 
   void CommandGenerator::generateBasicInterfaces(
-      SystemConfigurationManager &mgr,
+      ConfigurationManager &mgr,
       std::set<std::string> &processedInterfaces) {
     auto interfaces = mgr.GetInterfaces();
 
@@ -54,7 +55,7 @@ namespace netcli {
       if (ifc.vrf && ifc.vrf->table != 0)
         ifTok->vrf = ifc.vrf->table;
       if (ifc.flags)
-        ifTok->status = (*ifc.flags & 0x1) != 0; // IFF_UP = 0x1
+        ifTok->status = hasFlag(*ifc.flags, InterfaceFlag::UP);
 
       setTok->setNext(ifTok);
       std::cout << setTok->toString() << "\n";

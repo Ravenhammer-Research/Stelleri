@@ -28,36 +28,33 @@
 #include "LaggConfig.hpp"
 #include "LaggFlags.hpp"
 #include "SystemConfigurationManager.hpp"
+#include "Socket.hpp"
 
 #include <cstring>
+#include <iostream>
 #include <net/ethernet.h>
 #include <net/if.h>
 #include <net/if_lagg.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <unistd.h>
 
 bool SystemConfigurationManager::interfaceIsLagg(
     const std::string &ifname) const {
-  int sock = socket(AF_LOCAL, SOCK_DGRAM, 0);
-  if (sock < 0)
+  try {
+    Socket sock(AF_LOCAL, SOCK_DGRAM);
+
+    struct _local_lagg_status {
+      struct lagg_reqall ra;
+      struct lagg_reqport rpbuf[LAGG_MAX_PORTS];
+    } ls_buf{};
+    ls_buf.ra.ra_port = ls_buf.rpbuf;
+    ls_buf.ra.ra_size = sizeof(ls_buf.rpbuf);
+    std::strncpy(ls_buf.ra.ra_ifname, ifname.c_str(), IFNAMSIZ - 1);
+
+    return (ioctl(sock, SIOCGLAGG, &ls_buf.ra) == 0);
+  } catch (...) {
     return false;
-
-  struct _local_lagg_status {
-    struct lagg_reqall ra;
-    struct lagg_reqport rpbuf[LAGG_MAX_PORTS];
-  } ls_buf{};
-  std::memset(&ls_buf, 0, sizeof(ls_buf));
-  ls_buf.ra.ra_port = ls_buf.rpbuf;
-  ls_buf.ra.ra_size = sizeof(ls_buf.rpbuf);
-  std::strncpy(ls_buf.ra.ra_ifname, ifname.c_str(), IFNAMSIZ - 1);
-
-  bool res = false;
-  if (ioctl(sock, SIOCGLAGG, &ls_buf.ra) == 0) {
-    res = true;
   }
-  close(sock);
-  return res;
 }
 
 std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
@@ -67,28 +64,26 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
   for (const auto &ic : bases) {
     LaggConfig lac(ic);
 
-    int sock = socket(AF_LOCAL, SOCK_DGRAM, 0);
-    if (sock < 0) {
-      continue;
-    }
+    try {
+      Socket sock(AF_LOCAL, SOCK_DGRAM);
 
-    struct _local_lagg_status {
-      struct lagg_reqall ra;
-      struct lagg_reqopts ro;
-      struct lagg_reqflags rf;
-      struct lagg_reqport rpbuf[LAGG_MAX_PORTS];
-    };
-    _local_lagg_status ls_buf{};
-    _local_lagg_status *ls = &ls_buf;
-    ls->ra.ra_port = ls->rpbuf;
-    ls->ra.ra_size = sizeof(ls->rpbuf);
-    std::strncpy(ls->ro.ro_ifname, ic.name.c_str(), IFNAMSIZ - 1);
+      struct _local_lagg_status {
+        struct lagg_reqall ra;
+        struct lagg_reqopts ro;
+        struct lagg_reqflags rf;
+        struct lagg_reqport rpbuf[LAGG_MAX_PORTS];
+      };
+      _local_lagg_status ls_buf{};
+      _local_lagg_status *ls = &ls_buf;
+      ls->ra.ra_port = ls->rpbuf;
+      ls->ra.ra_size = sizeof(ls->rpbuf);
+      std::strncpy(ls->ro.ro_ifname, ic.name.c_str(), IFNAMSIZ - 1);
 
-    ioctl(sock, SIOCGLAGGOPTS, &ls->ro);
-    std::strncpy(ls->rf.rf_ifname, ic.name.c_str(), IFNAMSIZ - 1);
-    if (ioctl(sock, SIOCGLAGGFLAGS, &ls->rf) != 0) {
-      ls->rf.rf_flags = 0;
-    }
+      ioctl(sock, SIOCGLAGGOPTS, &ls->ro);
+      std::strncpy(ls->rf.rf_ifname, ic.name.c_str(), IFNAMSIZ - 1);
+      if (ioctl(sock, SIOCGLAGGFLAGS, &ls->rf) != 0) {
+        ls->rf.rf_flags = 0;
+      }
 
     std::strncpy(ls->ra.ra_ifname, ic.name.c_str(), IFNAMSIZ - 1);
     if (ioctl(sock, SIOCGLAGG, &ls->ra) == 0) {
@@ -102,6 +97,12 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
           break;
         case LAGG_PROTO_LACP:
           lac.protocol = LaggProtocol::LACP;
+          break;
+        case LAGG_PROTO_ROUNDROBIN:
+          lac.protocol = LaggProtocol::ROUNDROBIN;
+          break;
+        case LAGG_PROTO_BROADCAST:
+          lac.protocol = LaggProtocol::BROADCAST;
           break;
         default:
           lac.protocol = LaggProtocol::NONE;
@@ -118,6 +119,34 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
           uint32_t flags = ls->rpbuf[i].rp_flags;
           lac.members.emplace_back(pname);
           lac.member_flag_bits.emplace_back(flags);
+          // Convert known flag bits into human-readable label
+          std::string lbl;
+          if (flags & LAGG_PORT_MASTER) {
+            if (!lbl.empty())
+              lbl += ',';
+            lbl += "MASTER";
+          }
+          if (flags & LAGG_PORT_STACK) {
+            if (!lbl.empty())
+              lbl += ',';
+            lbl += "STACK";
+          }
+          if (flags & LAGG_PORT_ACTIVE) {
+            if (!lbl.empty())
+              lbl += ',';
+            lbl += "ACTIVE";
+          }
+          if (flags & LAGG_PORT_COLLECTING) {
+            if (!lbl.empty())
+              lbl += ',';
+            lbl += "COLLECTING";
+          }
+          if (flags & LAGG_PORT_DISTRIBUTING) {
+            if (!lbl.empty())
+              lbl += ',';
+            lbl += "DISTRIBUTING";
+          }
+          lac.member_flags.emplace_back(lbl);
         }
       }
 
@@ -127,20 +156,104 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
         lac.hash_policy = hf;
       }
 
-      struct lagg_reqopts ro;
-      std::memset(&ro, 0, sizeof(ro));
+      struct lagg_reqopts ro{};
       std::strncpy(ro.ro_ifname, ic.name.c_str(), IFNAMSIZ - 1);
       struct ifreq ifro;
-      std::memset(&ifro, 0, sizeof(ifro));
-      std::strncpy(ifro.ifr_name, ic.name.c_str(), IFNAMSIZ - 1);
+      prepare_ifreq(ifro, ic.name);
       ifro.ifr_data = reinterpret_cast<char *>(&ro);
-      ioctl(sock, SIOCGLAGGOPTS, &ifro);
+      if (ioctl(sock, SIOCGLAGGOPTS, &ifro) == 0) {
+        lac.options = ro.ro_opts;
+        lac.active_ports = static_cast<int>(ro.ro_active);
+        lac.flapping = static_cast<int>(ro.ro_flapping);
+        if (ro.ro_flowid_shift)
+          lac.flowid_shift = ro.ro_flowid_shift;
+        if (ro.ro_bkt)
+          lac.rr_stride = ro.ro_bkt;
+      }
 
       out.emplace_back(std::move(lac));
     }
-
-    close(sock);
+    } catch (...) {
+      // Socket creation failed, skip this interface
+      continue;
+    }
   }
 
   return out;
+}
+
+void SystemConfigurationManager::SaveLagg(const LaggConfig &lac) const {
+  if (lac.name.empty())
+    throw std::runtime_error("LaggConfig has no interface name set");
+
+  if (!InterfaceConfig::exists(*this, lac.name))
+    CreateLagg(lac.name);
+  else
+    SaveInterface(static_cast<const InterfaceConfig &>(lac));
+
+  Socket sock(AF_INET, SOCK_DGRAM);
+
+  int proto_value = 0;
+  switch (lac.protocol) {
+  case LaggProtocol::NONE:
+    proto_value = LAGG_PROTO_NONE;
+    break;
+  case LaggProtocol::ROUNDROBIN:
+    proto_value = LAGG_PROTO_ROUNDROBIN;
+    break;
+  case LaggProtocol::FAILOVER:
+    proto_value = LAGG_PROTO_FAILOVER;
+    break;
+  case LaggProtocol::LOADBALANCE:
+    proto_value = LAGG_PROTO_LOADBALANCE;
+    break;
+  case LaggProtocol::LACP:
+    proto_value = LAGG_PROTO_LACP;
+    break;
+  case LaggProtocol::BROADCAST:
+    proto_value = LAGG_PROTO_BROADCAST;
+    break;
+  }
+
+  if (proto_value > 0) {
+    struct lagg_reqall ra{};
+    ra.ra_proto = proto_value;
+
+    struct ifreq ifr;
+    prepare_ifreq(ifr, lac.name);
+    ifr.ifr_data = reinterpret_cast<char *>(&ra);
+
+    if (ioctl(sock, SIOCSLAGG, &ifr) < 0) {
+      throw std::runtime_error("Failed to set LAGG protocol: " +
+                               std::string(strerror(errno)));
+    }
+  }
+
+  for (const auto &member : lac.members) {
+    struct lagg_reqport rp{};
+    std::strncpy(rp.rp_portname, member.c_str(), IFNAMSIZ - 1);
+
+    struct ifreq ifr;
+    prepare_ifreq(ifr, lac.name);
+    ifr.ifr_data = reinterpret_cast<char *>(&rp);
+
+    if (ioctl(sock, SIOCSLAGGPORT, &ifr) < 0) {
+      throw std::runtime_error("Failed to add port '" + member + "' to LAGG '" +
+                               lac.name + "': " + std::string(strerror(errno)));
+    }
+  }
+
+  if (lac.hash_policy) {
+    std::cerr << "Note: Hash policy configuration for LAGG '" << lac.name
+              << "' may require sysctl settings\n";
+  }
+
+  if (lac.lacp_rate) {
+    std::cerr << "Note: LACP rate configuration for LAGG '" << lac.name
+              << "' may require per-port settings\n";
+  }
+}
+
+void SystemConfigurationManager::CreateLagg(const std::string &nm) const {
+  cloneInterface(nm, SIOCIFCREATE);
 }

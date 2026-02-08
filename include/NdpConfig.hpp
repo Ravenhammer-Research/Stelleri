@@ -25,6 +25,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file NdpConfig.hpp
+ * @brief NDP (IPv6 Neighbor Discovery) table entry configuration
+ */
+
 #pragma once
 
 #include "ConfigData.hpp"
@@ -39,6 +44,6 @@ struct NdpConfig : public ConfigData {
   bool permanent = false;           // Static/permanent entry
   bool router = false;              // Router flag
 
-  void save() const override {}
-  void destroy() const override {}
+  void save(ConfigurationManager &mgr) const override;
+  void destroy(ConfigurationManager &mgr) const override;
 };

@@ -29,23 +29,27 @@
 #include "BridgeTableFormatter.hpp"
 #include "CarpTableFormatter.hpp"
 #include "ConfigurationManager.hpp"
+#include "GRETableFormatter.hpp"
+#include "InterfaceConfig.hpp"
 #include "InterfaceTableFormatter.hpp"
 #include "InterfaceToken.hpp"
 #include "LaggTableFormatter.hpp"
-#include "Parser.hpp"
 #include "SingleInterfaceSummaryFormatter.hpp"
 #include "SixToFourTableFormatter.hpp"
 #include "TapTableFormatter.hpp"
 #include "TunnelTableFormatter.hpp"
 #include "VLANTableFormatter.hpp"
+#include "VXLANTableFormatter.hpp"
 #include "VirtualTableFormatter.hpp"
 #include "WlanTableFormatter.hpp"
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 
-void netcli::Parser::executeShowInterface(const InterfaceToken &tok,
-                                          ConfigurationManager *mgr) const {
+namespace netcli {
+
+void executeShowInterface(const InterfaceToken &tok,
+                                  ConfigurationManager *mgr) {
   if (!mgr) {
     std::cout << "No ConfigurationManager provided\n";
     return;
@@ -53,13 +57,13 @@ void netcli::Parser::executeShowInterface(const InterfaceToken &tok,
   std::vector<InterfaceConfig> interfaces;
   if (!tok.name().empty()) {
     // Prefer to query the ConfigurationManager for the named interface
-    auto ifopt = mgr->getInterface(tok.name());
+    auto ifopt = mgr->GetInterface(tok.name());
     if (ifopt) {
       interfaces.push_back(std::move(*ifopt));
     }
   } else if (tok.type() != InterfaceType::Unknown) {
     // Get all interfaces and filter by type and group
-    auto allIfaces = mgr->getInterfaces();
+    auto allIfaces = mgr->GetInterfaces();
     for (auto &iface : allIfaces) {
       if (tok.group) {
         bool has = false;
@@ -72,18 +76,7 @@ void netcli::Parser::executeShowInterface(const InterfaceToken &tok,
         if (!has)
           continue;
       }
-      if (tok.type() == InterfaceType::Tunnel ||
-          tok.type() == InterfaceType::Gif ||
-          tok.type() == InterfaceType::Tun) {
-        if (iface.type == InterfaceType::Tunnel ||
-            iface.type == InterfaceType::Gif ||
-            iface.type == InterfaceType::Tun) {
-          interfaces.push_back(std::move(iface));
-        }
-        continue;
-      }
-
-      if (iface.type == tok.type())
+      if (iface.matchesType(tok.type()))
         interfaces.push_back(std::move(iface));
     }
   } else {
@@ -91,7 +84,7 @@ void netcli::Parser::executeShowInterface(const InterfaceToken &tok,
       // Filter the main interfaces table by group
       interfaces = mgr->GetInterfacesByGroup(std::nullopt, *tok.group);
     } else {
-      interfaces = mgr->getInterfaces();
+      interfaces = mgr->GetInterfaces();
     }
   }
 
@@ -110,97 +103,6 @@ void netcli::Parser::executeShowInterface(const InterfaceToken &tok,
     return;
   }
 
-  bool allBridge = true;
-  bool allLagg = true;
-  bool allVlan = true;
-  bool allTunnel = true;
-  bool allVirtual = true;
-  bool allWlan = true;
-  bool allSixToFour = true;
-  bool allTap = true;
-  bool allCarp = true;
-
-  for (const auto &iface : interfaces) {
-    if (iface.type != InterfaceType::Bridge)
-      allBridge = false;
-    if (iface.type != InterfaceType::Lagg)
-      allLagg = false;
-    if (iface.type != InterfaceType::VLAN)
-      allVlan = false;
-    // Treat explicit tunnel-ish interface types as tunnels for formatting
-    if (!(iface.type == InterfaceType::Tunnel ||
-          iface.type == InterfaceType::Gif || iface.type == InterfaceType::Tun))
-      allTunnel = false;
-    if (iface.type != InterfaceType::Virtual)
-      allVirtual = false;
-    if (iface.type != InterfaceType::Wireless)
-      allWlan = false;
-    // SixToFour heuristics: treat tunnel-like interfaces whose name begins with
-    // gif/stf/sit as six-to-four style
-    if (!(iface.type == InterfaceType::Tunnel ||
-          iface.type == InterfaceType::Gif || iface.type == InterfaceType::Tun))
-      allSixToFour = false;
-    if (!(iface.name.rfind("gif", 0) == 0 || iface.name.rfind("stf", 0) == 0 ||
-          iface.name.rfind("sit", 0) == 0))
-      allSixToFour = false;
-    // Tap heuristics: name starts with "tap" or treated as virtual
-    if (iface.type != InterfaceType::Virtual && iface.name.rfind("tap", 0) != 0)
-      allTap = false;
-    // CARP heuristics: name starts with carp/ vh or virtual
-    if (iface.name.rfind("carp", 0) != 0 && iface.name.rfind("vh", 0) != 0 &&
-        iface.type != InterfaceType::Virtual)
-      allCarp = false;
-  }
-
-  if (allBridge && !interfaces.empty()) {
-    // Build vector of BridgeInterfaceConfig
-    auto bridgeIfaces = mgr->GetBridgeInterfaces();
-    std::vector<BridgeInterfaceConfig> bridgeVec;
-    for (const auto &iface : interfaces) {
-      for (auto &b : bridgeIfaces) {
-        if (b.name == iface.name) {
-          bridgeVec.push_back(std::move(b));
-          break;
-        }
-      }
-    }
-    BridgeTableFormatter formatter;
-    std::cout << formatter.format(bridgeVec);
-    return;
-  } else if (allLagg && !interfaces.empty()) {
-    LaggTableFormatter formatter;
-    std::cout << formatter.format(interfaces);
-    return;
-  } else if (allVlan && !interfaces.empty()) {
-    VLANTableFormatter formatter;
-    std::cout << formatter.format(interfaces);
-    return;
-  } else if (allWlan && !interfaces.empty()) {
-    WlanTableFormatter formatter;
-    std::cout << formatter.format(interfaces);
-    return;
-  } else if (allTunnel && !interfaces.empty()) {
-    TunnelTableFormatter formatter;
-    std::cout << formatter.format(interfaces);
-    return;
-  } else if (allSixToFour && !interfaces.empty()) {
-    SixToFourTableFormatter formatter;
-    std::cout << formatter.format(interfaces);
-    return;
-  } else if (allVirtual && !interfaces.empty()) {
-    VirtualTableFormatter formatter;
-    std::cout << formatter.format(interfaces);
-    return;
-  } else if (allTap && !interfaces.empty()) {
-    TapTableFormatter formatter;
-    std::cout << formatter.format(interfaces);
-    return;
-  } else if (allCarp && !interfaces.empty()) {
-    CarpTableFormatter formatter;
-    std::cout << formatter.format(interfaces);
-    return;
-  }
-
-  InterfaceTableFormatter formatter;
-  std::cout << formatter.format(interfaces);
+  std::cout << InterfaceConfig::formatInterfaces(interfaces, mgr);
+}
 }

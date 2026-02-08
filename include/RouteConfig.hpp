@@ -52,6 +52,7 @@ public:
   std::optional<int> expire; ///< Optional expire time (seconds)
   unsigned int flags = 0;    ///< raw rtm_flags from kernel
 
-  // Persist route configuration (no-op for now)
-  void save() const override {}
+  // Persist route configuration via the supplied manager.
+  void save(ConfigurationManager &mgr) const override;
+  void destroy(ConfigurationManager &mgr) const override;
 };

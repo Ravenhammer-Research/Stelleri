@@ -27,12 +27,13 @@
 
 #include "WlanTableFormatter.hpp"
 #include "InterfaceConfig.hpp"
+#include "InterfaceFlags.hpp"
 #include "WlanAuthMode.hpp"
 #include "WlanConfig.hpp"
 #include <sstream>
 
 std::string
-WlanTableFormatter::format(const std::vector<InterfaceConfig> &items) const {
+WlanTableFormatter::format(const std::vector<InterfaceConfig> &items) {
   addColumn("Interface", "Interface", 10, 4, true);
   addColumn("SSID", "SSID", 20, 8, true);
   addColumn("Channel", "Chan", 6, 3, true);
@@ -73,9 +74,9 @@ WlanTableFormatter::format(const std::vector<InterfaceConfig> &items) const {
       if (w->status)
         status = *w->status;
       else if (ic.flags) {
-        if (*ic.flags & IFF_RUNNING)
+        if (hasFlag(*ic.flags, InterfaceFlag::RUNNING))
           status = "active";
-        else if (*ic.flags & IFF_UP)
+        else if (hasFlag(*ic.flags, InterfaceFlag::UP))
           status = "no-carrier";
         else
           status = "down";
@@ -87,9 +88,9 @@ WlanTableFormatter::format(const std::vector<InterfaceConfig> &items) const {
         auth = WlanAuthModeToString(*w->authmode);
     } else {
       if (ic.flags) {
-        if (*ic.flags & IFF_RUNNING)
+        if (hasFlag(*ic.flags, InterfaceFlag::RUNNING))
           status = "active";
-        else if (*ic.flags & IFF_UP)
+        else if (hasFlag(*ic.flags, InterfaceFlag::UP))
           status = "no-carrier";
         else
           status = "down";

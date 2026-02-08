@@ -33,7 +33,7 @@
 namespace netcli {
 
   void CommandGenerator::generateBridges(
-      SystemConfigurationManager &mgr,
+      ConfigurationManager &mgr,
       std::set<std::string> &processedInterfaces) {
     auto bridges = mgr.GetBridgeInterfaces();
 

@@ -25,6 +25,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file CarpTableFormatter.hpp
+ * @brief Formatter for CARP interface table output
+ */
+
 #pragma once
 
 #include "InterfaceConfig.hpp"
@@ -34,5 +39,5 @@
 class CarpTableFormatter : public TableFormatter<InterfaceConfig> {
 public:
   CarpTableFormatter() = default;
-  std::string format(const std::vector<InterfaceConfig> &items) const override;
+  std::string format(const std::vector<InterfaceConfig> &items) override;
 };

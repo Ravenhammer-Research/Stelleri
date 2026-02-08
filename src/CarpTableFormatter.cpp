@@ -27,20 +27,18 @@
 
 #include "CarpTableFormatter.hpp"
 #include "InterfaceConfig.hpp"
+#include "InterfaceFlags.hpp"
 #include <sstream>
 
 std::string
-CarpTableFormatter::format(const std::vector<InterfaceConfig> &items) const {
+CarpTableFormatter::format(const std::vector<InterfaceConfig> &items) {
   addColumn("Interface", "Interface", 10, 4, true);
   addColumn("Address", "Address", 5, 7, true);
   addColumn("Status", "Status", 6, 6, true);
   addColumn("MTU", "MTU", 6, 6, true);
 
   for (const auto &ic : items) {
-    // Heuristic: CARP interfaces often start with "carp" or "vh"; treat virtual
-    // types too
-    if (ic.name.rfind("carp", 0) != 0 && ic.name.rfind("vh", 0) != 0 &&
-        ic.type != InterfaceType::Virtual)
+    if (ic.name.rfind("carp", 0) != 0 && ic.name.rfind("vh", 0) != 0)
       continue;
 
     std::vector<std::string> addrs;
@@ -61,9 +59,9 @@ CarpTableFormatter::format(const std::vector<InterfaceConfig> &items) const {
 
     std::string status = "-";
     if (ic.flags) {
-      if (*ic.flags & IFF_RUNNING)
+      if (hasFlag(*ic.flags, InterfaceFlag::RUNNING))
         status = "active";
-      else if (*ic.flags & IFF_UP)
+      else if (hasFlag(*ic.flags, InterfaceFlag::UP))
         status = "no-carrier";
       else
         status = "down";

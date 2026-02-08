@@ -42,5 +42,5 @@ public:
   NdpTableFormatter() = default;
 
   // Format NDP entries as ASCII table
-  std::string format(const std::vector<NdpConfig> &entries) const override;
+  std::string format(const std::vector<NdpConfig> &entries) override;
 };

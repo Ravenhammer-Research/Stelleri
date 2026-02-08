@@ -27,10 +27,11 @@
 
 #include "TapTableFormatter.hpp"
 #include "InterfaceConfig.hpp"
+#include "InterfaceFlags.hpp"
 #include <sstream>
 
 std::string
-TapTableFormatter::format(const std::vector<InterfaceConfig> &items) const {
+TapTableFormatter::format(const std::vector<InterfaceConfig> &items) {
   addColumn("Interface", "Interface", 10, 4, true);
   addColumn("Address", "Address", 5, 7, true);
   addColumn("Status", "Status", 6, 6, true);
@@ -61,9 +62,9 @@ TapTableFormatter::format(const std::vector<InterfaceConfig> &items) const {
 
     std::string status = "-";
     if (ic.flags) {
-      if (*ic.flags & IFF_RUNNING)
+      if (hasFlag(*ic.flags, InterfaceFlag::RUNNING))
         status = "active";
-      else if (*ic.flags & IFF_UP)
+      else if (hasFlag(*ic.flags, InterfaceFlag::UP))
         status = "no-carrier";
       else
         status = "down";

@@ -30,7 +30,7 @@
 
 namespace netcli {
 
-  void CommandGenerator::generateVRFs(SystemConfigurationManager &mgr) {
+  void CommandGenerator::generateVRFs(ConfigurationManager &mgr) {
     // Get the current net.fibs value from sysctl
     int fibs = mgr.GetFibs();
     if (fibs > 1) {

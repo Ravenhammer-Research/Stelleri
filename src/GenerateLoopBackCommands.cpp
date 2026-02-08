@@ -33,7 +33,7 @@
 namespace netcli {
 
   void CommandGenerator::generateLoopbacks(
-      SystemConfigurationManager &mgr,
+      ConfigurationManager &mgr,
       std::set<std::string> &processedInterfaces) {
     auto interfaces = mgr.GetInterfaces();
 

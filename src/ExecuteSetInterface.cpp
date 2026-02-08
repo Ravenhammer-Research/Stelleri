@@ -26,26 +26,26 @@
  */
 
 #include "BridgeInterfaceConfig.hpp"
+#include "CarpConfig.hpp"
 #include "ConfigurationManager.hpp"
+#include "GREConfig.hpp"
 #include "IPAddress.hpp"
 #include "IPNetwork.hpp"
 #include "InterfaceConfig.hpp"
 #include "InterfaceToken.hpp"
 #include "LaggConfig.hpp"
 #include "LoopBackConfig.hpp"
-#include "Parser.hpp"
 #include "TunnelConfig.hpp"
 #include "VLANConfig.hpp"
+#include "VXLANConfig.hpp"
 #include "VirtualInterfaceConfig.hpp"
-#include <arpa/inet.h>
-#include <ifaddrs.h>
+#include "InterfaceFlags.hpp"
 #include <iostream>
-#include <netinet/in.h>
-#include <sys/sockio.h>
-#include <unistd.h>
 
-void netcli::Parser::executeSetInterface(const InterfaceToken &tok,
-                                         ConfigurationManager *mgr) const {
+namespace netcli {
+
+void executeSetInterface(const InterfaceToken &tok,
+                                 ConfigurationManager *mgr) {
   const std::string name = tok.name();
   if (name.empty()) {
     std::cerr << "set interface: missing interface name\n";
@@ -57,8 +57,8 @@ void netcli::Parser::executeSetInterface(const InterfaceToken &tok,
     // Load existing configuration if present (so we can update), otherwise
     // prepare a new base for creation. Initialize via copy-construction
     // to avoid relying on assignment operators.
-    bool exists = InterfaceConfig::exists(name);
-    auto ifopt = (exists && mgr) ? mgr->getInterface(name)
+    bool exists = InterfaceConfig::exists(*mgr, name);
+    auto ifopt = (exists && mgr) ? mgr->GetInterface(name)
                                  : std::optional<InterfaceConfig>{};
     InterfaceConfig base = ifopt ? *ifopt : InterfaceConfig();
     if (!ifopt)
@@ -80,6 +80,12 @@ void netcli::Parser::executeSetInterface(const InterfaceToken &tok,
       effectiveType = base.type;
     else if (base.name.rfind("lo", 0) == 0)
       effectiveType = InterfaceType::Loopback;
+    else if (base.name.rfind("gre", 0) == 0)
+      effectiveType = InterfaceType::GRE;
+    else if (base.name.rfind("vxlan", 0) == 0)
+      effectiveType = InterfaceType::VXLAN;
+    else if (base.name.rfind("carp", 0) == 0)
+      effectiveType = InterfaceType::Virtual; // CARP uses virtual type
 
     // Handle concrete types
     // Apply address token (if present): add as primary if none, otherwise
@@ -98,9 +104,43 @@ void netcli::Parser::executeSetInterface(const InterfaceToken &tok,
       }
     }
 
+    // Handle group assignment
+    if (tok.group) {
+      // Add group to base config if not already present
+      bool has_group = false;
+      for (const auto &g : base.groups) {
+        if (g == *tok.group) {
+          has_group = true;
+          break;
+        }
+      }
+      if (!has_group) {
+        base.groups.push_back(*tok.group);
+      }
+    }
+
+    // Handle MTU
+    if (tok.mtu) {
+      base.mtu = *tok.mtu;
+    }
+
+    // Handle status (up/down)
+    if (tok.status) {
+      if (base.flags) {
+        if (*tok.status) {
+          *base.flags |= flagBit(InterfaceFlag::UP);
+        } else {
+          *base.flags &= ~flagBit(InterfaceFlag::UP);
+        }
+      } else {
+        // If no flags set yet, initialize with UP if requested
+        base.flags = *tok.status ? flagBit(InterfaceFlag::UP) : 0u;
+      }
+    }
+
     if (effectiveType == InterfaceType::Bridge) {
       BridgeInterfaceConfig bic(base);
-      bic.save();
+      bic.save(*mgr);
       std::cout << "set interface: " << (exists ? "updated" : "created")
                 << " bridge '" << name << "'\n";
       return;
@@ -117,7 +157,7 @@ void netcli::Parser::executeSetInterface(const InterfaceToken &tok,
       LaggConfig lac(base, tok.lagg->protocol, tok.lagg->members,
                      tok.lagg->hash_policy, tok.lagg->lacp_rate,
                      tok.lagg->min_links);
-      lac.save();
+      lac.save(*mgr);
       std::cout << "set interface: " << (exists ? "updated" : "created")
                 << " lagg '" << name << "'\n";
       return;
@@ -133,7 +173,7 @@ void netcli::Parser::executeSetInterface(const InterfaceToken &tok,
       }
       VLANConfig vc(base, tok.vlan->id, tok.vlan->parent, tok.vlan->pcp);
       vc.InterfaceConfig::name = name;
-      vc.save();
+      vc.save(*mgr);
       std::cout << "set interface: " << (exists ? "updated" : "created")
                 << " vlan '" << name << "'\n";
       return;
@@ -143,7 +183,14 @@ void netcli::Parser::executeSetInterface(const InterfaceToken &tok,
         effectiveType == InterfaceType::Gif ||
         effectiveType == InterfaceType::Tun) {
       TunnelConfig tc(base);
-      tc.save();
+      // Handle tunnel-specific VRF if provided
+      if (tok.tunnel_vrf) {
+        if (!tc.vrf)
+          tc.vrf = std::make_unique<VRFConfig>(*tok.tunnel_vrf);
+        else
+          tc.vrf->table = *tok.tunnel_vrf;
+      }
+      tc.save(*mgr);
       std::cout << "set interface: " << (exists ? "updated" : "created")
                 << " tunnel '" << name << "'\n";
       return;
@@ -151,15 +198,31 @@ void netcli::Parser::executeSetInterface(const InterfaceToken &tok,
 
     if (effectiveType == InterfaceType::Loopback) {
       LoopBackConfig lbc(base);
-      lbc.save();
+      lbc.save(*mgr);
       std::cout << "set interface: " << (exists ? "updated" : "created")
                 << " loopback '" << name << "'\n";
       return;
     }
 
+    if (effectiveType == InterfaceType::GRE) {
+      GREConfig gc(base);
+      gc.save(*mgr);
+      std::cout << "set interface: " << (exists ? "updated" : "created")
+                << " gre '" << name << "'\n";
+      return;
+    }
+
+    if (effectiveType == InterfaceType::VXLAN) {
+      VXLANConfig vxc(base);
+      vxc.save(*mgr);
+      std::cout << "set interface: " << (exists ? "updated" : "created")
+                << " vxlan '" << name << "'\n";
+      return;
+    }
+
     if (effectiveType == InterfaceType::Virtual) {
       VirtualInterfaceConfig vic(base);
-      vic.save();
+      vic.save(*mgr);
       std::cout << "set interface: " << (exists ? "updated" : "created")
                 << " virtual iface '" << name << "'\n";
       return;
@@ -174,88 +237,22 @@ void netcli::Parser::executeSetInterface(const InterfaceToken &tok,
                   << "'\n";
         return;
       }
-      if (net->family() == AddressFamily::IPv4) {
-        auto v4 = dynamic_cast<IPv4Network *>(net.get());
-        if (!v4) {
-          std::cerr << "set interface: invalid IPv4 address\n";
-          return;
-        }
-        int sock = socket(AF_INET, SOCK_DGRAM, 0);
-        if (sock < 0) {
-          std::cerr << "set interface: failed to create socket: "
-                    << strerror(errno) << "\n";
-          return;
-        }
-        struct ifaliasreq iar;
-        std::memset(&iar, 0, sizeof(iar));
-        std::strncpy(iar.ifra_name, name.c_str(), IFNAMSIZ - 1);
-        struct sockaddr_in sa;
-        std::memset(&sa, 0, sizeof(sa));
-        sa.sin_len = sizeof(sa);
-        sa.sin_family = AF_INET;
-        auto netAddr = v4->address();
-        auto v4addr = dynamic_cast<IPv4Address *>(netAddr.get());
-        if (!v4addr) {
-          std::cerr << "set interface: invalid IPv4 address object\n";
-          close(sock);
-          return;
-        }
-        sa.sin_addr.s_addr = htonl(v4addr->value());
-        std::memcpy(&iar.ifra_addr, &sa, sizeof(sa));
-        uint32_t maskval = (v4->mask() == 0) ? 0 : (~0u << (32 - v4->mask()));
-        struct sockaddr_in mask;
-        std::memset(&mask, 0, sizeof(mask));
-        mask.sin_len = sizeof(mask);
-        mask.sin_family = AF_INET;
-        mask.sin_addr.s_addr = htonl(maskval);
-        std::memcpy(&iar.ifra_mask, &mask, sizeof(mask));
-        uint32_t host = v4addr->value();
-        uint32_t netn = host & maskval;
-        uint32_t bcast = netn | (~maskval);
-        struct sockaddr_in broad;
-        std::memset(&broad, 0, sizeof(broad));
-        broad.sin_len = sizeof(broad);
-        broad.sin_family = AF_INET;
-        broad.sin_addr.s_addr = htonl(bcast);
-        std::memcpy(&iar.ifra_broadaddr, &broad, sizeof(broad));
-
-        if (ioctl(sock, SIOCAIFADDR, &iar) < 0) {
-          // fallback: try SIOCSIFADDR + SIOCSIFNETMASK (+ SIOCSIFDSTADDR for
-          // /31)
-          struct ifreq ifr;
-          std::memset(&ifr, 0, sizeof(ifr));
-          std::strncpy(ifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
-          std::memcpy(&ifr.ifr_addr, &sa, sizeof(sa));
-          if (ioctl(sock, SIOCSIFADDR, &ifr) < 0) {
-            std::cerr << "set interface: SIOCSIFADDR failed: "
-                      << strerror(errno) << "\n";
-            close(sock);
-            return;
-          }
-          // Rely on SIOCAIFADDR/kernel behavior for netmask/peer handling.
-          // Specific prefix handling removed from here to keep this path
-          // generic.
-          close(sock);
-          std::cout << "set interface: added alias '" << *tok.address
-                    << "' to '" << name << "'\n";
-          return;
-        }
-        close(sock);
-        std::cout << "set interface: added alias '" << *tok.address << "' to '"
-                  << name << "'\n";
-        return;
-      } else {
-        std::cerr << "set interface: IPv6 aliasing not yet implemented\n";
-        return;
-      }
+      // Prefer to let InterfaceConfig / SystemConfigurationManager handle
+      // adding aliases so system-specific ioctls remain in the System layer.
+      base.aliases.emplace_back(net->clone());
+      base.save(*mgr);
+      std::cout << "set interface: added alias '" << *tok.address << "' to '"
+                << name << "'\n";
+      return;
     }
 
     // Default: apply generic interface updates
-    base.save();
+    base.save(*mgr);
     std::cout << "set interface: " << (exists ? "updated" : "created")
               << " interface '" << name << "'\n";
   } catch (const std::exception &e) {
     std::cerr << "set interface: failed to create/update '" << name
               << "': " << e.what() << "\n";
   }
+}
 }

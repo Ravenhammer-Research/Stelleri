@@ -75,15 +75,20 @@ public:
       aging_time; ///< MAC address aging time in seconds (10-1000000)
   std::optional<int>
       max_addresses; ///< Maximum number of MAC addresses in cache
+  std::optional<int>
+      holdcount; ///< STP transmit hold count (ifbop_holdcount)
+  std::optional<int>
+      stp_protocol; ///< STP protocol variant (ifbop_protocol: 0=STP, 2=RSTP)
+  std::optional<uint16_t>
+      default_pvid; ///< Default port VLAN ID (BRDGGDEFPVID/BRDGSDEFPVID)
 
-  // Persist bridge configuration to the system.
-  void save() const override;
+  // Persist bridge configuration via the supplied manager.
+  void save(ConfigurationManager &mgr) const override;
 
-  // Populate runtime bridge data (member list, STP params) from the kernel.
-  // This performs platform-specific ioctls and should be called on FreeBSD.
-  void loadMembers();
+  // Populate runtime bridge data (member list, STP params) from the manager.
+  void loadMembers(const ConfigurationManager &mgr);
 
 private:
   // Ensure the bridge interface exists; create if necessary.
-  void create() const;
+  void create(ConfigurationManager &mgr) const;
 };

@@ -33,7 +33,7 @@
 namespace netcli {
 
   void
-  CommandGenerator::generateEpairs(SystemConfigurationManager &mgr,
+  CommandGenerator::generateEpairs(ConfigurationManager &mgr,
                                    std::set<std::string> &processedInterfaces) {
     auto virtuals = mgr.GetVirtualInterfaces();
 

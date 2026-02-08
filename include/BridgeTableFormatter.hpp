@@ -43,10 +43,14 @@
  *
  * Shows bridge-specific details like members, STP settings, priorities, timers.
  */
-class BridgeTableFormatter : public TableFormatter<BridgeInterfaceConfig> {
+class BridgeTableFormatter : public TableFormatter<InterfaceConfig> {
 public:
-  BridgeTableFormatter() = default;
+  explicit BridgeTableFormatter(ConfigurationManager *mgr = nullptr)
+      : mgr_(mgr) {}
 
   std::string
-  format(const std::vector<BridgeInterfaceConfig> &interfaces) const override;
+  format(const std::vector<InterfaceConfig> &interfaces) override;
+
+private:
+  ConfigurationManager *mgr_;
 };

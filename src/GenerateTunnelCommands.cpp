@@ -33,7 +33,7 @@
 namespace netcli {
 
   void CommandGenerator::generateTunnels(
-      SystemConfigurationManager &mgr,
+      ConfigurationManager &mgr,
       std::set<std::string> &processedInterfaces) {
     auto tunnels = mgr.GetTunnelInterfaces();
 

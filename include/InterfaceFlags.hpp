@@ -69,6 +69,16 @@ enum class InterfaceFlag : uint32_t {
   NETLINK_1 = 0x1000000 ///< Used by netlink (IFF_NETLINK_1)
 };
 
+/// @brief Test whether a raw flags bitmask contains a particular InterfaceFlag.
+constexpr bool hasFlag(uint32_t flags, InterfaceFlag f) noexcept {
+  return (flags & static_cast<uint32_t>(f)) != 0;
+}
+
+/// @brief Return the underlying uint32_t value of an InterfaceFlag.
+constexpr uint32_t flagBit(InterfaceFlag f) noexcept {
+  return static_cast<uint32_t>(f);
+}
+
 /**
  * @brief Convert interface flags bitmask to human-readable string
  * @param flags Bitmask of interface flags

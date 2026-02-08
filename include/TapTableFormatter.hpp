@@ -25,6 +25,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file TapTableFormatter.hpp
+ * @brief Formatter for TAP interface table output
+ */
+
 #pragma once
 
 #include "InterfaceConfig.hpp"
@@ -34,5 +39,5 @@
 class TapTableFormatter : public TableFormatter<InterfaceConfig> {
 public:
   TapTableFormatter() = default;
-  std::string format(const std::vector<InterfaceConfig> &items) const override;
+  std::string format(const std::vector<InterfaceConfig> &items) override;
 };

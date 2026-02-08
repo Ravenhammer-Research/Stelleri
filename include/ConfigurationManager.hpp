@@ -37,17 +37,23 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 // Ensure configuration type declarations are available for method signatures
 #include "ArpConfig.hpp"
 #include "BridgeInterfaceConfig.hpp"
+#include "CarpConfig.hpp"
 #include "LaggConfig.hpp"
 #include "NdpConfig.hpp"
 #include "RouteConfig.hpp"
+#include "TapConfig.hpp"
 #include "TunnelConfig.hpp"
 #include "VLANConfig.hpp"
 #include "VRFConfig.hpp"
 #include "VirtualInterfaceConfig.hpp"
+#include "VXLANConfig.hpp"
+#include "WlanConfig.hpp"
+#include "GREConfig.hpp"
 
 /**
  * @brief Abstract base class for configuration storage and retrieval
@@ -60,7 +66,8 @@ class ConfigurationManager {
 public:
   virtual ~ConfigurationManager() = default;
 
-  // Enumeration API implemented by system-backed managers
+  // ── Enumeration / query API ──────────────────────────────────────────
+
   virtual std::vector<InterfaceConfig>
   GetInterfaces(const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
   virtual std::vector<InterfaceConfig>
@@ -75,6 +82,10 @@ public:
   virtual std::vector<TunnelConfig> GetTunnelInterfaces(
       const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
   virtual std::vector<VirtualInterfaceConfig> GetVirtualInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+  virtual std::vector<GREConfig> GetGreInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+  virtual std::vector<VXLANConfig> GetVxlanInterfaces(
       const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
   virtual std::vector<RouteConfig>
   GetStaticRoutes(const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
@@ -106,20 +117,76 @@ public:
       const std::string &ip,
       const std::optional<std::string> &iface = std::nullopt) const = 0;
 
-  // Backwards-compatible helper: return interfaces as sliced `ConfigData`
-  std::vector<InterfaceConfig> getInterfaces() const { return GetInterfaces(); }
+  // ── Mutation API ─────────────────────────────────────────────────────
 
-  // Backwards-compatible helper: get single interface by name
-  std::optional<InterfaceConfig> getInterface(const std::string &name) const {
+  // Generic interface operations
+  virtual void CreateInterface(const std::string &name) const = 0;
+  virtual void SaveInterface(const InterfaceConfig &ic) const = 0;
+  virtual void DestroyInterface(const std::string &name) const = 0;
+  virtual void RemoveInterfaceAddress(const std::string &ifname,
+                                      const std::string &addr) const = 0;
+  virtual void RemoveInterfaceGroup(const std::string &ifname,
+                                    const std::string &group) const = 0;
+  virtual bool InterfaceExists(std::string_view name) const = 0;
+  virtual std::vector<std::string> GetInterfaceAddresses(
+      const std::string &ifname, int family) const = 0;
+
+  // Bridge operations
+  virtual void CreateBridge(const std::string &name) const = 0;
+  virtual void SaveBridge(const BridgeInterfaceConfig &bic) const = 0;
+  virtual std::vector<std::string>
+  GetBridgeMembers(const std::string &name) const = 0;
+
+  // LAGG operations
+  virtual void CreateLagg(const std::string &name) const = 0;
+  virtual void SaveLagg(const LaggConfig &lac) const = 0;
+
+  // VLAN operations
+  virtual void SaveVlan(const VLANConfig &vlan) const = 0;
+
+  // Tunnel operations
+  virtual void CreateTunnel(const std::string &name) const = 0;
+  virtual void SaveTunnel(const TunnelConfig &tunnel) const = 0;
+
+  // Virtual interface (epair/clone) operations
+  virtual void CreateVirtual(const std::string &name) const = 0;
+  virtual void SaveVirtual(const VirtualInterfaceConfig &vic) const = 0;
+
+  // WLAN operations
+  virtual void CreateWlan(const std::string &name) const = 0;
+  virtual void SaveWlan(const WlanConfig &wlan) const = 0;
+
+  // TAP operations
+  virtual void CreateTap(const std::string &name) const = 0;
+  virtual void SaveTap(const TapConfig &tap) const = 0;
+
+  // GRE operations
+  virtual void CreateGre(const std::string &name) const = 0;
+  virtual void SaveGre(const GREConfig &gre) const = 0;
+
+  // VXLAN operations
+  virtual void CreateVxlan(const std::string &name) const = 0;
+  virtual void SaveVxlan(const VXLANConfig &vxlan) const = 0;
+
+  // CARP operations
+  virtual void SaveCarp(const CarpConfig &carp) const = 0;
+
+  // Route operations
+  virtual void AddRoute(const RouteConfig &route) const = 0;
+  virtual void DeleteRoute(const RouteConfig &route) const = 0;
+
+  // VRF / FIB helpers
+  virtual int GetFibs() const = 0;
+
+  // ── Convenience helpers ──────────────────────────────────────────────
+
+  /// Look up a single interface by name.
+  std::optional<InterfaceConfig> GetInterface(const std::string &name) const {
     auto ifs = GetInterfaces();
     for (auto &i : ifs) {
-      if (i.name == name) {
+      if (i.name == name)
         return std::optional<InterfaceConfig>(std::move(i));
-      }
     }
     return std::nullopt;
   }
-
-  // Backwards-compatible helper: get routes as sliced ConfigData
-  std::vector<RouteConfig> getRoutes() const { return GetRoutes(); }
 };

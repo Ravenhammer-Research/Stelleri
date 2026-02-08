@@ -41,7 +41,6 @@
 #include <vector>
 
 #include "VRFConfig.hpp"
-#include <ifaddrs.h>
 #include <string_view>
 
 /**
@@ -53,7 +52,7 @@
 class InterfaceConfig : public ConfigData {
 public:
   InterfaceConfig() = default;
-  InterfaceConfig(const struct ifaddrs *ifa);
+  // Platform-specific constructor removed; system layer builds instances.
   InterfaceConfig(std::string name, InterfaceType type,
                   std::unique_ptr<IPNetwork> address,
                   std::vector<std::unique_ptr<IPNetwork>> aliases,
@@ -73,26 +72,57 @@ public:
   std::optional<int> index;        ///< Interface numeric index (if available)
   std::optional<std::string> nd6_options; ///< ND6 options string (if available)
 
-  // Persist this interface configuration to the system.
-  void save() const override;
+  // --- Extended base-interface properties (from struct ifreq / ioctls) ---
 
-  // Destroy this interface from the system.
-  void destroy() const override;
+  std::optional<std::string> description; ///< User description (SIOCGIFDESCR)
+  std::optional<std::string> hwaddr;      ///< Hardware / MAC address (SIOCGHWADDR)
 
-  // Check whether the named interface exists on the system.
-  static bool exists(std::string_view name);
+  std::optional<uint32_t> capabilities;     ///< Active HW caps – IFCAP_* (SIOCGIFCAP curcap)
+  std::optional<uint32_t> req_capabilities; ///< Requested HW caps (SIOCGIFCAP reqcap)
+
+  std::optional<std::string> media;        ///< Current media type string (SIOCGIFMEDIA)
+  std::optional<std::string> media_active; ///< Active media string (SIOCGIFMEDIA ifm_active)
+  std::optional<int> media_status;         ///< IFM_AVALID/IFM_ACTIVE (SIOCGIFMEDIA ifm_status)
+
+  std::optional<std::string> status_str;   ///< Driver status text (SIOCGIFSTATUS)
+  std::optional<int> phys;                 ///< Physical wire type (SIOCGIFPHYS)
+
+  std::optional<uint64_t> baudrate;   ///< Link speed in bits/sec (if_data.ifi_baudrate)
+  std::optional<uint8_t> link_state;  ///< Link state (if_data.ifi_link_state)
+
+  // Persist this interface configuration via the supplied manager.
+  void save(ConfigurationManager &mgr) const override;
+
+  // Destroy this interface via the supplied manager.
+  void destroy(ConfigurationManager &mgr) const override;
+
+  // Remove an address from this interface (e.g., "192.0.2.1/32").
+  void removeAddress(ConfigurationManager &mgr, const std::string &addr) const;
+
+  // Check whether the named interface exists.
+  static bool exists(const ConfigurationManager &mgr, std::string_view name);
+
+  // Type checking predicates
+  bool isBridge() const;
+  bool isLagg() const;
+  bool isVlan() const;
+  bool isTunnelish() const;
+  bool isVirtual() const;
+  bool isWlan() const;
+  bool isSixToFour() const;
+  bool isTap() const;
+  bool isCarp() const;
+  bool isGre() const;
+  bool isVxlan() const;
+  bool isIpsec() const;
+
+  // Check if this interface matches a requested type (handles tunnel special cases)
+  bool matchesType(InterfaceType requestedType) const;
+
+  // Format a collection of interfaces using the appropriate formatter
+  static std::string formatInterfaces(const std::vector<InterfaceConfig> &ifaces,
+                                      ConfigurationManager *mgr = nullptr);
 
 protected:
-  // Helper to configure addresses (primary + aliases) using the provided
-  // socket and `ifr`. Performs necessary SIOCSIFADDR / SIOCSIFNETMASK calls.
-  void configureAddresses(int sock, struct ifreq &ifr) const;
-
-  // Helper to configure MTU using the provided socket and `ifr`.
-  void configureMTU(int sock, struct ifreq &ifr) const;
-
-  // Helper to configure flags (bring interface up) using the provided socket
-  // and `ifr`.
-  void configureFlags(int sock, struct ifreq &ifr) const;
-
   // (Interface existence check moved to `ConfigData::exists`)
 };

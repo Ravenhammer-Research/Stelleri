@@ -27,13 +27,13 @@
 
 #include "SystemConfigurationManager.hpp"
 #include "VLANConfig.hpp"
+#include "Socket.hpp"
 
 #include <cstring>
 #include <net/if.h>
 #include <net/if_vlan_var.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include <unistd.h>
 
 std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
     const std::optional<VRFConfig> &vrf) const {
@@ -43,14 +43,11 @@ std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
     if (ic.type == InterfaceType::VLAN) {
       VLANConfig vconf(ic);
 
-      int vsock = socket(AF_INET, SOCK_DGRAM, 0);
-      if (vsock >= 0) {
-        (void)0;
-        struct vlanreq vreq;
-        std::memset(&vreq, 0, sizeof(vreq));
+      try {
+        Socket vsock(AF_INET, SOCK_DGRAM);
+        struct vlanreq vreq{};
         struct ifreq ifr;
-        std::memset(&ifr, 0, sizeof(ifr));
-        std::strncpy(ifr.ifr_name, ic.name.c_str(), IFNAMSIZ - 1);
+        prepare_ifreq(ifr, ic.name);
         ifr.ifr_data = reinterpret_cast<char *>(&vreq);
 
         if (ioctl(vsock, SIOCGETVLAN, &ifr) == 0) {
@@ -58,7 +55,6 @@ std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
           int pcp = (vreq.vlr_tag >> 13) & 0x7;
           vconf.parent = std::string(vreq.vlr_parent);
           vconf.pcp = static_cast<PriorityCodePoint>(pcp);
-          (void)0;
 
           if (vreq.vlr_proto) {
             uint16_t proto = static_cast<uint16_t>(vreq.vlr_proto);
@@ -70,42 +66,76 @@ std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
               vconf.proto = VLANProto::OTHER;
           }
         } else {
-          (void)0;
+          // SIOCGETVLAN failed, skip VLAN details
         }
-        close(vsock);
 
         auto query_caps =
             [&](const std::string &name) -> std::optional<uint32_t> {
-          int csock = socket(AF_INET, SOCK_DGRAM, 0);
-          if (csock < 0)
+          try {
+            Socket csock(AF_INET, SOCK_DGRAM);
+            struct ifreq cifr;
+            prepare_ifreq(cifr, name);
+            if (ioctl(csock, SIOCGIFCAP, &cifr) == 0) {
+              unsigned int curcap = cifr.ifr_curcap;
+              return static_cast<uint32_t>(curcap);
+            }
             return std::nullopt;
-          struct ifreq cifr;
-          std::memset(&cifr, 0, sizeof(cifr));
-          std::strncpy(cifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
-          if (ioctl(csock, SIOCGIFCAP, &cifr) == 0) {
-            unsigned int curcap = cifr.ifr_curcap;
-            (void)curcap;
-            close(csock);
-            return static_cast<uint32_t>(curcap);
-          } else {
-            close(csock);
+          } catch (...) {
             return std::nullopt;
           }
         };
 
         if (auto o = query_caps(ic.name); o) {
           vconf.options_bits = *o;
-          (void)0;
         } else if (vconf.parent) {
           if (auto o = query_caps(*vconf.parent); o) {
             vconf.options_bits = *o;
-            (void)0;
           }
         }
+      } catch (...) {
+        // Socket creation failed, skip VLAN details
       }
 
       out.emplace_back(std::move(vconf));
     }
   }
   return out;
+}
+
+void SystemConfigurationManager::SaveVlan(const VLANConfig &vlan) const {
+  if (vlan.name.empty())
+    throw std::runtime_error("VLANConfig has no interface name set");
+
+  if (!vlan.parent || vlan.id == 0) {
+    throw std::runtime_error(
+        "VLAN configuration requires parent interface and VLAN ID");
+  }
+
+  if (!InterfaceConfig::exists(*this, vlan.name)) {
+    CreateInterface(vlan.name);
+  } else {
+    SaveInterface(InterfaceConfig(vlan));
+  }
+
+#if defined(SIOCSETVLAN)
+  Socket vsock(AF_INET, SOCK_DGRAM);
+
+  struct vlanreq vreq{};
+  std::strncpy(vreq.vlr_parent, vlan.parent->c_str(), IFNAMSIZ - 1);
+  vreq.vlr_tag = vlan.id;
+  if (vlan.pcp) {
+    vreq.vlr_tag |= (static_cast<int>(*vlan.pcp) & 0x7) << 13;
+  }
+
+  struct ifreq ifr;
+  prepare_ifreq(ifr, vlan.name);
+  ifr.ifr_data = reinterpret_cast<char *>(&vreq);
+
+  if (ioctl(vsock, SIOCSETVLAN, &ifr) < 0) {
+    throw std::runtime_error("Failed to configure VLAN: " +
+                             std::string(strerror(errno)));
+  }
+#else
+  throw std::runtime_error("VLAN configuration not supported on this platform");
+#endif
 }

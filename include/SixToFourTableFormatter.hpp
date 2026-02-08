@@ -25,6 +25,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file SixToFourTableFormatter.hpp
+ * @brief Formatter for 6to4 tunnel interface table output
+ */
+
 #pragma once
 
 #include "InterfaceConfig.hpp"
@@ -34,5 +39,5 @@
 class SixToFourTableFormatter : public TableFormatter<InterfaceConfig> {
 public:
   SixToFourTableFormatter() = default;
-  std::string format(const std::vector<InterfaceConfig> &items) const override;
+  std::string format(const std::vector<InterfaceConfig> &items) override;
 };

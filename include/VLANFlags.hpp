@@ -25,22 +25,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-// VLANFlags.hpp
-// Enum and helpers for VLAN/interface capability bits.
+/**
+ * @file VLANFlags.hpp
+ * @brief VLAN and interface capability bit flags
+ */
+
 #pragma once
 
 #include <cstdint>
-#include <net/if.h>
 #include <string>
 #include <vector>
 
 namespace netcli {
 
+  /// VLAN / interface capability bits (matches FreeBSD IFCAP_* masks).
   enum class VLANFlag : uint32_t {
-    RXCSUM = IFCAP_RXCSUM,
-    TXCSUM = IFCAP_TXCSUM,
-    LINKSTATE = IFCAP_LINKSTATE,
-    VLAN_HWTAG = IFCAP_B_VLAN_HWTAGGING,
+    RXCSUM    = 0x00000001, // IFCAP_RXCSUM   (1 << 0)
+    TXCSUM    = 0x00000002, // IFCAP_TXCSUM   (1 << 1)
+    VLAN_HWTAG = 0x00000010, // IFCAP_VLAN_HWTAGGING (1 << 4)
+    LINKSTATE = 0x00080000, // IFCAP_LINKSTATE (1 << 19)
   };
 
   inline constexpr uint32_t to_mask(VLANFlag f) {
