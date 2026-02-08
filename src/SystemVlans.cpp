@@ -45,11 +45,9 @@ std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
 
       try {
         Socket vsock(AF_INET, SOCK_DGRAM);
-        struct vlanreq vreq;
-        std::memset(&vreq, 0, sizeof(vreq));
+        struct vlanreq vreq{};
         struct ifreq ifr;
-        std::memset(&ifr, 0, sizeof(ifr));
-        std::strncpy(ifr.ifr_name, ic.name.c_str(), IFNAMSIZ - 1);
+        prepare_ifreq(ifr, ic.name);
         ifr.ifr_data = reinterpret_cast<char *>(&vreq);
 
         if (ioctl(vsock, SIOCGETVLAN, &ifr) == 0) {
@@ -76,8 +74,7 @@ std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
           try {
             Socket csock(AF_INET, SOCK_DGRAM);
             struct ifreq cifr;
-            std::memset(&cifr, 0, sizeof(cifr));
-            std::strncpy(cifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
+            prepare_ifreq(cifr, name);
             if (ioctl(csock, SIOCGIFCAP, &cifr) == 0) {
               unsigned int curcap = cifr.ifr_curcap;
               return static_cast<uint32_t>(curcap);
@@ -123,8 +120,7 @@ void SystemConfigurationManager::SaveVlan(const VLANConfig &vlan) const {
 #if defined(SIOCSETVLAN)
   Socket vsock(AF_INET, SOCK_DGRAM);
 
-  struct vlanreq vreq;
-  std::memset(&vreq, 0, sizeof(vreq));
+  struct vlanreq vreq{};
   std::strncpy(vreq.vlr_parent, vlan.parent->c_str(), IFNAMSIZ - 1);
   vreq.vlr_tag = vlan.id;
   if (vlan.pcp) {

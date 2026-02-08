@@ -43,8 +43,7 @@ namespace {
 bool bridgeMemberIoctl(int sock, const std::string &bridge,
                        unsigned long cmd, struct ifbreq &req,
                        const std::string &context) {
-  struct ifdrv ifd;
-  std::memset(&ifd, 0, sizeof(ifd));
+  struct ifdrv ifd{};
   std::strncpy(ifd.ifd_name, bridge.c_str(), IFNAMSIZ - 1);
   ifd.ifd_cmd = cmd;
   ifd.ifd_len = sizeof(req);
@@ -60,8 +59,7 @@ bool bridgeMemberIoctl(int sock, const std::string &bridge,
 bool bridgeParamIoctl(int sock, const std::string &bridge,
                       unsigned long cmd, struct ifbrparam &param,
                       const std::string &context) {
-  struct ifdrv ifd;
-  std::memset(&ifd, 0, sizeof(ifd));
+  struct ifdrv ifd{};
   std::strncpy(ifd.ifd_name, bridge.c_str(), IFNAMSIZ - 1);
   ifd.ifd_cmd = cmd;
   ifd.ifd_len = sizeof(param);
@@ -82,15 +80,12 @@ bool SystemConfigurationManager::interfaceIsBridge(
 
     const size_t entries = 8;
     std::vector<struct ifbreq> buf(entries);
-    std::memset(buf.data(), 0, buf.size() * sizeof(struct ifbreq));
 
-    struct ifbifconf ifbic;
-    std::memset(&ifbic, 0, sizeof(ifbic));
+    struct ifbifconf ifbic{};
     ifbic.ifbic_len = static_cast<uint32_t>(buf.size() * sizeof(struct ifbreq));
     ifbic.ifbic_buf = reinterpret_cast<caddr_t>(buf.data());
 
-    struct ifdrv ifd;
-    std::memset(&ifd, 0, sizeof(ifd));
+    struct ifdrv ifd{};
     std::strncpy(ifd.ifd_name, ifname.c_str(), IFNAMSIZ - 1);
     ifd.ifd_cmd = BRDGGIFS;
     ifd.ifd_len = static_cast<int>(sizeof(ifbic));
@@ -122,8 +117,7 @@ void SystemConfigurationManager::CreateBridge(const std::string &name) const {
   Socket sock(AF_INET, SOCK_DGRAM);
 
   struct ifreq ifr;
-  std::memset(&ifr, 0, sizeof(ifr));
-  std::strncpy(ifr.ifr_name, "bridge", IFNAMSIZ - 1);
+  prepare_ifreq(ifr, "bridge");
 
   if (ioctl(sock, SIOCIFCREATE, &ifr) < 0) {
     throw std::runtime_error("Failed to create bridge '" + name + "': " +
@@ -142,8 +136,7 @@ void SystemConfigurationManager::SaveBridge(const BridgeInterfaceConfig &bic) co
 
   // Helper: add a member to the bridge.
   auto addMember = [&](const std::string &member) {
-    struct ifbreq req;
-    std::memset(&req, 0, sizeof(req));
+    struct ifbreq req{};
     std::strncpy(req.ifbr_ifsname, member.c_str(), IFNAMSIZ - 1);
     if (!bridgeMemberIoctl(sock, name, BRDGADD, req,
                            "Failed to add member '" + member + "' to bridge '" + name + "'")) {
@@ -175,8 +168,7 @@ void SystemConfigurationManager::SaveBridge(const BridgeInterfaceConfig &bic) co
       flags |= IFBIF_BSTP_AUTOPTP;
 
     if (flags > 0) {
-      struct ifbreq req;
-      std::memset(&req, 0, sizeof(req));
+      struct ifbreq req{};
       std::strncpy(req.ifbr_ifsname, member.name.c_str(), IFNAMSIZ - 1);
       req.ifbr_ifsflags = flags;
       bridgeMemberIoctl(sock, name, BRDGSIFFLGS, req,
@@ -185,8 +177,7 @@ void SystemConfigurationManager::SaveBridge(const BridgeInterfaceConfig &bic) co
 
     // Configure port priority
     if (member.priority) {
-      struct ifbreq req;
-      std::memset(&req, 0, sizeof(req));
+      struct ifbreq req{};
       std::strncpy(req.ifbr_ifsname, member.name.c_str(), IFNAMSIZ - 1);
       req.ifbr_priority = *member.priority;
       bridgeMemberIoctl(sock, name, BRDGSIFPRIO, req,
@@ -195,8 +186,7 @@ void SystemConfigurationManager::SaveBridge(const BridgeInterfaceConfig &bic) co
 
     // Configure path cost
     if (member.path_cost) {
-      struct ifbreq req;
-      std::memset(&req, 0, sizeof(req));
+      struct ifbreq req{};
       std::strncpy(req.ifbr_ifsname, member.name.c_str(), IFNAMSIZ - 1);
       req.ifbr_path_cost = *member.path_cost;
       bridgeMemberIoctl(sock, name, BRDGSIFCOST, req,
@@ -209,8 +199,7 @@ void SystemConfigurationManager::SaveBridge(const BridgeInterfaceConfig &bic) co
                       const std::string &label) {
     if (!has_val)
       return;
-    struct ifbrparam param;
-    std::memset(&param, 0, sizeof(param));
+    struct ifbrparam param{};
     assign_fn(param);
     bridgeParamIoctl(sock, name, cmd, param, "Failed to set " + label);
   };
@@ -237,8 +226,7 @@ void SystemConfigurationManager::SaveBridge(const BridgeInterfaceConfig &bic) co
   // Configure STP if requested
   if (bic.stp) {
     for (const auto &member : bic.members) {
-      struct ifbreq req;
-      std::memset(&req, 0, sizeof(req));
+      struct ifbreq req{};
       std::strncpy(req.ifbr_ifsname, member.c_str(), IFNAMSIZ - 1);
       req.ifbr_ifsflags = IFBIF_STP;
       bridgeMemberIoctl(sock, name, BRDGSIFFLGS, req,
@@ -258,15 +246,12 @@ std::vector<std::string> SystemConfigurationManager::GetBridgeMembers(
     const size_t large_entries = 1024;
     for (size_t entries : {small_entries, large_entries}) {
       std::vector<struct ifbreq> buf(entries);
-      std::memset(buf.data(), 0, buf.size() * sizeof(struct ifbreq));
 
-      struct ifbifconf ifbic;
-      std::memset(&ifbic, 0, sizeof(ifbic));
+      struct ifbifconf ifbic{};
       ifbic.ifbic_len = static_cast<uint32_t>(buf.size() * sizeof(struct ifbreq));
       ifbic.ifbic_buf = reinterpret_cast<caddr_t>(buf.data());
 
-      struct ifdrv ifd;
-      std::memset(&ifd, 0, sizeof(ifd));
+      struct ifdrv ifd{};
       std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
       ifd.ifd_cmd = BRDGGIFS;
       ifd.ifd_len = static_cast<int>(sizeof(ifbic));

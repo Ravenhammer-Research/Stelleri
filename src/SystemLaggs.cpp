@@ -47,7 +47,6 @@ bool SystemConfigurationManager::interfaceIsLagg(
       struct lagg_reqall ra;
       struct lagg_reqport rpbuf[LAGG_MAX_PORTS];
     } ls_buf{};
-    std::memset(&ls_buf, 0, sizeof(ls_buf));
     ls_buf.ra.ra_port = ls_buf.rpbuf;
     ls_buf.ra.ra_size = sizeof(ls_buf.rpbuf);
     std::strncpy(ls_buf.ra.ra_ifname, ifname.c_str(), IFNAMSIZ - 1);
@@ -151,12 +150,10 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
         lac.hash_policy = hf;
       }
 
-      struct lagg_reqopts ro;
-      std::memset(&ro, 0, sizeof(ro));
+      struct lagg_reqopts ro{};
       std::strncpy(ro.ro_ifname, ic.name.c_str(), IFNAMSIZ - 1);
       struct ifreq ifro;
-      std::memset(&ifro, 0, sizeof(ifro));
-      std::strncpy(ifro.ifr_name, ic.name.c_str(), IFNAMSIZ - 1);
+      prepare_ifreq(ifro, ic.name);
       ifro.ifr_data = reinterpret_cast<char *>(&ro);
       ioctl(sock, SIOCGLAGGOPTS, &ifro);
 
@@ -199,8 +196,7 @@ void SystemConfigurationManager::SaveLagg(const LaggConfig &lac) const {
   }
 
   if (proto_value > 0) {
-    struct lagg_reqall ra;
-    std::memset(&ra, 0, sizeof(ra));
+    struct lagg_reqall ra{};
     ra.ra_proto = proto_value;
 
     struct ifreq ifr;
@@ -214,8 +210,7 @@ void SystemConfigurationManager::SaveLagg(const LaggConfig &lac) const {
   }
 
   for (const auto &member : lac.members) {
-    struct lagg_reqport rp;
-    std::memset(&rp, 0, sizeof(rp));
+    struct lagg_reqport rp{};
     std::strncpy(rp.rp_portname, member.c_str(), IFNAMSIZ - 1);
 
     struct ifreq ifr;

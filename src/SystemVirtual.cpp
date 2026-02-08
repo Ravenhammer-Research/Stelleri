@@ -67,16 +67,14 @@ void SystemConfigurationManager::CreateVirtual(const std::string &nm) const {
   Socket sock(AF_INET, SOCK_DGRAM);
 
   struct ifreq ifr;
-  std::memset(&ifr, 0, sizeof(ifr));
-  std::strncpy(ifr.ifr_name, nm.c_str(), IFNAMSIZ - 1);
+  prepare_ifreq(ifr, nm);
 
   if (ioctl(sock, SIOCIFCREATE2, &ifr) < 0) {
     int err = errno;
     // Special-case epair clones similar to original logic
     if (err == EINVAL && nm.rfind("epair", 0) == 0) {
       struct ifreq tmp_ifr;
-      std::memset(&tmp_ifr, 0, sizeof(tmp_ifr));
-      std::strncpy(tmp_ifr.ifr_name, "epair", IFNAMSIZ - 1);
+      prepare_ifreq(tmp_ifr, "epair");
       if (ioctl(sock, SIOCIFCREATE2, &tmp_ifr) < 0) {
         int e = errno;
         // Try to load module and retry
@@ -87,8 +85,7 @@ void SystemConfigurationManager::CreateVirtual(const std::string &nm) const {
                                      std::string(strerror(e)));
           }
         }
-        std::memset(&tmp_ifr, 0, sizeof(tmp_ifr));
-        std::strncpy(tmp_ifr.ifr_name, "epair", IFNAMSIZ - 1);
+        prepare_ifreq(tmp_ifr, "epair");
         if (ioctl(sock, SIOCIFCREATE2, &tmp_ifr) < 0) {
           throw std::runtime_error("Failed to create epair interface: " +
                                    std::string(strerror(errno)));
@@ -117,8 +114,7 @@ void SystemConfigurationManager::CreateVirtual(const std::string &nm) const {
 
       auto rename_iface = [&](const std::string &cur, const std::string &newn) {
         struct ifreq nr;
-        std::memset(&nr, 0, sizeof(nr));
-        std::strncpy(nr.ifr_name, cur.c_str(), IFNAMSIZ - 1);
+        prepare_ifreq(nr, cur);
         nr.ifr_data = const_cast<char *>(newn.c_str());
         if (ioctl(sock, SIOCSIFNAME, &nr) < 0) {
           return false;
