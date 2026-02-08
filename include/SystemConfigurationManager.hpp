@@ -115,8 +115,6 @@ public:
   query_ifreq_sockaddr(const std::string &ifname, unsigned long req) const;
   std::vector<std::string>
   query_interface_groups(const std::string &ifname) const;
-  std::optional<std::string>
-  query_ifstatus_nd6(const std::string &ifname) const;
   void populateInterfaceMetadata(InterfaceConfig &ic) const;
 
   // Interface type detection
