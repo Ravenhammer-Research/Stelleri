@@ -25,29 +25,46 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "SixToFourConfig.hpp"
-#include "ConfigurationManager.hpp"
-#include <cerrno>
-#include <cstring>
-#include <stdexcept>
+/**
+ * @file GREConfig.hpp
+ * @brief GRE tunnel interface configuration
+ */
 
-void SixToFourConfig::create(ConfigurationManager &mgr) const {
-  if (InterfaceConfig::exists(mgr, name))
-    return;
+#pragma once
 
-  mgr.CreateTunnel(name);
-}
+#include "InterfaceConfig.hpp"
+#include <optional>
+#include <string>
 
-void SixToFourConfig::save(ConfigurationManager &mgr) const {
-  if (name.empty())
-    throw std::runtime_error("SixToFourConfig has no interface name set");
+/**
+ * @brief Configuration for GRE tunnel interfaces
+ *
+ * Wraps the FreeBSD gre(4) interface parameters accessible via
+ * GRESADDRS/GRESADDRD/GRESKEY/GRESOPTS ioctls.
+ */
+class GREConfig : public InterfaceConfig {
+public:
+  explicit GREConfig(const InterfaceConfig &base) : InterfaceConfig(base) {}
 
-  if (!InterfaceConfig::exists(mgr, name))
-    create(mgr);
+  /// Tunnel source address
+  std::optional<std::string> greSource;
 
-  InterfaceConfig::save(mgr);
-}
+  /// Tunnel destination (remote) address
+  std::optional<std::string> greDestination;
 
-void SixToFourConfig::destroy(ConfigurationManager &mgr) const {
-  mgr.DestroyInterface(name);
-}
+  /// GRE key (0 = disabled)
+  std::optional<uint32_t> greKey;
+
+  /// GRE options bitmask (GRE_ENABLE_SEQ, GRE_ENABLE_CSUM, etc.)
+  std::optional<uint32_t> greOptions;
+
+  /// UDP encapsulation port (0 = no UDP encap)
+  std::optional<uint16_t> grePort;
+
+  /// Tunnel outer protocol family (AF_INET or AF_INET6, via GRESPROTO)
+  std::optional<int> greProto;
+
+  void save(ConfigurationManager &mgr) const override;
+  void create(ConfigurationManager &mgr) const;
+  void destroy(ConfigurationManager &mgr) const override;
+};

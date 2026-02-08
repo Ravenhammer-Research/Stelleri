@@ -52,6 +52,10 @@ static std::string protocolToString(LaggProtocol proto) {
     return "Failover";
   case LaggProtocol::LOADBALANCE:
     return "Load Balance";
+  case LaggProtocol::ROUNDROBIN:
+    return "Round Robin";
+  case LaggProtocol::BROADCAST:
+    return "Broadcast";
   case LaggProtocol::NONE:
     return "None";
   default:

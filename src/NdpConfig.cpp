@@ -25,29 +25,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "SixToFourConfig.hpp"
+#include "NdpConfig.hpp"
 #include "ConfigurationManager.hpp"
-#include <cerrno>
-#include <cstring>
-#include <stdexcept>
 
-void SixToFourConfig::create(ConfigurationManager &mgr) const {
-  if (InterfaceConfig::exists(mgr, name))
-    return;
-
-  mgr.CreateTunnel(name);
+void NdpConfig::save(ConfigurationManager &mgr) const {
+  mgr.SetNdpEntry(ip, mac, iface, !permanent);
 }
 
-void SixToFourConfig::save(ConfigurationManager &mgr) const {
-  if (name.empty())
-    throw std::runtime_error("SixToFourConfig has no interface name set");
-
-  if (!InterfaceConfig::exists(mgr, name))
-    create(mgr);
-
-  InterfaceConfig::save(mgr);
-}
-
-void SixToFourConfig::destroy(ConfigurationManager &mgr) const {
-  mgr.DestroyInterface(name);
+void NdpConfig::destroy(ConfigurationManager &mgr) const {
+  mgr.DeleteNdpEntry(ip, iface);
 }

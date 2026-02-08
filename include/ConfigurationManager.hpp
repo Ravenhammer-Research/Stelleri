@@ -42,6 +42,7 @@
 // Ensure configuration type declarations are available for method signatures
 #include "ArpConfig.hpp"
 #include "BridgeInterfaceConfig.hpp"
+#include "CarpConfig.hpp"
 #include "LaggConfig.hpp"
 #include "NdpConfig.hpp"
 #include "RouteConfig.hpp"
@@ -50,7 +51,9 @@
 #include "VLANConfig.hpp"
 #include "VRFConfig.hpp"
 #include "VirtualInterfaceConfig.hpp"
+#include "VXLANConfig.hpp"
 #include "WlanConfig.hpp"
+#include "GREConfig.hpp"
 
 /**
  * @brief Abstract base class for configuration storage and retrieval
@@ -79,6 +82,10 @@ public:
   virtual std::vector<TunnelConfig> GetTunnelInterfaces(
       const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
   virtual std::vector<VirtualInterfaceConfig> GetVirtualInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+  virtual std::vector<GREConfig> GetGreInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+  virtual std::vector<VXLANConfig> GetVxlanInterfaces(
       const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
   virtual std::vector<RouteConfig>
   GetStaticRoutes(const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
@@ -152,6 +159,17 @@ public:
   // TAP operations
   virtual void CreateTap(const std::string &name) const = 0;
   virtual void SaveTap(const TapConfig &tap) const = 0;
+
+  // GRE operations
+  virtual void CreateGre(const std::string &name) const = 0;
+  virtual void SaveGre(const GREConfig &gre) const = 0;
+
+  // VXLAN operations
+  virtual void CreateVxlan(const std::string &name) const = 0;
+  virtual void SaveVxlan(const VXLANConfig &vxlan) const = 0;
+
+  // CARP operations
+  virtual void SaveCarp(const CarpConfig &carp) const = 0;
 
   // Route operations
   virtual void AddRoute(const RouteConfig &route) const = 0;

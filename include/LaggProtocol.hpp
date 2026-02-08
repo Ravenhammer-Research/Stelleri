@@ -36,8 +36,10 @@
  * @brief LAGG protocol types
  */
 enum class LaggProtocol {
-  LACP,        ///< Link Aggregation Control Protocol
-  FAILOVER,    ///< Failover mode
-  LOADBALANCE, ///< Load balancing mode
-  NONE         ///< No protocol
+  NONE,        ///< No protocol (LAGG_PROTO_NONE)
+  ROUNDROBIN,  ///< Round-robin distribution (LAGG_PROTO_ROUNDROBIN)
+  FAILOVER,    ///< Active failover (LAGG_PROTO_FAILOVER)
+  LOADBALANCE, ///< Load balancing (LAGG_PROTO_LOADBALANCE)
+  LACP,        ///< 802.3ad Link Aggregation Control Protocol (LAGG_PROTO_LACP)
+  BROADCAST,   ///< Broadcast to all ports (LAGG_PROTO_BROADCAST)
 };

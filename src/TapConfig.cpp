@@ -35,3 +35,7 @@ void TapConfig::create(ConfigurationManager &mgr) const {
 void TapConfig::save(ConfigurationManager &mgr) const {
   mgr.SaveTap(*this);
 }
+
+void TapConfig::destroy(ConfigurationManager &mgr) const {
+  mgr.DestroyInterface(name);
+}

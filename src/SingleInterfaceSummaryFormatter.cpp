@@ -42,6 +42,12 @@ SingleInterfaceSummaryFormatter::format(const InterfaceConfig &ic) const {
   oss << "Interface: " << ic.name << "\n";
   oss << "Type:      " << std::to_string(static_cast<int>(ic.type)) << "\n";
 
+  if (ic.description)
+    oss << "Descr:     " << *ic.description << "\n";
+
+  if (ic.hwaddr)
+    oss << "HWaddr:    " << *ic.hwaddr << "\n";
+
   if (ic.flags) {
     std::string status = "-";
     if (*ic.flags & static_cast<uint32_t>(InterfaceFlag::RUNNING)) {
@@ -57,6 +63,37 @@ SingleInterfaceSummaryFormatter::format(const InterfaceConfig &ic) const {
   if (ic.mtu) {
     oss << "MTU:       " << *ic.mtu << "\n";
   }
+
+  if (ic.metric && *ic.metric != 0)
+    oss << "Metric:    " << *ic.metric << "\n";
+
+  if (ic.baudrate && *ic.baudrate > 0) {
+    uint64_t bps = *ic.baudrate;
+    if (bps >= 1'000'000'000)
+      oss << "Speed:     " << (bps / 1'000'000'000) << " Gbps\n";
+    else if (bps >= 1'000'000)
+      oss << "Speed:     " << (bps / 1'000'000) << " Mbps\n";
+    else if (bps >= 1'000)
+      oss << "Speed:     " << (bps / 1'000) << " Kbps\n";
+    else
+      oss << "Speed:     " << bps << " bps\n";
+  }
+
+  if (ic.link_state) {
+    const char *ls = "unknown";
+    switch (*ic.link_state) {
+    case 1: ls = "down"; break;
+    case 2: ls = "up"; break;
+    }
+    oss << "Link:      " << ls << "\n";
+  }
+
+  if (ic.capabilities) {
+    oss << "HW Caps:   0x" << std::hex << *ic.capabilities << std::dec << "\n";
+  }
+
+  if (ic.status_str)
+    oss << "Driver:    " << *ic.status_str;  // status_str typically includes a trailing newline
 
   if (ic.address) {
     oss << "Address:   " << ic.address->toString() << "\n";
@@ -108,6 +145,12 @@ SingleInterfaceSummaryFormatter::format(const InterfaceConfig &ic) const {
       break;
     case LaggProtocol::LOADBALANCE:
       oss << "Load Balance";
+      break;
+    case LaggProtocol::ROUNDROBIN:
+      oss << "Round Robin";
+      break;
+    case LaggProtocol::BROADCAST:
+      oss << "Broadcast";
       break;
     case LaggProtocol::NONE:
       oss << "None";

@@ -45,7 +45,7 @@ void CarpConfig::save(ConfigurationManager &mgr) const {
   if (!InterfaceConfig::exists(mgr, name))
     create(mgr);
 
-  InterfaceConfig::save(mgr);
+  mgr.SaveCarp(*this);
 }
 
 void CarpConfig::destroy(ConfigurationManager &mgr) const {

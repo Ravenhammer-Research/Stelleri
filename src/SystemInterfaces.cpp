@@ -38,6 +38,7 @@
 #include <net/if_dl.h>
 #include <net/if_types.h>
 #include <net/if.h>
+#include <net/if_media.h>
 #include <net80211/ieee80211_ioctl.h>
 #include <netinet/in.h>
 #include <netinet6/in6_var.h>
@@ -407,6 +408,94 @@ void SystemConfigurationManager::populateInterfaceMetadata(
 
   ic.groups = query_interface_groups(ic.name);
 
+  // --- Description (SIOCGIFDESCR) ---
+  try {
+    Socket s(AF_INET, SOCK_DGRAM);
+    struct ifreq ifr;
+    prepare_ifreq(ifr, ic.name);
+    char descbuf[256] = {0};
+    ifr.ifr_buffer.buffer = descbuf;
+    ifr.ifr_buffer.length = sizeof(descbuf);
+    if (ioctl(s, SIOCGIFDESCR, &ifr) == 0 && descbuf[0] != '\0')
+      ic.description = std::string(descbuf);
+  } catch (...) {}
+
+  // --- Hardware / MAC address (AF_LINK from getifaddrs) ---
+  {
+    struct ifaddrs *ifs = nullptr;
+    if (getifaddrs(&ifs) == 0) {
+      for (struct ifaddrs *ifa = ifs; ifa; ifa = ifa->ifa_next) {
+        if (!ifa->ifa_name || ic.name != ifa->ifa_name)
+          continue;
+        if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_LINK) {
+          auto *sdl = reinterpret_cast<struct sockaddr_dl *>(ifa->ifa_addr);
+          if (sdl->sdl_alen == 6) {
+            auto *mac = reinterpret_cast<unsigned char *>(LLADDR(sdl));
+            char macbuf[32];
+            std::snprintf(macbuf, sizeof(macbuf),
+                          "%02x:%02x:%02x:%02x:%02x:%02x",
+                          mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+            // Skip all-zero addresses (e.g. loopback)
+            if (std::string(macbuf) != "00:00:00:00:00:00")
+              ic.hwaddr = std::string(macbuf);
+          }
+          // Also harvest if_data fields from AF_LINK entry
+          if (ifa->ifa_data) {
+            auto *ifd = reinterpret_cast<struct if_data *>(ifa->ifa_data);
+            if (ifd->ifi_baudrate > 0)
+              ic.baudrate = ifd->ifi_baudrate;
+            ic.link_state = ifd->ifi_link_state;
+          }
+          break;
+        }
+      }
+      freeifaddrs(ifs);
+    }
+  }
+
+  // --- Capabilities (SIOCGIFCAP) ---
+  try {
+    Socket s(AF_INET, SOCK_DGRAM);
+    struct ifreq ifr;
+    prepare_ifreq(ifr, ic.name);
+    if (ioctl(s, SIOCGIFCAP, &ifr) == 0) {
+      ic.req_capabilities = static_cast<uint32_t>(ifr.ifr_reqcap);
+      ic.capabilities = static_cast<uint32_t>(ifr.ifr_curcap);
+    }
+  } catch (...) {}
+
+  // --- Media (SIOCGIFMEDIA) ---
+  try {
+    Socket s(AF_INET, SOCK_DGRAM);
+    struct ifmediareq ifmr{};
+    std::strncpy(ifmr.ifm_name, ic.name.c_str(), IFNAMSIZ - 1);
+    if (ioctl(s, SIOCGIFMEDIA, &ifmr) == 0) {
+      ic.media_status = ifmr.ifm_status;
+      // Store raw current/active words; higher-level formatting is done
+      // by the formatter layer which can map IFM_* to human-readable text.
+      ic.media = std::to_string(ifmr.ifm_current);
+      ic.media_active = std::to_string(ifmr.ifm_active);
+    }
+  } catch (...) {}
+
+  // --- Driver status string (SIOCGIFSTATUS) ---
+  try {
+    Socket s(AF_INET, SOCK_DGRAM);
+    struct ifstat ifs{};
+    std::strncpy(ifs.ifs_name, ic.name.c_str(), IFNAMSIZ - 1);
+    if (ioctl(s, SIOCGIFSTATUS, &ifs) == 0 && ifs.ascii[0] != '\0')
+      ic.status_str = std::string(ifs.ascii);
+  } catch (...) {}
+
+  // --- Physical wire type (SIOCGIFPHYS) ---
+  try {
+    Socket s(AF_INET, SOCK_DGRAM);
+    struct ifreq ifr;
+    prepare_ifreq(ifr, ic.name);
+    if (ioctl(s, SIOCGIFPHYS, &ifr) == 0)
+      ic.phys = ifr.ifr_phys;
+  } catch (...) {}
+
   if (ic.type == InterfaceType::Wireless) {
     if (auto *w = dynamic_cast<WlanConfig *>(&ic))
       populateWlanMetadata(*w, ic.name, ic.flags);
@@ -548,6 +637,38 @@ void SystemConfigurationManager::SaveInterface(const InterfaceConfig &ic) const 
     if (ioctl(sock, SIOCAIFGROUP, &ifgr) < 0)
       throw std::runtime_error("Failed to add interface group '" + group +
                                "': " + std::string(strerror(errno)));
+  }
+
+  // --- Description (SIOCSIFDESCR) ---
+  if (ic.description) {
+    struct ifreq ifr;
+    prepare_ifreq(ifr, ic.name);
+    ifr.ifr_buffer.buffer =
+        const_cast<char *>(ic.description->c_str());
+    ifr.ifr_buffer.length = ic.description->size() + 1;
+    if (ioctl(sock, SIOCSIFDESCR, &ifr) < 0)
+      std::cerr << "Warning: SIOCSIFDESCR failed for " << ic.name << ": "
+                << strerror(errno) << "\n";
+  }
+
+  // --- Capabilities (SIOCSIFCAP) ---
+  if (ic.req_capabilities) {
+    struct ifreq ifr;
+    prepare_ifreq(ifr, ic.name);
+    ifr.ifr_reqcap = static_cast<int>(*ic.req_capabilities);
+    if (ioctl(sock, SIOCSIFCAP, &ifr) < 0)
+      std::cerr << "Warning: SIOCSIFCAP failed for " << ic.name << ": "
+                << strerror(errno) << "\n";
+  }
+
+  // --- Metric (SIOCSIFMETRIC) ---
+  if (ic.metric) {
+    struct ifreq ifr;
+    prepare_ifreq(ifr, ic.name);
+    ifr.ifr_metric = *ic.metric;
+    if (ioctl(sock, SIOCSIFMETRIC, &ifr) < 0)
+      std::cerr << "Warning: SIOCSIFMETRIC failed for " << ic.name << ": "
+                << strerror(errno) << "\n";
   }
 }
 
@@ -702,6 +823,12 @@ std::vector<InterfaceConfig> SystemConfigurationManager::GetInterfaces(
       kv.second->type = InterfaceType::Lagg;
     } else if (interfaceIsBridge(kv.second->name)) {
       kv.second->type = InterfaceType::Bridge;
+    } else if (kv.second->name.rfind("gre", 0) == 0) {
+      kv.second->type = InterfaceType::GRE;
+    } else if (kv.second->name.rfind("vxlan", 0) == 0) {
+      kv.second->type = InterfaceType::VXLAN;
+    } else if (kv.second->name.rfind("ipsec", 0) == 0) {
+      kv.second->type = InterfaceType::IPsec;
     }
     if (matches_vrf(*kv.second, vrf))
       out.emplace_back(std::move(*kv.second));

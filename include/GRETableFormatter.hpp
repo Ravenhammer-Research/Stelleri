@@ -25,29 +25,19 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "SixToFourConfig.hpp"
-#include "ConfigurationManager.hpp"
-#include <cerrno>
-#include <cstring>
-#include <stdexcept>
+/**
+ * @file GRETableFormatter.hpp
+ * @brief Formatter for GRE tunnel interface table output
+ */
 
-void SixToFourConfig::create(ConfigurationManager &mgr) const {
-  if (InterfaceConfig::exists(mgr, name))
-    return;
+#pragma once
 
-  mgr.CreateTunnel(name);
-}
+#include "InterfaceConfig.hpp"
+#include "TableFormatter.hpp"
+#include <vector>
 
-void SixToFourConfig::save(ConfigurationManager &mgr) const {
-  if (name.empty())
-    throw std::runtime_error("SixToFourConfig has no interface name set");
-
-  if (!InterfaceConfig::exists(mgr, name))
-    create(mgr);
-
-  InterfaceConfig::save(mgr);
-}
-
-void SixToFourConfig::destroy(ConfigurationManager &mgr) const {
-  mgr.DestroyInterface(name);
-}
+class GRETableFormatter : public TableFormatter<InterfaceConfig> {
+public:
+  GRETableFormatter() = default;
+  std::string format(const std::vector<InterfaceConfig> &items) override;
+};

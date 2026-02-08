@@ -26,7 +26,9 @@
  */
 
 #include "BridgeInterfaceConfig.hpp"
+#include "CarpConfig.hpp"
 #include "ConfigurationManager.hpp"
+#include "GREConfig.hpp"
 #include "IPAddress.hpp"
 #include "IPNetwork.hpp"
 #include "InterfaceConfig.hpp"
@@ -35,6 +37,7 @@
 #include "LoopBackConfig.hpp"
 #include "TunnelConfig.hpp"
 #include "VLANConfig.hpp"
+#include "VXLANConfig.hpp"
 #include "VirtualInterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
 #include <iostream>
@@ -77,6 +80,12 @@ void executeSetInterface(const InterfaceToken &tok,
       effectiveType = base.type;
     else if (base.name.rfind("lo", 0) == 0)
       effectiveType = InterfaceType::Loopback;
+    else if (base.name.rfind("gre", 0) == 0)
+      effectiveType = InterfaceType::GRE;
+    else if (base.name.rfind("vxlan", 0) == 0)
+      effectiveType = InterfaceType::VXLAN;
+    else if (base.name.rfind("carp", 0) == 0)
+      effectiveType = InterfaceType::Virtual; // CARP uses virtual type
 
     // Handle concrete types
     // Apply address token (if present): add as primary if none, otherwise
@@ -192,6 +201,22 @@ void executeSetInterface(const InterfaceToken &tok,
       lbc.save(*mgr);
       std::cout << "set interface: " << (exists ? "updated" : "created")
                 << " loopback '" << name << "'\n";
+      return;
+    }
+
+    if (effectiveType == InterfaceType::GRE) {
+      GREConfig gc(base);
+      gc.save(*mgr);
+      std::cout << "set interface: " << (exists ? "updated" : "created")
+                << " gre '" << name << "'\n";
+      return;
+    }
+
+    if (effectiveType == InterfaceType::VXLAN) {
+      VXLANConfig vxc(base);
+      vxc.save(*mgr);
+      std::cout << "set interface: " << (exists ? "updated" : "created")
+                << " vxlan '" << name << "'\n";
       return;
     }
 

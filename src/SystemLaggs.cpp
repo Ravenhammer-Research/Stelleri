@@ -98,6 +98,12 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
         case LAGG_PROTO_LACP:
           lac.protocol = LaggProtocol::LACP;
           break;
+        case LAGG_PROTO_ROUNDROBIN:
+          lac.protocol = LaggProtocol::ROUNDROBIN;
+          break;
+        case LAGG_PROTO_BROADCAST:
+          lac.protocol = LaggProtocol::BROADCAST;
+          break;
         default:
           lac.protocol = LaggProtocol::NONE;
           break;
@@ -155,7 +161,15 @@ std::vector<LaggConfig> SystemConfigurationManager::GetLaggInterfaces(
       struct ifreq ifro;
       prepare_ifreq(ifro, ic.name);
       ifro.ifr_data = reinterpret_cast<char *>(&ro);
-      ioctl(sock, SIOCGLAGGOPTS, &ifro);
+      if (ioctl(sock, SIOCGLAGGOPTS, &ifro) == 0) {
+        lac.options = ro.ro_opts;
+        lac.active_ports = static_cast<int>(ro.ro_active);
+        lac.flapping = static_cast<int>(ro.ro_flapping);
+        if (ro.ro_flowid_shift)
+          lac.flowid_shift = ro.ro_flowid_shift;
+        if (ro.ro_bkt)
+          lac.rr_stride = ro.ro_bkt;
+      }
 
       out.emplace_back(std::move(lac));
     }
@@ -181,17 +195,23 @@ void SystemConfigurationManager::SaveLagg(const LaggConfig &lac) const {
 
   int proto_value = 0;
   switch (lac.protocol) {
+  case LaggProtocol::NONE:
+    proto_value = LAGG_PROTO_NONE;
+    break;
+  case LaggProtocol::ROUNDROBIN:
+    proto_value = LAGG_PROTO_ROUNDROBIN;
+    break;
   case LaggProtocol::FAILOVER:
-    proto_value = 1;
+    proto_value = LAGG_PROTO_FAILOVER;
     break;
   case LaggProtocol::LOADBALANCE:
-    proto_value = 4;
+    proto_value = LAGG_PROTO_LOADBALANCE;
     break;
   case LaggProtocol::LACP:
-    proto_value = 3;
+    proto_value = LAGG_PROTO_LACP;
     break;
-  case LaggProtocol::NONE:
-    proto_value = 0;
+  case LaggProtocol::BROADCAST:
+    proto_value = LAGG_PROTO_BROADCAST;
     break;
   }
 

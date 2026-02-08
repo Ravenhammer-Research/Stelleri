@@ -25,29 +25,26 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "SixToFourConfig.hpp"
+#include "VXLANConfig.hpp"
 #include "ConfigurationManager.hpp"
-#include <cerrno>
-#include <cstring>
 #include <stdexcept>
 
-void SixToFourConfig::create(ConfigurationManager &mgr) const {
+void VXLANConfig::create(ConfigurationManager &mgr) const {
   if (InterfaceConfig::exists(mgr, name))
     return;
-
-  mgr.CreateTunnel(name);
+  mgr.CreateVxlan(name);
 }
 
-void SixToFourConfig::save(ConfigurationManager &mgr) const {
+void VXLANConfig::save(ConfigurationManager &mgr) const {
   if (name.empty())
-    throw std::runtime_error("SixToFourConfig has no interface name set");
+    throw std::runtime_error("VXLANConfig has no interface name set");
 
   if (!InterfaceConfig::exists(mgr, name))
     create(mgr);
 
-  InterfaceConfig::save(mgr);
+  mgr.SaveVxlan(*this);
 }
 
-void SixToFourConfig::destroy(ConfigurationManager &mgr) const {
+void VXLANConfig::destroy(ConfigurationManager &mgr) const {
   mgr.DestroyInterface(name);
 }

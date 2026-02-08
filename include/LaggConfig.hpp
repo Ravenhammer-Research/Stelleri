@@ -60,6 +60,11 @@ public:
   std::optional<uint32_t> hash_policy; ///< Hash policy bitmask (L2/L3/L4)
   std::optional<int> lacp_rate;        ///< LACP rate: 0=slow (30s), 1=fast (1s)
   std::optional<int> min_links;        ///< Minimum number of active links
+  std::optional<int> flowid_shift;     ///< Flow-ID hash shift (ro_flowid_shift)
+  std::optional<uint32_t> rr_stride;   ///< Round-robin stride (ro_bkt)
+  std::optional<int> options;          ///< Option bitmap (LAGG_OPT_*)
+  std::optional<int> active_ports;     ///< Number of active ports (read-only)
+  std::optional<int> flapping;         ///< Port flapping counter (read-only)
 
   ~LaggConfig() override = default;
   void save(ConfigurationManager &mgr) const override;

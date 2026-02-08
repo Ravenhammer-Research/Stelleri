@@ -44,6 +44,6 @@ struct ArpConfig : public ConfigData {
   bool permanent = false;           // Static/permanent entry
   bool published = false;           // Proxy ARP (published)
 
-  void save(ConfigurationManager &mgr) const override { (void)mgr; }
-  void destroy(ConfigurationManager &mgr) const override { (void)mgr; }
+  void save(ConfigurationManager &mgr) const override;
+  void destroy(ConfigurationManager &mgr) const override;
 };

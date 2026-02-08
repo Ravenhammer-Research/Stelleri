@@ -33,10 +33,34 @@
 #pragma once
 
 #include "InterfaceConfig.hpp"
+#include <optional>
+#include <string>
 
+/**
+ * @brief Configuration for CARP redundancy interfaces
+ *
+ * Wraps the FreeBSD CARP parameters from struct carpreq (ip_carp.h):
+ * virtual-host ID, advertisement skew/base, passphrase key, and state.
+ */
 class CarpConfig : public InterfaceConfig {
 public:
   explicit CarpConfig(const InterfaceConfig &base) : InterfaceConfig(base) {}
+
+  /// Virtual Host ID (1–255)
+  std::optional<int> vhid;
+
+  /// Advertisement skew (0–240)
+  std::optional<int> advskew;
+
+  /// Advertisement interval in seconds
+  std::optional<int> advbase;
+
+  /// CARP passphrase / HMAC key (max CARP_KEY_LEN = 20 bytes)
+  std::optional<std::string> key;
+
+  /// Current CARP state as string: INIT, BACKUP, or MASTER
+  std::optional<std::string> state;
+
   void save(ConfigurationManager &mgr) const override;
   void create(ConfigurationManager &mgr) const;
   void destroy(ConfigurationManager &mgr) const override;

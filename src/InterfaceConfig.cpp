@@ -39,12 +39,14 @@
 #include "VRFConfig.hpp"
 #include "BridgeTableFormatter.hpp"
 #include "CarpTableFormatter.hpp"
+#include "GRETableFormatter.hpp"
 #include "InterfaceTableFormatter.hpp"
 #include "LaggTableFormatter.hpp"
 #include "SixToFourTableFormatter.hpp"
 #include "TapTableFormatter.hpp"
 #include "TunnelTableFormatter.hpp"
 #include "VLANTableFormatter.hpp"
+#include "VXLANTableFormatter.hpp"
 #include "VirtualTableFormatter.hpp"
 #include "WlanTableFormatter.hpp"
 
@@ -101,6 +103,19 @@ InterfaceConfig::InterfaceConfig(const InterfaceConfig &o) {
   index = o.index;
   groups = o.groups;
   mtu = o.mtu;
+  metric = o.metric;
+  nd6_options = o.nd6_options;
+  description = o.description;
+  hwaddr = o.hwaddr;
+  capabilities = o.capabilities;
+  req_capabilities = o.req_capabilities;
+  media = o.media;
+  media_active = o.media_active;
+  media_status = o.media_status;
+  status_str = o.status_str;
+  phys = o.phys;
+  baudrate = o.baudrate;
+  link_state = o.link_state;
 }
 
 // Static helper: check whether a named interface exists.
@@ -138,8 +153,19 @@ bool InterfaceConfig::isTap() const {
 }
 
 bool InterfaceConfig::isCarp() const {
-  return name.rfind("carp", 0) == 0 || name.rfind("vh", 0) == 0 ||
-         isVirtual();
+  return name.rfind("carp", 0) == 0 || name.rfind("vh", 0) == 0;
+}
+
+bool InterfaceConfig::isGre() const {
+  return type == InterfaceType::GRE || name.rfind("gre", 0) == 0;
+}
+
+bool InterfaceConfig::isVxlan() const {
+  return type == InterfaceType::VXLAN || name.rfind("vxlan", 0) == 0;
+}
+
+bool InterfaceConfig::isIpsec() const {
+  return type == InterfaceType::IPsec || name.rfind("ipsec", 0) == 0;
 }
 
 // Check if this interface matches a requested type (handles tunnel special cases)
@@ -199,6 +225,14 @@ std::string InterfaceConfig::formatInterfaces(const std::vector<InterfaceConfig>
   }
   if (ifaces[0].isTunnelish()) {
     TunnelTableFormatter formatter;
+    return formatter.format(ifaces);
+  }
+  if (ifaces[0].isGre()) {
+    GRETableFormatter formatter;
+    return formatter.format(ifaces);
+  }
+  if (ifaces[0].isVxlan()) {
+    VXLANTableFormatter formatter;
     return formatter.format(ifaces);
   }
   if (ifaces[0].isTap()) {

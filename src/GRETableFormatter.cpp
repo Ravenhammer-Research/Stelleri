@@ -25,29 +25,51 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "SixToFourConfig.hpp"
-#include "ConfigurationManager.hpp"
-#include <cerrno>
-#include <cstring>
-#include <stdexcept>
+#include "GRETableFormatter.hpp"
+#include "InterfaceFlags.hpp"
+#include <sstream>
 
-void SixToFourConfig::create(ConfigurationManager &mgr) const {
-  if (InterfaceConfig::exists(mgr, name))
-    return;
+std::string
+GRETableFormatter::format(const std::vector<InterfaceConfig> &items) {
+  addColumn("Interface", "Interface", 10, 4, true);
+  addColumn("Address", "Address", 5, 7, true);
+  addColumn("Status", "Status", 6, 6, true);
+  addColumn("MTU", "MTU", 6, 6, true);
 
-  mgr.CreateTunnel(name);
-}
+  for (const auto &ic : items) {
+    if (ic.type != InterfaceType::GRE && ic.name.rfind("gre", 0) != 0)
+      continue;
 
-void SixToFourConfig::save(ConfigurationManager &mgr) const {
-  if (name.empty())
-    throw std::runtime_error("SixToFourConfig has no interface name set");
+    std::vector<std::string> addrs;
+    if (ic.address)
+      addrs.push_back(ic.address->toString());
+    for (const auto &a : ic.aliases) {
+      if (a)
+        addrs.push_back(a->toString());
+    }
 
-  if (!InterfaceConfig::exists(mgr, name))
-    create(mgr);
+    std::ostringstream aoss;
+    for (size_t i = 0; i < addrs.size(); ++i) {
+      if (i)
+        aoss << '\n';
+      aoss << addrs[i];
+    }
+    std::string addrCell = addrs.empty() ? std::string("-") : aoss.str();
 
-  InterfaceConfig::save(mgr);
-}
+    std::string status = "-";
+    if (ic.flags) {
+      if (hasFlag(*ic.flags, InterfaceFlag::RUNNING))
+        status = "active";
+      else if (hasFlag(*ic.flags, InterfaceFlag::UP))
+        status = "no-carrier";
+      else
+        status = "down";
+    }
 
-void SixToFourConfig::destroy(ConfigurationManager &mgr) const {
-  mgr.DestroyInterface(name);
+    std::string mtu = ic.mtu ? std::to_string(*ic.mtu) : std::string("-");
+
+    addRow({ic.name, addrCell, status, mtu});
+  }
+
+  return renderTable(80);
 }

@@ -85,6 +85,25 @@ std::string InterfaceToken::toString() const {
     for (const auto &member : lagg->members) {
       result += " member " + member;
     }
+    switch (lagg->protocol) {
+    case LaggProtocol::LACP:
+      result += " protocol lacp";
+      break;
+    case LaggProtocol::FAILOVER:
+      result += " protocol failover";
+      break;
+    case LaggProtocol::LOADBALANCE:
+      result += " protocol loadbalance";
+      break;
+    case LaggProtocol::ROUNDROBIN:
+      result += " protocol roundrobin";
+      break;
+    case LaggProtocol::BROADCAST:
+      result += " protocol broadcast";
+      break;
+    case LaggProtocol::NONE:
+      break;
+    }
   }
   if (bridge) {
     if (bridge->stp) {
@@ -207,6 +226,12 @@ void InterfaceToken::parseKeywords(std::shared_ptr<InterfaceToken> &tok,
             lc.protocol = LaggProtocol::FAILOVER;
           else if (proto == "loadbalance")
             lc.protocol = LaggProtocol::LOADBALANCE;
+          else if (proto == "roundrobin")
+            lc.protocol = LaggProtocol::ROUNDROBIN;
+          else if (proto == "broadcast")
+            lc.protocol = LaggProtocol::BROADCAST;
+          else if (proto == "none")
+            lc.protocol = LaggProtocol::NONE;
           cur += 2;
           continue;
         }

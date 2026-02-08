@@ -29,6 +29,7 @@
 #include "BridgeTableFormatter.hpp"
 #include "CarpTableFormatter.hpp"
 #include "ConfigurationManager.hpp"
+#include "GRETableFormatter.hpp"
 #include "InterfaceConfig.hpp"
 #include "InterfaceTableFormatter.hpp"
 #include "InterfaceToken.hpp"
@@ -38,6 +39,7 @@
 #include "TapTableFormatter.hpp"
 #include "TunnelTableFormatter.hpp"
 #include "VLANTableFormatter.hpp"
+#include "VXLANTableFormatter.hpp"
 #include "VirtualTableFormatter.hpp"
 #include "WlanTableFormatter.hpp"
 #include <iomanip>

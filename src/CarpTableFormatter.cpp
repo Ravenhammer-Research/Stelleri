@@ -38,10 +38,7 @@ CarpTableFormatter::format(const std::vector<InterfaceConfig> &items) {
   addColumn("MTU", "MTU", 6, 6, true);
 
   for (const auto &ic : items) {
-    // Heuristic: CARP interfaces often start with "carp" or "vh"; treat virtual
-    // types too
-    if (ic.name.rfind("carp", 0) != 0 && ic.name.rfind("vh", 0) != 0 &&
-        ic.type != InterfaceType::Virtual)
+    if (ic.name.rfind("carp", 0) != 0 && ic.name.rfind("vh", 0) != 0)
       continue;
 
     std::vector<std::string> addrs;

@@ -35,3 +35,7 @@ void WlanConfig::create(ConfigurationManager &mgr) const {
 void WlanConfig::save(ConfigurationManager &mgr) const {
   mgr.SaveWlan(*this);
 }
+
+void WlanConfig::destroy(ConfigurationManager &mgr) const {
+  mgr.DestroyInterface(name);
+}

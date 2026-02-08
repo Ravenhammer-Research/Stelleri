@@ -52,6 +52,9 @@ enum class InterfaceType {
   Tunnel,
   Gif,
   Tun,
+  GRE,
+  VXLAN,
+  IPsec,
   FDDI,
   TokenRing,
   ATM,
@@ -86,6 +89,12 @@ inline std::string interfaceTypeToString(InterfaceType t) {
     return "GenericTunnel";
   case InterfaceType::Tun:
     return "Tun";
+  case InterfaceType::GRE:
+    return "GRE";
+  case InterfaceType::VXLAN:
+    return "VXLAN";
+  case InterfaceType::IPsec:
+    return "IPsec";
   case InterfaceType::FDDI:
     return "FDDI";
   case InterfaceType::TokenRing:
@@ -121,6 +130,12 @@ inline InterfaceType interfaceTypeFromString(const std::string &s) {
     return InterfaceType::Gif;
   if (s == "tun")
     return InterfaceType::Tun;
+  if (s == "gre")
+    return InterfaceType::GRE;
+  if (s == "vxlan")
+    return InterfaceType::VXLAN;
+  if (s == "ipsec")
+    return InterfaceType::IPsec;
   if (s == "epair" || s == "virtual" || s == "tap")
     return InterfaceType::Virtual;
   if (s == "wireless" || s == "wlan")

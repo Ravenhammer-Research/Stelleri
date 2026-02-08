@@ -40,6 +40,7 @@ public:
   explicit WlanConfig(const InterfaceConfig &base) : InterfaceConfig(base) {}
   void save(ConfigurationManager &mgr) const override;
   void create(ConfigurationManager &mgr) const;
+  void destroy(ConfigurationManager &mgr) const override;
   // Wireless-specific attributes
   std::optional<std::string> ssid;
   std::optional<int> channel;
@@ -48,6 +49,8 @@ public:
   std::optional<WlanAuthMode> authmode;
   std::optional<std::string> media;
   std::optional<std::string> status;
+  std::optional<int> opmode;          ///< Operating mode (IEEE80211_M_STA, etc.)
+  std::optional<std::string> macaddr; ///< Locally-assigned MAC address
   // Copy constructor from another WlanConfig
   WlanConfig(const WlanConfig &o) : InterfaceConfig(o) {
     ssid = o.ssid;
@@ -57,6 +60,8 @@ public:
     authmode = o.authmode;
     media = o.media;
     status = o.status;
+    opmode = o.opmode;
+    macaddr = o.macaddr;
   }
   WlanConfig &operator=(const WlanConfig &o) = delete;
 };

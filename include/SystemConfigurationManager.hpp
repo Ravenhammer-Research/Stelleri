@@ -35,6 +35,7 @@
 #include "ArpConfig.hpp"
 #include "BridgeInterfaceConfig.hpp"
 #include "ConfigurationManager.hpp"
+#include "GREConfig.hpp"
 #include "InterfaceConfig.hpp"
 #include "LaggConfig.hpp"
 #include "NdpConfig.hpp"
@@ -42,6 +43,7 @@
 #include "TunnelConfig.hpp"
 #include "VLANConfig.hpp"
 #include "VRFConfig.hpp"
+#include "VXLANConfig.hpp"
 #include "VirtualInterfaceConfig.hpp"
 #include "WlanConfig.hpp"
 #include "TapConfig.hpp"
@@ -72,6 +74,10 @@ public:
   std::vector<TunnelConfig> GetTunnelInterfaces(
       const std::optional<VRFConfig> &vrf = std::nullopt) const override;
   std::vector<VirtualInterfaceConfig> GetVirtualInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+  std::vector<GREConfig> GetGreInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+  std::vector<VXLANConfig> GetVxlanInterfaces(
       const std::optional<VRFConfig> &vrf = std::nullopt) const override;
   std::vector<RouteConfig> GetStaticRoutes(
       const std::optional<VRFConfig> &vrf = std::nullopt) const override;
@@ -160,6 +166,17 @@ public:
   // TAP-specific operations
   void CreateTap(const std::string &name) const override;
   void SaveTap(const TapConfig &tap) const override;
+
+  // GRE-specific operations
+  void CreateGre(const std::string &name) const override;
+  void SaveGre(const GREConfig &gre) const override;
+
+  // VXLAN-specific operations
+  void CreateVxlan(const std::string &name) const override;
+  void SaveVxlan(const VXLANConfig &vxlan) const override;
+
+  // CARP-specific operations
+  void SaveCarp(const CarpConfig &carp) const override;
 
   // Tunnel-specific operations
   void CreateTunnel(const std::string &name) const override;
