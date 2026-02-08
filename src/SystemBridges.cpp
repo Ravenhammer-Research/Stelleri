@@ -105,7 +105,7 @@ SystemConfigurationManager::GetBridgeInterfaces(
   for (const auto &ic : bases) {
     if (ic.type == InterfaceType::Bridge) {
       BridgeInterfaceConfig bic(ic);
-      bic.loadMembers();
+      bic.loadMembers(*this);
       out.emplace_back(std::move(bic));
     }
   }

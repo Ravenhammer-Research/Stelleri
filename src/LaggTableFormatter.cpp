@@ -33,8 +33,6 @@
 #include <algorithm>
 #include <iomanip>
 #include <iostream>
-#include <net/ethernet.h>
-#include <net/if.h>
 #include <sstream>
 
 // Local helper to render member flag bits into a human-readable label.
@@ -112,9 +110,9 @@ std::string LaggTableFormatter::format(
     r.mtu = ic.mtu;
     r.flags = ic.flags;
     if (ic.flags) {
-      if (*ic.flags & IFF_RUNNING)
+      if (hasFlag(*ic.flags, InterfaceFlag::RUNNING))
         r.status = "active";
-      else if (*ic.flags & IFF_UP)
+      else if (hasFlag(*ic.flags, InterfaceFlag::UP))
         r.status = "no-carrier";
       else
         r.status = "down";

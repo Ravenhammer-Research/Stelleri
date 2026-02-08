@@ -33,14 +33,14 @@
 #pragma once
 
 #include <cstdint>
-#include <net/if_lagg.h>
 
 namespace LaggHash {
 
+  /// Hash policy flags (matches FreeBSD LAGG_F_HASHL* constants).
   enum Flag : uint32_t {
-    L2 = LAGG_F_HASHL2,
-    L3 = LAGG_F_HASHL3,
-    L4 = LAGG_F_HASHL4,
+    L2 = 0x00000001, // LAGG_F_HASHL2
+    L3 = 0x00000002, // LAGG_F_HASHL3
+    L4 = 0x00000004, // LAGG_F_HASHL4
   };
 
 } // namespace LaggHash

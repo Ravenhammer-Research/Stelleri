@@ -172,7 +172,7 @@ void SystemConfigurationManager::SaveLagg(const LaggConfig &lac) const {
   if (lac.name.empty())
     throw std::runtime_error("LaggConfig has no interface name set");
 
-  if (!InterfaceConfig::exists(lac.name))
+  if (!InterfaceConfig::exists(*this, lac.name))
     CreateLagg(lac.name);
   else
     SaveInterface(static_cast<const InterfaceConfig &>(lac));

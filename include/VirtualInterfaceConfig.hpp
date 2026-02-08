@@ -55,8 +55,8 @@ public:
   std::optional<int> rdomain;      ///< Routing domain / FIB
   bool promiscuous = false;        ///< Promiscuous mode enabled
 
-  void save() const override;
+  void save(ConfigurationManager &mgr) const override;
 
 private:
-  void create() const;
+  void create(ConfigurationManager &mgr) const;
 };

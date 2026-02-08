@@ -48,6 +48,67 @@
 #include <unistd.h>
 #include <unordered_map>
 
+namespace {
+
+/// Map an ifaddrs entry to an InterfaceType using link-layer information.
+/// This is FreeBSD-specific (uses sockaddr_dl, IFT_* constants).
+InterfaceType ifAddrToInterfaceType(const struct ifaddrs *ifa) {
+  if (!ifa)
+    return InterfaceType::Unknown;
+  unsigned int flags = ifa->ifa_flags;
+
+  if (ifa->ifa_addr && ifa->ifa_addr->sa_family == AF_LINK) {
+    auto *sdl = reinterpret_cast<struct sockaddr_dl *>(ifa->ifa_addr);
+    switch (sdl->sdl_type) {
+    case IFT_ETHER:
+    case IFT_FASTETHER:
+    case IFT_GIGABITETHERNET:
+    case IFT_FIBRECHANNEL:
+    case IFT_AFLANE8023:
+      return InterfaceType::Ethernet;
+    case IFT_IEEE8023ADLAG:
+      return InterfaceType::Lagg;
+    case IFT_LOOP:
+      return InterfaceType::Loopback;
+    case IFT_PPP:
+      return InterfaceType::PPP;
+    case IFT_TUNNEL:
+      return InterfaceType::Tunnel;
+    case IFT_GIF:
+      return InterfaceType::Gif;
+    case IFT_FDDI:
+      return InterfaceType::FDDI;
+    case IFT_ISO88025:
+    case IFT_ISO88023:
+    case IFT_ISO88024:
+    case IFT_ISO88026:
+      return InterfaceType::TokenRing;
+    case IFT_IEEE80211:
+      return InterfaceType::Wireless;
+    case IFT_BRIDGE:
+      return InterfaceType::Bridge;
+    case IFT_L2VLAN:
+      return InterfaceType::VLAN;
+    case IFT_ATM:
+      return InterfaceType::ATM;
+    case IFT_PROPVIRTUAL:
+    case IFT_VIRTUALIPADDRESS:
+      return InterfaceType::Virtual;
+    default:
+      return InterfaceType::Other;
+    }
+  }
+
+  if (flags & IFF_LOOPBACK)
+    return InterfaceType::Loopback;
+  if (flags & IFF_POINTOPOINT)
+    return InterfaceType::PointToPoint;
+
+  return InterfaceType::Unknown;
+}
+
+} // anonymous namespace
+
 void SystemConfigurationManager::prepare_ifreq(struct ifreq &ifr,
                                                const std::string &name) const {
   std::memset(&ifr, 0, sizeof(ifr));
@@ -356,7 +417,7 @@ void SystemConfigurationManager::SaveInterface(const InterfaceConfig &ic) const 
   if (ic.name.empty())
     throw std::runtime_error("Interface has no name");
 
-  if (!InterfaceConfig::exists(ic.name))
+  if (!InterfaceConfig::exists(*this, ic.name))
     CreateInterface(ic.name);
 
   Socket sock(AF_INET, SOCK_DGRAM);

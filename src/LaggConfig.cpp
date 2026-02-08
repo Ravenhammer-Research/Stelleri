@@ -31,7 +31,7 @@
 
 #include "LaggConfig.hpp"
 
-#include "SystemConfigurationManager.hpp"
+#include "ConfigurationManager.hpp"
 
 #include <cerrno>
 #include <cstring>
@@ -83,12 +83,10 @@ LaggConfig::LaggConfig(const InterfaceConfig &base, LaggProtocol protocol_,
   min_links = min_links_;
 }
 
-void LaggConfig::save() const {
-  SystemConfigurationManager scm;
-  scm.SaveLagg(*this);
+void LaggConfig::save(ConfigurationManager &mgr) const {
+  mgr.SaveLagg(*this);
 }
 
-void LaggConfig::create() const {
-  SystemConfigurationManager scm;
-  scm.CreateLagg(name);
+void LaggConfig::create(ConfigurationManager &mgr) const {
+  mgr.CreateLagg(name);
 }

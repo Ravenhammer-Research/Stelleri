@@ -43,7 +43,6 @@ namespace netcli {
 
 void executeSetRoute(const RouteToken &tok,
                              ConfigurationManager *mgr) {
-  (void)mgr;
   RouteConfig rc;
   rc.prefix = tok.prefix();
   if (tok.nexthop)
@@ -55,7 +54,7 @@ void executeSetRoute(const RouteToken &tok,
   rc.blackhole = tok.blackhole;
   rc.reject = tok.reject;
   try {
-    rc.save();
+    rc.save(*mgr);
     std::cout << "set route: " << rc.prefix << " added\n";
   } catch (const std::exception &e) {
     std::cout << "set route: failed: " << e.what() << "\n";

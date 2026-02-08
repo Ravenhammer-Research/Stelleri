@@ -29,28 +29,19 @@
 #include "IPNetwork.hpp"
 #include "InterfaceConfig.hpp"
 #include "InterfaceToken.hpp"
-#include "SystemConfigurationManager.hpp"
-#include <arpa/inet.h>
-#include <cerrno>
-#include <cstring>
 #include <iostream>
-#include <netinet/in.h>
-#include <sys/sockio.h>
-#include <unistd.h>
 
 namespace netcli {
 
 void executeDeleteInterface(const InterfaceToken &tok,
                                     ConfigurationManager *mgr) {
-  (void)mgr;
-
   const std::string name = tok.name();
   if (name.empty()) {
     std::cerr << "delete interface: missing interface name\n";
     return;
   }
 
-  if (!InterfaceConfig::exists(name)) {
+  if (!InterfaceConfig::exists(*mgr, name)) {
     std::cerr << "delete interface: interface '" << name << "' not found\n";
     return;
   }
@@ -60,8 +51,7 @@ void executeDeleteInterface(const InterfaceToken &tok,
   try {
     // If token requests group deletion, remove just the group
     if (tok.group) {
-      SystemConfigurationManager scm;
-      scm.RemoveInterfaceGroup(name, *tok.group);
+      mgr->RemoveInterfaceGroup(name, *tok.group);
       std::cout << "delete interface: removed group '" << *tok.group
                 << "' from '" << name << "'\n";
       return;
@@ -70,24 +60,18 @@ void executeDeleteInterface(const InterfaceToken &tok,
     // If token requests address-level deletion (inet/inet6), handle
     // targeted removal rather than destroying the entire interface.
     if (tok.address || tok.address_family) {
-      // Build list of addresses to remove. If a specific address string was
-      // provided, remove just that; otherwise remove all addresses matching
-      // the requested family (currently handles AF_INET and AF_INET6
-      // best-effort).
       std::vector<std::string> to_remove;
       if (tok.address) {
         to_remove.push_back(*tok.address);
       } else if (tok.address_family && *tok.address_family == AF_INET) {
-        SystemConfigurationManager scm;
-        to_remove = scm.GetInterfaceAddresses(name, AF_INET);
+        to_remove = mgr->GetInterfaceAddresses(name, AF_INET);
       } else if (tok.address_family && *tok.address_family == AF_INET6) {
-        SystemConfigurationManager scm;
-        to_remove = scm.GetInterfaceAddresses(name, AF_INET6);
+        to_remove = mgr->GetInterfaceAddresses(name, AF_INET6);
       }
 
       for (const auto &a : to_remove) {
         try {
-          ic.removeAddress(a);
+          ic.removeAddress(*mgr, a);
           std::cout << "delete interface: removed address '" << a
                     << "' from '" << name << "'\n";
         } catch (const std::exception &e) {
@@ -99,7 +83,7 @@ void executeDeleteInterface(const InterfaceToken &tok,
     }
 
     // Default: destroy the interface
-    ic.destroy();
+    ic.destroy(*mgr);
     std::cout << "delete interface: removed '" << name << "'\n";
   } catch (const std::exception &e) {
     std::cerr << "delete interface: failed to remove '" << name

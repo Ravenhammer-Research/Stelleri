@@ -40,7 +40,6 @@ namespace netcli {
 
 void executeDeleteRoute(const RouteToken &tok,
                                 ConfigurationManager *mgr) {
-  (void)mgr;
   RouteConfig rc;
   rc.prefix = tok.prefix();
   if (tok.nexthop)
@@ -59,7 +58,7 @@ void executeDeleteRoute(const RouteToken &tok,
   }
 
   try {
-    rc.destroy();
+    rc.destroy(*mgr);
     std::cout << "delete route: " << rc.prefix << " removed\n";
   } catch (const std::exception &e) {
     std::cout << "delete route: failed: " << e.what() << "\n";

@@ -27,7 +27,7 @@
 
 #include "VirtualInterfaceConfig.hpp"
 
-#include "SystemConfigurationManager.hpp"
+#include "ConfigurationManager.hpp"
 
 #include <cerrno>
 #include <cstring>
@@ -76,12 +76,10 @@ VirtualInterfaceConfig::VirtualInterfaceConfig(const InterfaceConfig &base,
   promiscuous = promiscuous_;
 }
 
-void VirtualInterfaceConfig::save() const {
-  SystemConfigurationManager scm;
-  scm.SaveVirtual(*this);
+void VirtualInterfaceConfig::save(ConfigurationManager &mgr) const {
+  mgr.SaveVirtual(*this);
 }
 
-void VirtualInterfaceConfig::create() const {
-  SystemConfigurationManager scm;
-  scm.CreateVirtual(name);
+void VirtualInterfaceConfig::create(ConfigurationManager &mgr) const {
+  mgr.CreateVirtual(name);
 }

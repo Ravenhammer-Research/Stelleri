@@ -3,8 +3,8 @@
  */
 
 #include "RouteConfig.hpp"
-#include "SystemConfigurationManager.hpp"
+#include "ConfigurationManager.hpp"
 
-void RouteConfig::save() const { SystemConfigurationManager scm; scm.AddRoute(*this); }
+void RouteConfig::save(ConfigurationManager &mgr) const { mgr.AddRoute(*this); }
 
-void RouteConfig::destroy() const { SystemConfigurationManager scm; scm.DeleteRoute(*this); }
+void RouteConfig::destroy(ConfigurationManager &mgr) const { mgr.DeleteRoute(*this); }

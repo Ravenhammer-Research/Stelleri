@@ -34,7 +34,7 @@
 
 namespace netcli {
 
-  void CommandGenerator::generateRoutes(SystemConfigurationManager &mgr) {
+  void CommandGenerator::generateRoutes(ConfigurationManager &mgr) {
     auto routes = mgr.GetRoutes();
 
     for (const auto &route : routes) {
@@ -60,7 +60,7 @@ namespace netcli {
   }
 
   void CommandGenerator::generateVirtuals(
-      SystemConfigurationManager &mgr,
+      ConfigurationManager &mgr,
       std::set<std::string> &processedInterfaces) {
     auto virtuals = mgr.GetVirtualInterfaces();
 

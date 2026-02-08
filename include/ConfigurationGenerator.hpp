@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "SystemConfigurationManager.hpp"
+#include "ConfigurationManager.hpp"
 #include <set>
 #include <string>
 
@@ -42,33 +42,34 @@ namespace netcli {
 
     /**
      * @brief Generate complete configuration output
+     * @param mgr The configuration manager to query
      */
-    void generateConfiguration();
+    void generateConfiguration(ConfigurationManager &mgr);
 
   protected:
-    virtual void generateVRFs(SystemConfigurationManager &mgr) = 0;
+    virtual void generateVRFs(ConfigurationManager &mgr) = 0;
     virtual void
-    generateLoopbacks(SystemConfigurationManager &mgr,
+    generateLoopbacks(ConfigurationManager &mgr,
                       std::set<std::string> &processedInterfaces) = 0;
-    virtual void generateEpairs(SystemConfigurationManager &mgr,
+    virtual void generateEpairs(ConfigurationManager &mgr,
                                 std::set<std::string> &processedInterfaces) = 0;
     virtual void
-    generateBasicInterfaces(SystemConfigurationManager &mgr,
+    generateBasicInterfaces(ConfigurationManager &mgr,
                             std::set<std::string> &processedInterfaces) = 0;
     virtual void
-    generateBridges(SystemConfigurationManager &mgr,
+    generateBridges(ConfigurationManager &mgr,
                     std::set<std::string> &processedInterfaces) = 0;
-    virtual void generateLaggs(SystemConfigurationManager &mgr,
+    virtual void generateLaggs(ConfigurationManager &mgr,
                                std::set<std::string> &processedInterfaces) = 0;
-    virtual void generateVLANs(SystemConfigurationManager &mgr,
+    virtual void generateVLANs(ConfigurationManager &mgr,
                                std::set<std::string> &processedInterfaces) = 0;
     virtual void
-    generateTunnels(SystemConfigurationManager &mgr,
+    generateTunnels(ConfigurationManager &mgr,
                     std::set<std::string> &processedInterfaces) = 0;
     virtual void
-    generateVirtuals(SystemConfigurationManager &mgr,
+    generateVirtuals(ConfigurationManager &mgr,
                      std::set<std::string> &processedInterfaces) = 0;
-    virtual void generateRoutes(SystemConfigurationManager &mgr) = 0;
+    virtual void generateRoutes(ConfigurationManager &mgr) = 0;
   };
 
 } // namespace netcli

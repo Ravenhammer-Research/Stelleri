@@ -111,7 +111,7 @@ void SystemConfigurationManager::SaveVlan(const VLANConfig &vlan) const {
         "VLAN configuration requires parent interface and VLAN ID");
   }
 
-  if (!InterfaceConfig::exists(vlan.name)) {
+  if (!InterfaceConfig::exists(*this, vlan.name)) {
     CreateInterface(vlan.name);
   } else {
     SaveInterface(InterfaceConfig(vlan));

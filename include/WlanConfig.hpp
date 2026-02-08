@@ -33,8 +33,8 @@
 class WlanConfig : public InterfaceConfig {
 public:
   explicit WlanConfig(const InterfaceConfig &base) : InterfaceConfig(base) {}
-  void save() const override;
-  void create() const;
+  void save(ConfigurationManager &mgr) const override;
+  void create(ConfigurationManager &mgr) const;
   // Wireless-specific attributes
   std::optional<std::string> ssid;
   std::optional<int> channel;

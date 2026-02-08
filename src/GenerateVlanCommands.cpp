@@ -33,7 +33,7 @@
 namespace netcli {
 
   void
-  CommandGenerator::generateVLANs(SystemConfigurationManager &mgr,
+  CommandGenerator::generateVLANs(ConfigurationManager &mgr,
                                   std::set<std::string> &processedInterfaces) {
     auto vlans = mgr.GetVLANInterfaces();
 

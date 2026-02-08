@@ -40,7 +40,7 @@ public:
       : InterfaceConfig(base) {}
 
   // No extra fields for now; placeholder for future loopback-specific options
-  void save() const override;
-  void create() const;
-  void destroy() const override;
+  void save(ConfigurationManager &mgr) const override;
+  void create(ConfigurationManager &mgr) const;
+  void destroy(ConfigurationManager &mgr) const override;
 };

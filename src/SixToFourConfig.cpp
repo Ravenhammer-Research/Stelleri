@@ -26,29 +26,24 @@
  */
 
 #include "SixToFourConfig.hpp"
-#include "SystemConfigurationManager.hpp"
+#include "ConfigurationManager.hpp"
 #include <cerrno>
 #include <cstring>
-#include <net/if.h>
 #include <stdexcept>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
-void SixToFourConfig::create() const {
-  if (InterfaceConfig::exists(name))
+void SixToFourConfig::create(ConfigurationManager &mgr) const {
+  if (InterfaceConfig::exists(mgr, name))
     return;
 
-  SystemConfigurationManager scm;
-  scm.CreateTunnel(name);
+  mgr.CreateTunnel(name);
 }
 
-void SixToFourConfig::save() const {
+void SixToFourConfig::save(ConfigurationManager &mgr) const {
   if (name.empty())
     throw std::runtime_error("SixToFourConfig has no interface name set");
 
-  if (!InterfaceConfig::exists(name))
-    create();
+  if (!InterfaceConfig::exists(mgr, name))
+    create(mgr);
 
-  InterfaceConfig::save();
+  InterfaceConfig::save(mgr);
 }

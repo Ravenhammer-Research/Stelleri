@@ -39,6 +39,6 @@ struct NdpConfig : public ConfigData {
   bool permanent = false;           // Static/permanent entry
   bool router = false;              // Router flag
 
-  void save() const override {}
-  void destroy() const override {}
+  void save(ConfigurationManager &mgr) const override { (void)mgr; }
+  void destroy(ConfigurationManager &mgr) const override { (void)mgr; }
 };

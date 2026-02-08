@@ -26,7 +26,7 @@ void SystemConfigurationManager::SaveTunnel(const TunnelConfig &t) const {
     throw std::runtime_error("Tunnel endpoints not configured");
   }
 
-  if (!InterfaceConfig::exists(t.name))
+  if (!InterfaceConfig::exists(*this, t.name))
     CreateTunnel(t.name);
   else
     SaveInterface(static_cast<const InterfaceConfig &>(t));

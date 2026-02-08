@@ -33,7 +33,7 @@
 namespace netcli {
 
   void
-  CommandGenerator::generateLaggs(SystemConfigurationManager &mgr,
+  CommandGenerator::generateLaggs(ConfigurationManager &mgr,
                                   std::set<std::string> &processedInterfaces) {
     auto laggs = mgr.GetLaggInterfaces();
 

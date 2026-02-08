@@ -32,7 +32,7 @@
 class CarpConfig : public InterfaceConfig {
 public:
   explicit CarpConfig(const InterfaceConfig &base) : InterfaceConfig(base) {}
-  void save() const override;
-  void create() const;
-  void destroy() const override;
+  void save(ConfigurationManager &mgr) const override;
+  void create(ConfigurationManager &mgr) const;
+  void destroy(ConfigurationManager &mgr) const override;
 };

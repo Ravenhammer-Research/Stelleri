@@ -31,7 +31,6 @@
 #include "InterfaceType.hpp"
 #include <algorithm>
 #include <iomanip>
-#include <net/if.h>
 #include <sstream>
 
 std::string InterfaceTableFormatter::format(
@@ -55,9 +54,9 @@ std::string InterfaceTableFormatter::format(
 
     std::string status = "-";
     if (ic.flags) {
-      if (*ic.flags & IFF_RUNNING)
+      if (hasFlag(*ic.flags, InterfaceFlag::RUNNING))
         status = "active";
-      else if (*ic.flags & IFF_UP)
+      else if (hasFlag(*ic.flags, InterfaceFlag::UP))
         status = "no-carrier";
       else
         status = "down";

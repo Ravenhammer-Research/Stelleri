@@ -26,7 +26,7 @@
  */
 
 #include "VLANConfig.hpp"
-#include "SystemConfigurationManager.hpp"
+#include "ConfigurationManager.hpp"
 
 #include <cerrno>
 #include <cstring>
@@ -74,17 +74,14 @@ VLANConfig::VLANConfig(const InterfaceConfig &base, uint16_t id_,
   pcp = pcp_;
 }
 
-void VLANConfig::save() const {
-  SystemConfigurationManager scm;
-  scm.SaveVlan(*this);
+void VLANConfig::save(ConfigurationManager &mgr) const {
+  mgr.SaveVlan(*this);
 }
 
-void VLANConfig::create() const {
-  SystemConfigurationManager scm;
-  scm.CreateInterface(name);
+void VLANConfig::create(ConfigurationManager &mgr) const {
+  mgr.CreateInterface(name);
 }
 
-void VLANConfig::destroy() const {
-  SystemConfigurationManager scm;
-  scm.DestroyInterface(name);
+void VLANConfig::destroy(ConfigurationManager &mgr) const {
+  mgr.DestroyInterface(name);
 }

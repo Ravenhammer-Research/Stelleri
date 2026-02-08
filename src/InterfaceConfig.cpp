@@ -26,6 +26,7 @@
  */
 
 #include "InterfaceConfig.hpp"
+#include "ConfigurationManager.hpp"
 
 #include <cerrno>
 #include <cstring>
@@ -36,7 +37,6 @@
 #include "IPNetwork.hpp"
 
 #include "VRFConfig.hpp"
-#include "SystemConfigurationManager.hpp"
 #include "BridgeTableFormatter.hpp"
 #include "CarpTableFormatter.hpp"
 #include "InterfaceTableFormatter.hpp"
@@ -63,21 +63,18 @@ InterfaceConfig::InterfaceConfig(
       aliases(std::move(aliases_)), vrf(std::move(vrf_)), flags(flags_),
       groups(std::move(groups_)), mtu(mtu_) {}
 
-void InterfaceConfig::save() const {
-  SystemConfigurationManager scm;
-  scm.SaveInterface(*this);
+void InterfaceConfig::save(ConfigurationManager &mgr) const {
+  mgr.SaveInterface(*this);
 }
 
 // Interface existence helper is provided by `ConfigData::exists`
 
-void InterfaceConfig::destroy() const {
-  SystemConfigurationManager scm;
-  scm.DestroyInterface(name);
+void InterfaceConfig::destroy(ConfigurationManager &mgr) const {
+  mgr.DestroyInterface(name);
 }
 
-void InterfaceConfig::removeAddress(const std::string &addr) const {
-  SystemConfigurationManager scm;
-  scm.RemoveInterfaceAddress(name, addr);
+void InterfaceConfig::removeAddress(ConfigurationManager &mgr, const std::string &addr) const {
+  mgr.RemoveInterfaceAddress(name, addr);
 }
 
 // Copy constructor and assignment defined out-of-line to avoid instantiating
@@ -104,13 +101,11 @@ InterfaceConfig::InterfaceConfig(const InterfaceConfig &o) {
   index = o.index;
   groups = o.groups;
   mtu = o.mtu;
-  (void)0; // wireless attributes moved to WlanConfig
 }
 
-// Static helper: check whether a named interface exists on the system.
-bool InterfaceConfig::exists(std::string_view name) {
-  SystemConfigurationManager scm;
-  return scm.InterfaceExists(name);
+// Static helper: check whether a named interface exists.
+bool InterfaceConfig::exists(const ConfigurationManager &mgr, std::string_view name) {
+  return mgr.InterfaceExists(name);
 }
 
 // Type checking predicates
@@ -159,7 +154,8 @@ bool InterfaceConfig::matchesType(InterfaceType requestedType) const {
 }
 
 // Format a collection of interfaces using the appropriate formatter
-std::string InterfaceConfig::formatInterfaces(const std::vector<InterfaceConfig> &ifaces) {
+std::string InterfaceConfig::formatInterfaces(const std::vector<InterfaceConfig> &ifaces,
+                                               ConfigurationManager *mgr) {
   if (ifaces.empty())
     return "No interfaces found.\n";
 
@@ -182,7 +178,7 @@ std::string InterfaceConfig::formatInterfaces(const std::vector<InterfaceConfig>
 
   // All same type - check which specialized formatter to use
   if (ifaces[0].isBridge()) {
-    BridgeTableFormatter formatter;
+    BridgeTableFormatter formatter(mgr);
     return formatter.format(ifaces);
   }
   if (ifaces[0].isLagg()) {

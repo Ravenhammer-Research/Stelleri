@@ -26,35 +26,29 @@
  */
 
 #include "LoopBackConfig.hpp"
-#include "SystemConfigurationManager.hpp"
+#include "ConfigurationManager.hpp"
 #include <cerrno>
 #include <cstring>
-#include <net/if.h>
 #include <stdexcept>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
-void LoopBackConfig::create() const {
-  if (InterfaceConfig::exists(name))
+void LoopBackConfig::create(ConfigurationManager &mgr) const {
+  if (InterfaceConfig::exists(mgr, name))
     return;
 
-  SystemConfigurationManager scm;
-  scm.CreateInterface(name);
+  mgr.CreateInterface(name);
 }
 
-void LoopBackConfig::save() const {
+void LoopBackConfig::save(ConfigurationManager &mgr) const {
   // Ensure interface exists; create if necessary, then apply generic settings
-  if (!InterfaceConfig::exists(name)) {
-    create();
+  if (!InterfaceConfig::exists(mgr, name)) {
+    create(mgr);
   }
-  InterfaceConfig::save();
+  InterfaceConfig::save(mgr);
 }
 
 // Minimal implementation file; constructor is inline in header
 
-void LoopBackConfig::destroy() const {
-  SystemConfigurationManager scm;
-  scm.DestroyInterface(name);
+void LoopBackConfig::destroy(ConfigurationManager &mgr) const {
+  mgr.DestroyInterface(name);
 }
 

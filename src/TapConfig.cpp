@@ -26,21 +26,12 @@
  */
 
 #include "TapConfig.hpp"
-#include "SystemConfigurationManager.hpp"
-#include <cerrno>
-#include <cstring>
-#include <net/if.h>
-#include <stdexcept>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#include "ConfigurationManager.hpp"
 
-void TapConfig::create() const {
-  SystemConfigurationManager scm;
-  scm.CreateTap(name);
+void TapConfig::create(ConfigurationManager &mgr) const {
+  mgr.CreateTap(name);
 }
 
-void TapConfig::save() const {
-  SystemConfigurationManager scm;
-  scm.SaveTap(*this);
+void TapConfig::save(ConfigurationManager &mgr) const {
+  mgr.SaveTap(*this);
 }

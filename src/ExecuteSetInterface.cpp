@@ -36,12 +36,8 @@
 #include "TunnelConfig.hpp"
 #include "VLANConfig.hpp"
 #include "VirtualInterfaceConfig.hpp"
-#include <arpa/inet.h>
-#include <ifaddrs.h>
+#include "InterfaceFlags.hpp"
 #include <iostream>
-#include <netinet/in.h>
-#include <sys/sockio.h>
-#include <unistd.h>
 
 namespace netcli {
 
@@ -58,8 +54,8 @@ void executeSetInterface(const InterfaceToken &tok,
     // Load existing configuration if present (so we can update), otherwise
     // prepare a new base for creation. Initialize via copy-construction
     // to avoid relying on assignment operators.
-    bool exists = InterfaceConfig::exists(name);
-    auto ifopt = (exists && mgr) ? mgr->getInterface(name)
+    bool exists = InterfaceConfig::exists(*mgr, name);
+    auto ifopt = (exists && mgr) ? mgr->GetInterface(name)
                                  : std::optional<InterfaceConfig>{};
     InterfaceConfig base = ifopt ? *ifopt : InterfaceConfig();
     if (!ifopt)
@@ -123,19 +119,19 @@ void executeSetInterface(const InterfaceToken &tok,
     if (tok.status) {
       if (base.flags) {
         if (*tok.status) {
-          *base.flags |= IFF_UP;
+          *base.flags |= flagBit(InterfaceFlag::UP);
         } else {
-          *base.flags &= ~IFF_UP;
+          *base.flags &= ~flagBit(InterfaceFlag::UP);
         }
       } else {
         // If no flags set yet, initialize with UP if requested
-        base.flags = *tok.status ? IFF_UP : 0;
+        base.flags = *tok.status ? flagBit(InterfaceFlag::UP) : 0u;
       }
     }
 
     if (effectiveType == InterfaceType::Bridge) {
       BridgeInterfaceConfig bic(base);
-      bic.save();
+      bic.save(*mgr);
       std::cout << "set interface: " << (exists ? "updated" : "created")
                 << " bridge '" << name << "'\n";
       return;
@@ -152,7 +148,7 @@ void executeSetInterface(const InterfaceToken &tok,
       LaggConfig lac(base, tok.lagg->protocol, tok.lagg->members,
                      tok.lagg->hash_policy, tok.lagg->lacp_rate,
                      tok.lagg->min_links);
-      lac.save();
+      lac.save(*mgr);
       std::cout << "set interface: " << (exists ? "updated" : "created")
                 << " lagg '" << name << "'\n";
       return;
@@ -168,7 +164,7 @@ void executeSetInterface(const InterfaceToken &tok,
       }
       VLANConfig vc(base, tok.vlan->id, tok.vlan->parent, tok.vlan->pcp);
       vc.InterfaceConfig::name = name;
-      vc.save();
+      vc.save(*mgr);
       std::cout << "set interface: " << (exists ? "updated" : "created")
                 << " vlan '" << name << "'\n";
       return;
@@ -185,7 +181,7 @@ void executeSetInterface(const InterfaceToken &tok,
         else
           tc.vrf->table = *tok.tunnel_vrf;
       }
-      tc.save();
+      tc.save(*mgr);
       std::cout << "set interface: " << (exists ? "updated" : "created")
                 << " tunnel '" << name << "'\n";
       return;
@@ -193,7 +189,7 @@ void executeSetInterface(const InterfaceToken &tok,
 
     if (effectiveType == InterfaceType::Loopback) {
       LoopBackConfig lbc(base);
-      lbc.save();
+      lbc.save(*mgr);
       std::cout << "set interface: " << (exists ? "updated" : "created")
                 << " loopback '" << name << "'\n";
       return;
@@ -201,7 +197,7 @@ void executeSetInterface(const InterfaceToken &tok,
 
     if (effectiveType == InterfaceType::Virtual) {
       VirtualInterfaceConfig vic(base);
-      vic.save();
+      vic.save(*mgr);
       std::cout << "set interface: " << (exists ? "updated" : "created")
                 << " virtual iface '" << name << "'\n";
       return;
@@ -219,14 +215,14 @@ void executeSetInterface(const InterfaceToken &tok,
       // Prefer to let InterfaceConfig / SystemConfigurationManager handle
       // adding aliases so system-specific ioctls remain in the System layer.
       base.aliases.emplace_back(net->clone());
-      base.save();
+      base.save(*mgr);
       std::cout << "set interface: added alias '" << *tok.address << "' to '"
                 << name << "'\n";
       return;
     }
 
     // Default: apply generic interface updates
-    base.save();
+    base.save(*mgr);
     std::cout << "set interface: " << (exists ? "updated" : "created")
               << " interface '" << name << "'\n";
   } catch (const std::exception &e) {

@@ -26,21 +26,12 @@
  */
 
 #include "WlanConfig.hpp"
-#include "SystemConfigurationManager.hpp"
-#include <cerrno>
-#include <cstring>
-#include <net/if.h>
-#include <stdexcept>
-#include <sys/ioctl.h>
-#include <sys/socket.h>
-#include <unistd.h>
+#include "ConfigurationManager.hpp"
 
-void WlanConfig::create() const {
-  SystemConfigurationManager scm;
-  scm.CreateWlan(name);
+void WlanConfig::create(ConfigurationManager &mgr) const {
+  mgr.CreateWlan(name);
 }
 
-void WlanConfig::save() const {
-  SystemConfigurationManager scm;
-  scm.SaveWlan(*this);
+void WlanConfig::save(ConfigurationManager &mgr) const {
+  mgr.SaveWlan(*this);
 }

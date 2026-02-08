@@ -31,13 +31,12 @@
  */
 
 #include "BridgeInterfaceConfig.hpp"
+#include "ConfigurationManager.hpp"
 #include <cerrno>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <string>
-
-#include "SystemConfigurationManager.hpp"
 
 BridgeInterfaceConfig::BridgeInterfaceConfig(const InterfaceConfig &base) {
   // copy common InterfaceConfig fields
@@ -93,28 +92,25 @@ BridgeInterfaceConfig::BridgeInterfaceConfig(
   max_addresses = max_addresses_;
 }
 
-void BridgeInterfaceConfig::save() const {
-  SystemConfigurationManager scm;
+void BridgeInterfaceConfig::save(ConfigurationManager &mgr) const {
   // Create bridge if it doesn't exist, then apply all settings
-  if (!InterfaceConfig::exists(name)) {
-    scm.CreateBridge(name);
+  if (!InterfaceConfig::exists(mgr, name)) {
+    mgr.CreateBridge(name);
   }
   
   // Always apply generic interface settings (VRF, MTU, flags, groups, etc.)
-  InterfaceConfig::save();
+  InterfaceConfig::save(mgr);
 
   // Delegate platform-specific bridge configuration to System layer
-  scm.SaveBridge(*this);
+  mgr.SaveBridge(*this);
 }
 
-void BridgeInterfaceConfig::create() const {
-  if (InterfaceConfig::exists(name))
+void BridgeInterfaceConfig::create(ConfigurationManager &mgr) const {
+  if (InterfaceConfig::exists(mgr, name))
     return;
-  SystemConfigurationManager scm;
-  scm.CreateBridge(name);
+  mgr.CreateBridge(name);
 }
 
-void BridgeInterfaceConfig::loadMembers() {
-  SystemConfigurationManager scm;
-  members = scm.GetBridgeMembers(name);
+void BridgeInterfaceConfig::loadMembers(const ConfigurationManager &mgr) {
+  members = mgr.GetBridgeMembers(name);
 }

@@ -76,14 +76,13 @@ public:
   std::optional<int>
       max_addresses; ///< Maximum number of MAC addresses in cache
 
-  // Persist bridge configuration to the system.
-  void save() const override;
+  // Persist bridge configuration via the supplied manager.
+  void save(ConfigurationManager &mgr) const override;
 
-  // Populate runtime bridge data (member list, STP params) from the kernel.
-  // This performs platform-specific ioctls and should be called on FreeBSD.
-  void loadMembers();
+  // Populate runtime bridge data (member list, STP params) from the manager.
+  void loadMembers(const ConfigurationManager &mgr);
 
 private:
   // Ensure the bridge interface exists; create if necessary.
-  void create() const;
+  void create(ConfigurationManager &mgr) const;
 };

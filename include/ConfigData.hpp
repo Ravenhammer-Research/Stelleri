@@ -32,10 +32,10 @@
  * @brief Lightweight marker/container for configuration payloads
  */
 
-#include <cstring>
-#include <ifaddrs.h>
 #include <memory>
 #include <string_view>
+
+class ConfigurationManager;
 
 /**
  * @brief Lightweight configuration container/base type
@@ -48,11 +48,12 @@ class ConfigData {
 public:
   virtual ~ConfigData() = default;
 
-  // Persist this configuration to the system. Implementations may
+  // Persist this configuration via the supplied manager. Implementations may
   // override to provide concrete behavior. Default is no-op.
-  virtual void save() const {}
+  virtual void save(ConfigurationManager &mgr) const { (void)mgr; }
 
-  // Destroy this configuration on the system (e.g., remove interface).
-  // Concrete types may override to perform deletion/teardown. Default is no-op.
-  virtual void destroy() const {}
+  // Destroy this configuration via the supplied manager (e.g., remove
+  // interface). Concrete types may override to perform deletion/teardown.
+  // Default is no-op.
+  virtual void destroy(ConfigurationManager &mgr) const { (void)mgr; }
 };

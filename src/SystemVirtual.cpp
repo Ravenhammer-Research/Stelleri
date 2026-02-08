@@ -32,6 +32,7 @@
 #include <cerrno>
 #include <cstring>
 #include <iostream>
+#include <net/if.h>
 #include <stdexcept>
 #include <string>
 #include <sys/ioctl.h>
@@ -61,7 +62,7 @@ void SystemConfigurationManager::CreateVirtual(const std::string &nm) const {
       nm.back() != 'b') {
     check_name = nm + "a";
   }
-  if (InterfaceConfig::exists(check_name))
+  if (InterfaceConfig::exists(*this, check_name))
     return;
 
   Socket sock(AF_INET, SOCK_DGRAM);
@@ -152,7 +153,7 @@ void SystemConfigurationManager::SaveVirtual(const VirtualInterfaceConfig &vic) 
     actual_name = vic.name + "a"; // Operate on the 'a' side
   }
   
-  if (!InterfaceConfig::exists(check_name))
+  if (!InterfaceConfig::exists(*this, check_name))
     CreateVirtual(vic.name);
   
   // Always call SaveInterface to apply VRF, groups, MTU, etc.

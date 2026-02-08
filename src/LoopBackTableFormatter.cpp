@@ -27,6 +27,7 @@
 
 #include "LoopBackTableFormatter.hpp"
 #include "InterfaceConfig.hpp"
+#include "InterfaceFlags.hpp"
 #include <iomanip>
 #include <sstream>
 
@@ -58,9 +59,9 @@ std::string LoopBackTableFormatter::format(
 
     std::string status = "-";
     if (ic.flags) {
-      if (*ic.flags & IFF_RUNNING)
+      if (hasFlag(*ic.flags, InterfaceFlag::RUNNING))
         status = "active";
-      else if (*ic.flags & IFF_UP)
+      else if (hasFlag(*ic.flags, InterfaceFlag::UP))
         status = "no-carrier";
       else
         status = "down";

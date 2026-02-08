@@ -77,7 +77,7 @@ public:
       const std::optional<int> &table = std::nullopt) const override;
 
   /** @brief Get the number of configured FIBs from net.fibs sysctl */
-  int GetFibs() const;
+  int GetFibs() const override;
 
   // ARP/NDP neighbor cache management
   std::vector<ArpConfig>
@@ -123,50 +123,50 @@ public:
 
   // Return list of addresses configured on an interface (string format "addr/prefix")
   std::vector<std::string> GetInterfaceAddresses(const std::string &ifname,
-                                                 int family) const;
+                                                 int family) const override;
 
   // Bridge-specific system operations
-  void CreateBridge(const std::string &name) const;
-  void SaveBridge(const BridgeInterfaceConfig &bic) const;
-  std::vector<std::string> GetBridgeMembers(const std::string &name) const;
+  void CreateBridge(const std::string &name) const override;
+  void SaveBridge(const BridgeInterfaceConfig &bic) const override;
+  std::vector<std::string> GetBridgeMembers(const std::string &name) const override;
 
   // Virtual interface (epair/clone) operations
-  void CreateVirtual(const std::string &name) const;
-  void SaveVirtual(const VirtualInterfaceConfig &vic) const;
+  void CreateVirtual(const std::string &name) const override;
+  void SaveVirtual(const VirtualInterfaceConfig &vic) const override;
 
   // LAGG-specific system operations
-  void CreateLagg(const std::string &name) const;
-  void SaveLagg(const LaggConfig &lac) const;
+  void CreateLagg(const std::string &name) const override;
+  void SaveLagg(const LaggConfig &lac) const override;
 
   // Generic interface operations
-  void CreateInterface(const std::string &name) const;
-  void SaveInterface(const InterfaceConfig &ic) const;
-  void DestroyInterface(const std::string &name) const;
+  void CreateInterface(const std::string &name) const override;
+  void SaveInterface(const InterfaceConfig &ic) const override;
+  void DestroyInterface(const std::string &name) const override;
   void RemoveInterfaceAddress(const std::string &ifname,
-                              const std::string &addr) const;
+                              const std::string &addr) const override;
   void RemoveInterfaceGroup(const std::string &ifname,
-                            const std::string &group) const;
+                            const std::string &group) const override;
   // Query whether a named interface exists on the system
-  bool InterfaceExists(std::string_view name) const;
+  bool InterfaceExists(std::string_view name) const override;
 
   // WLAN-specific operations
-  void CreateWlan(const std::string &name) const;
-  void SaveWlan(const WlanConfig &wlan) const;
+  void CreateWlan(const std::string &name) const override;
+  void SaveWlan(const WlanConfig &wlan) const override;
 
   // TAP-specific operations
-  void CreateTap(const std::string &name) const;
-  void SaveTap(const TapConfig &tap) const;
+  void CreateTap(const std::string &name) const override;
+  void SaveTap(const TapConfig &tap) const override;
 
   // Tunnel-specific operations
-  void CreateTunnel(const std::string &name) const;
-  void SaveTunnel(const TunnelConfig &tunnel) const;
+  void CreateTunnel(const std::string &name) const override;
+  void SaveTunnel(const TunnelConfig &tunnel) const override;
 
   // VLAN-specific operations
-  void SaveVlan(const VLANConfig &vlan) const;
+  void SaveVlan(const VLANConfig &vlan) const override;
 
   // Route operations
-  void AddRoute(const RouteConfig &route) const;
-  void DeleteRoute(const RouteConfig &route) const;
+  void AddRoute(const RouteConfig &route) const override;
+  void DeleteRoute(const RouteConfig &route) const override;
 
   // VRF matching helper
   bool matches_vrf(const InterfaceConfig &ic,

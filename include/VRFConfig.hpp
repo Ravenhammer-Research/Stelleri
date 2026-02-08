@@ -49,6 +49,6 @@ public:
   explicit VRFConfig(int t) : table(t) {}
 
   // Persist VRF configuration (no-op placeholder)
-  void save() const override {}
-  void destroy() const override {}
+  void save(ConfigurationManager &mgr) const override { (void)mgr; }
+  void destroy(ConfigurationManager &mgr) const override { (void)mgr; }
 };

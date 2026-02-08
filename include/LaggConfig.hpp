@@ -62,8 +62,8 @@ public:
   std::optional<int> min_links;        ///< Minimum number of active links
 
   ~LaggConfig() override = default;
-  void save() const override;
+  void save(ConfigurationManager &mgr) const override;
 
 private:
-  void create() const;
+  void create(ConfigurationManager &mgr) const;
 };

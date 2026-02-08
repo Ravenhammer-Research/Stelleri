@@ -27,10 +27,10 @@
 
 #include "BridgeTableFormatter.hpp"
 #include "BridgeInterfaceConfig.hpp"
+#include "ConfigurationManager.hpp"
 #include "InterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
 #include "InterfaceType.hpp"
-#include "SystemConfigurationManager.hpp"
 #include <algorithm>
 #include <cstdio>
 #include <iomanip>
@@ -43,9 +43,10 @@ std::string BridgeTableFormatter::format(
   if (interfaces.empty())
     return "No bridge interfaces found.\n";
 
-  // Fetch full bridge interface configs
-  SystemConfigurationManager scm;
-  auto bridgeIfaces = scm.GetBridgeInterfaces();
+  // Fetch full bridge interface configs via the injected manager
+  std::vector<BridgeInterfaceConfig> bridgeIfaces;
+  if (mgr_)
+    bridgeIfaces = mgr_->GetBridgeInterfaces();
 
   addColumn("Interface", "Interface", 10, 4, true);
   addColumn("STP", "STP", 6, 3, true);

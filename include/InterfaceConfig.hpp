@@ -41,7 +41,6 @@
 #include <vector>
 
 #include "VRFConfig.hpp"
-#include <ifaddrs.h>
 #include <string_view>
 
 /**
@@ -73,17 +72,17 @@ public:
   std::optional<int> index;        ///< Interface numeric index (if available)
   std::optional<std::string> nd6_options; ///< ND6 options string (if available)
 
-  // Persist this interface configuration to the system.
-  void save() const override;
+  // Persist this interface configuration via the supplied manager.
+  void save(ConfigurationManager &mgr) const override;
 
-  // Destroy this interface from the system.
-  void destroy() const override;
+  // Destroy this interface via the supplied manager.
+  void destroy(ConfigurationManager &mgr) const override;
 
   // Remove an address from this interface (e.g., "192.0.2.1/32").
-  void removeAddress(const std::string &addr) const;
+  void removeAddress(ConfigurationManager &mgr, const std::string &addr) const;
 
-  // Check whether the named interface exists on the system.
-  static bool exists(std::string_view name);
+  // Check whether the named interface exists.
+  static bool exists(const ConfigurationManager &mgr, std::string_view name);
 
   // Type checking predicates
   bool isBridge() const;
@@ -100,7 +99,8 @@ public:
   bool matchesType(InterfaceType requestedType) const;
 
   // Format a collection of interfaces using the appropriate formatter
-  static std::string formatInterfaces(const std::vector<InterfaceConfig> &ifaces);
+  static std::string formatInterfaces(const std::vector<InterfaceConfig> &ifaces,
+                                      ConfigurationManager *mgr = nullptr);
 
 protected:
   // (Interface existence check moved to `ConfigData::exists`)

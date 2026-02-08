@@ -55,13 +55,13 @@ void executeShowInterface(const InterfaceToken &tok,
   std::vector<InterfaceConfig> interfaces;
   if (!tok.name().empty()) {
     // Prefer to query the ConfigurationManager for the named interface
-    auto ifopt = mgr->getInterface(tok.name());
+    auto ifopt = mgr->GetInterface(tok.name());
     if (ifopt) {
       interfaces.push_back(std::move(*ifopt));
     }
   } else if (tok.type() != InterfaceType::Unknown) {
     // Get all interfaces and filter by type and group
-    auto allIfaces = mgr->getInterfaces();
+    auto allIfaces = mgr->GetInterfaces();
     for (auto &iface : allIfaces) {
       if (tok.group) {
         bool has = false;
@@ -82,7 +82,7 @@ void executeShowInterface(const InterfaceToken &tok,
       // Filter the main interfaces table by group
       interfaces = mgr->GetInterfacesByGroup(std::nullopt, *tok.group);
     } else {
-      interfaces = mgr->getInterfaces();
+      interfaces = mgr->GetInterfaces();
     }
   }
 
@@ -101,6 +101,6 @@ void executeShowInterface(const InterfaceToken &tok,
     return;
   }
 
-  std::cout << InterfaceConfig::formatInterfaces(interfaces);
+  std::cout << InterfaceConfig::formatInterfaces(interfaces, mgr);
 }
 }

@@ -26,16 +26,14 @@
  */
 
 #include "TunnelConfig.hpp"
-#include "SystemConfigurationManager.hpp"
+#include "ConfigurationManager.hpp"
 
-void TunnelConfig::save() const {
-  SystemConfigurationManager scm;
-  scm.SaveTunnel(*this);
+void TunnelConfig::save(ConfigurationManager &mgr) const {
+  mgr.SaveTunnel(*this);
 }
 
-void TunnelConfig::create() const {
-  SystemConfigurationManager scm;
-  scm.CreateTunnel(name);
+void TunnelConfig::create(ConfigurationManager &mgr) const {
+  mgr.CreateTunnel(name);
 }
 
 TunnelConfig::TunnelConfig(const InterfaceConfig &base) {
