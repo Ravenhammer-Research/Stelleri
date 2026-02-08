@@ -204,8 +204,7 @@ void SystemConfigurationManager::SaveLagg(const LaggConfig &lac) const {
     ra.ra_proto = proto_value;
 
     struct ifreq ifr;
-    std::memset(&ifr, 0, sizeof(ifr));
-    std::strncpy(ifr.ifr_name, lac.name.c_str(), IFNAMSIZ - 1);
+    prepare_ifreq(ifr, lac.name);
     ifr.ifr_data = reinterpret_cast<char *>(&ra);
 
     if (ioctl(sock, SIOCSLAGG, &ifr) < 0) {
@@ -220,8 +219,7 @@ void SystemConfigurationManager::SaveLagg(const LaggConfig &lac) const {
     std::strncpy(rp.rp_portname, member.c_str(), IFNAMSIZ - 1);
 
     struct ifreq ifr;
-    std::memset(&ifr, 0, sizeof(ifr));
-    std::strncpy(ifr.ifr_name, lac.name.c_str(), IFNAMSIZ - 1);
+    prepare_ifreq(ifr, lac.name);
     ifr.ifr_data = reinterpret_cast<char *>(&rp);
 
     if (ioctl(sock, SIOCSLAGGPORT, &ifr) < 0) {
@@ -242,14 +240,5 @@ void SystemConfigurationManager::SaveLagg(const LaggConfig &lac) const {
 }
 
 void SystemConfigurationManager::CreateLagg(const std::string &nm) const {
-  Socket sock(AF_INET, SOCK_DGRAM);
-
-  struct ifreq ifr;
-  std::memset(&ifr, 0, sizeof(ifr));
-  std::strncpy(ifr.ifr_name, nm.c_str(), IFNAMSIZ - 1);
-
-  if (ioctl(sock, SIOCIFCREATE, &ifr) < 0) {
-    throw std::runtime_error("Failed to create interface '" + nm + "': " +
-                             std::string(strerror(errno)));
-  }
+  cloneInterface(nm, SIOCIFCREATE);
 }

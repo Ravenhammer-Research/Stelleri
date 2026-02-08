@@ -41,6 +41,19 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+namespace {
+
+// Format a 6-byte Ethernet address as "xx:xx:xx:xx:xx:xx".
+std::string formatMAC(const struct ether_addr *ea) {
+  char buf[32];
+  std::snprintf(buf, sizeof(buf), "%02x:%02x:%02x:%02x:%02x:%02x",
+                ea->octet[0], ea->octet[1], ea->octet[2],
+                ea->octet[3], ea->octet[4], ea->octet[5]);
+  return buf;
+}
+
+} // namespace
+
 std::vector<ArpConfig> SystemConfigurationManager::GetArpEntries(
     const std::optional<std::string> &ip_filter,
     const std::optional<std::string> &iface_filter) const {
@@ -105,15 +118,8 @@ std::vector<ArpConfig> SystemConfigurationManager::GetArpEntries(
 
     // Get MAC address
     if (sdl->sdl_alen == ETHER_ADDR_LEN) {
-      struct ether_addr *ea =
-          reinterpret_cast<struct ether_addr *>(LLADDR(sdl));
-      char mac_buf[32];
-      std::snprintf(mac_buf, sizeof(mac_buf), "%02x:%02x:%02x:%02x:%02x:%02x",
-                    ea->octet[0], ea->octet[1], ea->octet[2], ea->octet[3],
-                    ea->octet[4], ea->octet[5]);
-      entry.mac = mac_buf;
-    } else if (sdl->sdl_alen > 0) {
-      entry.mac = "(incomplete)";
+      auto *ea = reinterpret_cast<struct ether_addr *>(LLADDR(sdl));
+      entry.mac = formatMAC(ea);
     } else {
       entry.mac = "(incomplete)";
     }

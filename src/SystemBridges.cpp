@@ -37,6 +37,44 @@
 #include <sys/socket.h>
 #include <sys/sockio.h>
 
+namespace {
+
+// Issue a bridge driver ioctl with an ifbreq payload.
+bool bridgeMemberIoctl(int sock, const std::string &bridge,
+                       unsigned long cmd, struct ifbreq &req,
+                       const std::string &context) {
+  struct ifdrv ifd;
+  std::memset(&ifd, 0, sizeof(ifd));
+  std::strncpy(ifd.ifd_name, bridge.c_str(), IFNAMSIZ - 1);
+  ifd.ifd_cmd = cmd;
+  ifd.ifd_len = sizeof(req);
+  ifd.ifd_data = &req;
+  if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
+    std::cerr << "Warning: " << context << ": " << strerror(errno) << "\n";
+    return false;
+  }
+  return true;
+}
+
+// Issue a bridge driver ioctl with an ifbrparam payload.
+bool bridgeParamIoctl(int sock, const std::string &bridge,
+                      unsigned long cmd, struct ifbrparam &param,
+                      const std::string &context) {
+  struct ifdrv ifd;
+  std::memset(&ifd, 0, sizeof(ifd));
+  std::strncpy(ifd.ifd_name, bridge.c_str(), IFNAMSIZ - 1);
+  ifd.ifd_cmd = cmd;
+  ifd.ifd_len = sizeof(param);
+  ifd.ifd_data = &param;
+  if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
+    std::cerr << "Warning: " << context << ": " << strerror(errno) << "\n";
+    return false;
+  }
+  return true;
+}
+
+} // namespace
+
 bool SystemConfigurationManager::interfaceIsBridge(
     const std::string &ifname) const {
   try {
@@ -98,50 +136,30 @@ void SystemConfigurationManager::CreateBridge(const std::string &name) const {
 }
 
 void SystemConfigurationManager::SaveBridge(const BridgeInterfaceConfig &bic) const {
-  // Apply bridge-specific settings (members, STP, priorities, etc.)
   const std::string &name = bic.name;
 
   Socket sock(AF_INET, SOCK_DGRAM);
 
-  // Add members to bridge (simple list)
-  for (const auto &member : bic.members) {
+  // Helper: add a member to the bridge.
+  auto addMember = [&](const std::string &member) {
     struct ifbreq req;
     std::memset(&req, 0, sizeof(req));
     std::strncpy(req.ifbr_ifsname, member.c_str(), IFNAMSIZ - 1);
-
-    struct ifdrv ifd;
-    std::memset(&ifd, 0, sizeof(ifd));
-    std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
-    ifd.ifd_cmd = BRDGADD;
-    ifd.ifd_len = sizeof(req);
-    ifd.ifd_data = &req;
-
-    if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
+    if (!bridgeMemberIoctl(sock, name, BRDGADD, req,
+                           "Failed to add member '" + member + "' to bridge '" + name + "'")) {
       throw std::runtime_error("Failed to add member '" + member +
                                "' to bridge '" + name + "': " +
                                std::string(strerror(errno)));
     }
-  }
+  };
+
+  // Add members to bridge (simple list)
+  for (const auto &member : bic.members)
+    addMember(member);
 
   // Add and configure detailed member configs
   for (const auto &member : bic.member_configs) {
-    // Add member to bridge
-    struct ifbreq req;
-    std::memset(&req, 0, sizeof(req));
-    std::strncpy(req.ifbr_ifsname, member.name.c_str(), IFNAMSIZ - 1);
-
-    struct ifdrv ifd;
-    std::memset(&ifd, 0, sizeof(ifd));
-    std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
-    ifd.ifd_cmd = BRDGADD;
-    ifd.ifd_len = sizeof(req);
-    ifd.ifd_data = &req;
-
-    if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-      throw std::runtime_error("Failed to add member '" + member.name +
-                               "' to bridge '" + name + "': " +
-                               std::string(strerror(errno)));
-    }
+    addMember(member.name);
 
     // Configure member port flags
     uint32_t flags = 0;
@@ -157,172 +175,64 @@ void SystemConfigurationManager::SaveBridge(const BridgeInterfaceConfig &bic) co
       flags |= IFBIF_BSTP_AUTOPTP;
 
     if (flags > 0) {
+      struct ifbreq req;
       std::memset(&req, 0, sizeof(req));
       std::strncpy(req.ifbr_ifsname, member.name.c_str(), IFNAMSIZ - 1);
       req.ifbr_ifsflags = flags;
-
-      std::memset(&ifd, 0, sizeof(ifd));
-      std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
-      ifd.ifd_cmd = BRDGSIFFLGS;
-      ifd.ifd_len = sizeof(req);
-      ifd.ifd_data = &req;
-
-      if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-        std::cerr << "Warning: Failed to set flags on member '" << member.name
-                  << "': " << strerror(errno) << "\n";
-      }
+      bridgeMemberIoctl(sock, name, BRDGSIFFLGS, req,
+                        "Failed to set flags on member '" + member.name + "'");
     }
 
     // Configure port priority
     if (member.priority) {
+      struct ifbreq req;
       std::memset(&req, 0, sizeof(req));
       std::strncpy(req.ifbr_ifsname, member.name.c_str(), IFNAMSIZ - 1);
       req.ifbr_priority = *member.priority;
-
-      std::memset(&ifd, 0, sizeof(ifd));
-      std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
-      ifd.ifd_cmd = BRDGSIFPRIO;
-      ifd.ifd_len = sizeof(req);
-      ifd.ifd_data = &req;
-
-      if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-        std::cerr << "Warning: Failed to set priority on member '"
-                  << member.name << "': " << strerror(errno) << "\n";
-      }
+      bridgeMemberIoctl(sock, name, BRDGSIFPRIO, req,
+                        "Failed to set priority on member '" + member.name + "'");
     }
 
     // Configure path cost
     if (member.path_cost) {
+      struct ifbreq req;
       std::memset(&req, 0, sizeof(req));
       std::strncpy(req.ifbr_ifsname, member.name.c_str(), IFNAMSIZ - 1);
       req.ifbr_path_cost = *member.path_cost;
-
-      std::memset(&ifd, 0, sizeof(ifd));
-      std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
-      ifd.ifd_cmd = BRDGSIFCOST;
-      ifd.ifd_len = sizeof(req);
-      ifd.ifd_data = &req;
-
-      if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-        std::cerr << "Warning: Failed to set path cost on member '"
-                  << member.name << "': " << strerror(errno) << "\n";
-      }
+      bridgeMemberIoctl(sock, name, BRDGSIFCOST, req,
+                        "Failed to set path cost on member '" + member.name + "'");
     }
   }
 
-  // Configure bridge priority
-  if (bic.priority) {
+  // Configure bridge-level parameters via ifbrparam ioctls.
+  auto setParam = [&](bool has_val, auto assign_fn, unsigned long cmd,
+                      const std::string &label) {
+    if (!has_val)
+      return;
     struct ifbrparam param;
     std::memset(&param, 0, sizeof(param));
-    param.ifbrp_prio = *bic.priority;
+    assign_fn(param);
+    bridgeParamIoctl(sock, name, cmd, param, "Failed to set " + label);
+  };
 
-    struct ifdrv ifd;
-    std::memset(&ifd, 0, sizeof(ifd));
-    std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
-    ifd.ifd_cmd = BRDGSPRI;
-    ifd.ifd_len = sizeof(param);
-    ifd.ifd_data = &param;
-
-    if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-      std::cerr << "Warning: Failed to set bridge priority: " << strerror(errno)
-                << "\n";
-    }
-  }
-
-  // Configure hello time
-  if (bic.hello_time) {
-    struct ifbrparam param;
-    std::memset(&param, 0, sizeof(param));
-    param.ifbrp_hellotime = *bic.hello_time;
-
-    struct ifdrv ifd;
-    std::memset(&ifd, 0, sizeof(ifd));
-    std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
-    ifd.ifd_cmd = BRDGSHT;
-    ifd.ifd_len = sizeof(param);
-    ifd.ifd_data = &param;
-
-    if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-      std::cerr << "Warning: Failed to set hello time: " << strerror(errno)
-                << "\n";
-    }
-  }
-
-  // Configure forward delay
-  if (bic.forward_delay) {
-    struct ifbrparam param;
-    std::memset(&param, 0, sizeof(param));
-    param.ifbrp_fwddelay = *bic.forward_delay;
-
-    struct ifdrv ifd;
-    std::memset(&ifd, 0, sizeof(ifd));
-    std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
-    ifd.ifd_cmd = BRDGSFD;
-    ifd.ifd_len = sizeof(param);
-    ifd.ifd_data = &param;
-
-    if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-      std::cerr << "Warning: Failed to set forward delay: " << strerror(errno)
-                << "\n";
-    }
-  }
-
-  // Configure max age
-  if (bic.max_age) {
-    struct ifbrparam param;
-    std::memset(&param, 0, sizeof(param));
-    param.ifbrp_maxage = *bic.max_age;
-
-    struct ifdrv ifd;
-    std::memset(&ifd, 0, sizeof(ifd));
-    std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
-    ifd.ifd_cmd = BRDGSMA;
-    ifd.ifd_len = sizeof(param);
-    ifd.ifd_data = &param;
-
-    if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-      std::cerr << "Warning: Failed to set max age: " << strerror(errno)
-                << "\n";
-    }
-  }
-
-  // Configure aging time
-  if (bic.aging_time) {
-    struct ifbrparam param;
-    std::memset(&param, 0, sizeof(param));
-    param.ifbrp_ctime = *bic.aging_time;
-
-    struct ifdrv ifd;
-    std::memset(&ifd, 0, sizeof(ifd));
-    std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
-    ifd.ifd_cmd = BRDGSTO;
-    ifd.ifd_len = sizeof(param);
-    ifd.ifd_data = &param;
-
-    if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-      std::cerr << "Warning: Failed to set aging time: " << strerror(errno)
-                << "\n";
-    }
-  }
-
-  // Configure max addresses
-  if (bic.max_addresses) {
-    struct ifbrparam param;
-    std::memset(&param, 0, sizeof(param));
-    param.ifbrp_csize = *bic.max_addresses;
-
-    struct ifdrv ifd;
-    std::memset(&ifd, 0, sizeof(ifd));
-    std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
-    ifd.ifd_cmd = BRDGSCACHE;
-    ifd.ifd_len = sizeof(param);
-    ifd.ifd_data = &param;
-
-    if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-      std::cerr << "Warning: Failed to set max addresses: " << strerror(errno)
-                << "\n";
-    }
-  }
+  setParam(!!bic.priority,
+           [&](struct ifbrparam &p) { p.ifbrp_prio = *bic.priority; },
+           BRDGSPRI, "bridge priority");
+  setParam(!!bic.hello_time,
+           [&](struct ifbrparam &p) { p.ifbrp_hellotime = *bic.hello_time; },
+           BRDGSHT, "hello time");
+  setParam(!!bic.forward_delay,
+           [&](struct ifbrparam &p) { p.ifbrp_fwddelay = *bic.forward_delay; },
+           BRDGSFD, "forward delay");
+  setParam(!!bic.max_age,
+           [&](struct ifbrparam &p) { p.ifbrp_maxage = *bic.max_age; },
+           BRDGSMA, "max age");
+  setParam(!!bic.aging_time,
+           [&](struct ifbrparam &p) { p.ifbrp_ctime = *bic.aging_time; },
+           BRDGSTO, "aging time");
+  setParam(!!bic.max_addresses,
+           [&](struct ifbrparam &p) { p.ifbrp_csize = *bic.max_addresses; },
+           BRDGSCACHE, "max addresses");
 
   // Configure STP if requested
   if (bic.stp) {
@@ -331,18 +241,8 @@ void SystemConfigurationManager::SaveBridge(const BridgeInterfaceConfig &bic) co
       std::memset(&req, 0, sizeof(req));
       std::strncpy(req.ifbr_ifsname, member.c_str(), IFNAMSIZ - 1);
       req.ifbr_ifsflags = IFBIF_STP;
-
-      struct ifdrv ifd;
-      std::memset(&ifd, 0, sizeof(ifd));
-      std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
-      ifd.ifd_cmd = BRDGSIFFLGS;
-      ifd.ifd_len = sizeof(req);
-      ifd.ifd_data = &req;
-
-      if (ioctl(sock, SIOCSDRVSPEC, &ifd) < 0) {
-        std::cerr << "Warning: Failed to enable STP on member '" << member
-                  << "': " << strerror(errno) << "\n";
-      }
+      bridgeMemberIoctl(sock, name, BRDGSIFFLGS, req,
+                        "Failed to enable STP on member '" + member + "'");
     }
   }
 }

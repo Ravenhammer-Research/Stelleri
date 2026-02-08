@@ -53,6 +53,17 @@ void SystemConfigurationManager::prepare_ifreq(struct ifreq &ifr,
   std::strncpy(ifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
 }
 
+void SystemConfigurationManager::cloneInterface(const std::string &name,
+                                                unsigned long cmd) const {
+  Socket sock(AF_INET, SOCK_DGRAM);
+  struct ifreq ifr;
+  prepare_ifreq(ifr, name);
+  if (ioctl(sock, cmd, &ifr) < 0) {
+    throw std::runtime_error("Failed to create interface '" + name +
+                             "': " + std::string(strerror(errno)));
+  }
+}
+
 std::optional<int> SystemConfigurationManager::query_ifreq_int(
     const std::string &ifname, unsigned long req, IfreqIntField which) const {
   try {
@@ -622,13 +633,11 @@ void SystemConfigurationManager::DestroyInterface(const std::string &name) const
     throw std::runtime_error("InterfaceConfig::destroy(): empty interface name");
 
   Socket sock(AF_INET, SOCK_DGRAM);
-
   struct ifreq ifr;
-  std::memset(&ifr, 0, sizeof(ifr));
-  std::strncpy(ifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
-
+  prepare_ifreq(ifr, name);
   if (ioctl(sock, SIOCIFDESTROY, &ifr) < 0) {
-    throw std::runtime_error("Failed to destroy interface '" + name + "': " + std::string(strerror(errno)));
+    throw std::runtime_error("Failed to destroy interface '" + name +
+                             "': " + std::string(strerror(errno)));
   }
 }
 
@@ -681,15 +690,7 @@ void SystemConfigurationManager::RemoveInterfaceGroup(const std::string &ifname,
 }
 
 void SystemConfigurationManager::CreateInterface(const std::string &name) const {
-  Socket sock(AF_INET, SOCK_DGRAM);
-
-  struct ifreq ifr;
-  std::memset(&ifr, 0, sizeof(ifr));
-  std::strncpy(ifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
-
-  if (ioctl(sock, SIOCIFCREATE, &ifr) < 0) {
-    throw std::runtime_error("Failed to create interface '" + name + "': " + std::string(strerror(errno)));
-  }
+  cloneInterface(name, SIOCIFCREATE);
 }
 
 std::vector<InterfaceConfig> SystemConfigurationManager::GetInterfaces(

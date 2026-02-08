@@ -74,16 +74,7 @@ void SystemConfigurationManager::SaveTunnel(const TunnelConfig &t) const {
 }
 
 void SystemConfigurationManager::CreateTunnel(const std::string &nm) const {
-  Socket sock(AF_INET, SOCK_DGRAM);
-
-  struct ifreq ifr;
-  std::memset(&ifr, 0, sizeof(ifr));
-  std::strncpy(ifr.ifr_name, nm.c_str(), IFNAMSIZ - 1);
-
-  if (ioctl(sock, SIOCIFCREATE, &ifr) < 0) {
-    throw std::runtime_error("Failed to create interface '" + nm + "': " +
-                             std::string(strerror(errno)));
-  }
+  cloneInterface(nm, SIOCIFCREATE);
 }
 
 std::vector<TunnelConfig>

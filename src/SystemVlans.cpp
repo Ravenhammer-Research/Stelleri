@@ -45,7 +45,6 @@ std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
 
       try {
         Socket vsock(AF_INET, SOCK_DGRAM);
-        (void)0;
         struct vlanreq vreq;
         std::memset(&vreq, 0, sizeof(vreq));
         struct ifreq ifr;
@@ -58,7 +57,6 @@ std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
           int pcp = (vreq.vlr_tag >> 13) & 0x7;
           vconf.parent = std::string(vreq.vlr_parent);
           vconf.pcp = static_cast<PriorityCodePoint>(pcp);
-          (void)0;
 
           if (vreq.vlr_proto) {
             uint16_t proto = static_cast<uint16_t>(vreq.vlr_proto);
@@ -70,7 +68,7 @@ std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
               vconf.proto = VLANProto::OTHER;
           }
         } else {
-          (void)0;
+          // SIOCGETVLAN failed, skip VLAN details
         }
 
         auto query_caps =
@@ -82,7 +80,6 @@ std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
             std::strncpy(cifr.ifr_name, name.c_str(), IFNAMSIZ - 1);
             if (ioctl(csock, SIOCGIFCAP, &cifr) == 0) {
               unsigned int curcap = cifr.ifr_curcap;
-              (void)curcap;
               return static_cast<uint32_t>(curcap);
             }
             return std::nullopt;
@@ -93,11 +90,9 @@ std::vector<VLANConfig> SystemConfigurationManager::GetVLANInterfaces(
 
         if (auto o = query_caps(ic.name); o) {
           vconf.options_bits = *o;
-          (void)0;
         } else if (vconf.parent) {
           if (auto o = query_caps(*vconf.parent); o) {
             vconf.options_bits = *o;
-            (void)0;
           }
         }
       } catch (...) {
@@ -137,8 +132,7 @@ void SystemConfigurationManager::SaveVlan(const VLANConfig &vlan) const {
   }
 
   struct ifreq ifr;
-  std::memset(&ifr, 0, sizeof(ifr));
-  std::strncpy(ifr.ifr_name, vlan.name.c_str(), IFNAMSIZ - 1);
+  prepare_ifreq(ifr, vlan.name);
   ifr.ifr_data = reinterpret_cast<char *>(&vreq);
 
   if (ioctl(vsock, SIOCSETVLAN, &ifr) < 0) {

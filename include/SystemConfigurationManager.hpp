@@ -107,6 +107,7 @@ public:
 
   // Helper methods for interface queries
   void prepare_ifreq(struct ifreq &ifr, const std::string &name) const;
+  void cloneInterface(const std::string &name, unsigned long cmd) const;
   std::optional<int> query_ifreq_int(const std::string &ifname,
                                      unsigned long req,
                                      IfreqIntField which) const;
@@ -122,49 +123,54 @@ public:
   bool interfaceIsLagg(const std::string &ifname) const;
   bool interfaceIsBridge(const std::string &ifname) const;
 
-    // Return list of addresses configured on an interface (string format "addr/prefix")
-    std::vector<std::string> GetInterfaceAddresses(const std::string &ifname,
-                                                   int family) const;
+  // Return list of addresses configured on an interface (string format "addr/prefix")
+  std::vector<std::string> GetInterfaceAddresses(const std::string &ifname,
+                                                 int family) const;
 
-    // Bridge-specific system operations
-    void CreateBridge(const std::string &name) const;
-    void SaveBridge(const BridgeInterfaceConfig &bic) const;
-    std::vector<std::string> GetBridgeMembers(const std::string &name) const;
+  // Bridge-specific system operations
+  void CreateBridge(const std::string &name) const;
+  void SaveBridge(const BridgeInterfaceConfig &bic) const;
+  std::vector<std::string> GetBridgeMembers(const std::string &name) const;
 
-    // Virtual interface (epair/clone) operations
-    void CreateVirtual(const std::string &name) const;
-    void SaveVirtual(const VirtualInterfaceConfig &vic) const;
+  // Virtual interface (epair/clone) operations
+  void CreateVirtual(const std::string &name) const;
+  void SaveVirtual(const VirtualInterfaceConfig &vic) const;
 
-    // LAGG-specific system operations
-    void CreateLagg(const std::string &name) const;
-    void SaveLagg(const LaggConfig &lac) const;
+  // LAGG-specific system operations
+  void CreateLagg(const std::string &name) const;
+  void SaveLagg(const LaggConfig &lac) const;
 
-    // Generic interface operations
-    void CreateInterface(const std::string &name) const;
-    void SaveInterface(const InterfaceConfig &ic) const;
-    void DestroyInterface(const std::string &name) const;
-    void RemoveInterfaceAddress(const std::string &ifname, const std::string &addr) const;
-    void RemoveInterfaceGroup(const std::string &ifname, const std::string &group) const;
-    // Query whether a named interface exists on the system
-    bool InterfaceExists(std::string_view name) const;
+  // Generic interface operations
+  void CreateInterface(const std::string &name) const;
+  void SaveInterface(const InterfaceConfig &ic) const;
+  void DestroyInterface(const std::string &name) const;
+  void RemoveInterfaceAddress(const std::string &ifname,
+                              const std::string &addr) const;
+  void RemoveInterfaceGroup(const std::string &ifname,
+                            const std::string &group) const;
+  // Query whether a named interface exists on the system
+  bool InterfaceExists(std::string_view name) const;
 
-    // WLAN-specific operations
-    void CreateWlan(const std::string &name) const;
-    void SaveWlan(const WlanConfig &wlan) const;
+  // WLAN-specific operations
+  void CreateWlan(const std::string &name) const;
+  void SaveWlan(const WlanConfig &wlan) const;
 
-    // TAP-specific operations
-    void CreateTap(const std::string &name) const;
-    void SaveTap(const TapConfig &tap) const;
+  // TAP-specific operations
+  void CreateTap(const std::string &name) const;
+  void SaveTap(const TapConfig &tap) const;
 
-    // Tunnel-specific operations
-    void CreateTunnel(const std::string &name) const;
-    void SaveTunnel(const TunnelConfig &tunnel) const;
-    // VLAN-specific operations
-    void SaveVlan(const VLANConfig &vlan) const;
-    void AddRoute(const RouteConfig &route) const;
-    void DeleteRoute(const RouteConfig &route) const;
-  
-    // VRF matching helper
-    bool matches_vrf(const InterfaceConfig &ic,
-                                     const std::optional<VRFConfig> &vrf) const;
+  // Tunnel-specific operations
+  void CreateTunnel(const std::string &name) const;
+  void SaveTunnel(const TunnelConfig &tunnel) const;
+
+  // VLAN-specific operations
+  void SaveVlan(const VLANConfig &vlan) const;
+
+  // Route operations
+  void AddRoute(const RouteConfig &route) const;
+  void DeleteRoute(const RouteConfig &route) const;
+
+  // VRF matching helper
+  bool matches_vrf(const InterfaceConfig &ic,
+                   const std::optional<VRFConfig> &vrf) const;
 };
