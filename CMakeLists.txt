@@ -1,4 +1,17 @@
 cmake_minimum_required(VERSION 3.25)
+
+# Prefer clang/clang++ when available and the user has not explicitly set a
+# compiler. This must be done before the `project()` command so CMake will
+# use the chosen compilers during configuration.
+if(NOT DEFINED CMAKE_C_COMPILER OR CMAKE_C_COMPILER STREQUAL "")
+  find_program(CLANG_EXE clang)
+  find_program(CLANGXX_EXE clang++)
+  if(CLANG_EXE AND CLANGXX_EXE)
+    set(CMAKE_C_COMPILER "${CLANG_EXE}" CACHE FILEPATH "C compiler" FORCE)
+    set(CMAKE_CXX_COMPILER "${CLANGXX_EXE}" CACHE FILEPATH "C++ compiler" FORCE)
+  endif()
+endif()
+
 project(netcli VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 26)
@@ -35,3 +48,12 @@ find_library(EDIT_LIBRARY NAMES edit REQUIRED)
 target_link_libraries(net PRIVATE ${EDIT_LIBRARY})
 
 install(TARGETS net DESTINATION bin)
+
+# Prefer BSD make (`bmake`) if available. Do not override an explicit
+# `CMAKE_MAKE_PROGRAM` set by the user or generator, but set it when absent.
+if(NOT DEFINED CMAKE_MAKE_PROGRAM OR CMAKE_MAKE_PROGRAM STREQUAL "")
+  find_program(BMAKE_EXE bmake)
+  if(BMAKE_EXE)
+    set(CMAKE_MAKE_PROGRAM "${BMAKE_EXE}" CACHE FILEPATH "Make program" FORCE)
+  endif()
+endif()
