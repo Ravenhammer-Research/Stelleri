@@ -54,7 +54,7 @@ sudo cmake --install build
 Launch the interactive shell:
 
 ```bash
-./build/net
+net
 ```
 
 The prompt `net>` accepts commands with tab-completion and history navigation.
@@ -64,7 +64,7 @@ The prompt `net>` accepts commands with tab-completion and history navigation.
 Execute a single command (pass command as positional arguments):
 
 ```bash
-./build/net show interface
+net show interface
 ```
 
 ### Reading from STDIN
@@ -73,13 +73,13 @@ Commands can be read from a file or pipe:
 
 ```bash
 # From a file
-sudo ./build/net < config.txt
+sudo net < config.txt
 
 # From a pipe
-cat config.txt | sudo ./build/net
+cat config.txt | sudo net
 
 # From command output
-./build/net -g | sudo ./build/net
+net -g | sudo net
 ```
 
 Empty lines and lines starting with `#` are treated as comments and skipped.
@@ -89,7 +89,7 @@ Empty lines and lines starting with `#` are treated as comments and skipped.
 Export current network state as CLI commands:
 
 ```bash
-./build/net -g > network-config.txt
+net -g > network-config.txt
 ```
 
 ## Command Reference
@@ -127,7 +127,7 @@ delete ndp ip <address> [interface <name>]
 ### Show All Interfaces
 
 ```bash
-./build/net show interface
+net show interface
 ```
 
 Output:
@@ -157,7 +157,7 @@ Index Interface Group  Type          Address       Status   MTU VRF Flags
 Show only virtual (epair) interfaces:
 
 ```bash
-./build/net show interface type virtual
+net show interface type virtual
 ```
 
 Output:
@@ -172,7 +172,7 @@ epair14a   0 1500   DOWN BRMs  epair14b   2 1500     UP UBRMs
 Show interfaces in a specific group:
 
 ```bash
-./build/net show interface group epair
+net show interface group epair
 ```
 
 ### Managing Addresses
@@ -180,19 +180,19 @@ Show interfaces in a specific group:
 Add an IPv4 address to an interface (requires root):
 
 ```bash
-sudo ./build/net set interface name epair14b inet address 192.0.0.8/31
+sudo net set interface name epair14b inet address 192.0.0.8/31
 ```
 
 Add an IPv6 address:
 
 ```bash
-sudo ./build/net set interface name lo1 inet6 address 2001:db8::1/64
+sudo net set interface name lo1 inet6 address 2001:db8::1/64
 ```
 
 Delete an address from an interface (requires root):
 
 ```bash
-sudo ./build/net
+sudo net
 net> delete interface name epair14b inet address 192.0.0.4/31
 ```
 
@@ -208,7 +208,7 @@ delete interface: failed to remove address '192.0.0.4/31': Operation not permitt
 Show routes in default VRF:
 
 ```bash
-./build/net show routes
+net show routes
 ```
 
 Output:
@@ -227,25 +227,25 @@ Destination       Gateway  Interface Flags Scope Expire
 Show routes in specific VRF:
 
 ```bash
-./build/net show routes vrf 2
+net show routes vrf 2
 ```
 
 Add a static route (requires root):
 
 ```bash
-sudo ./build/net set route protocol static dest 192.168.52.0/24 nexthop 10.1.0.1 interface re0.25
+sudo net set route protocol static dest 192.168.52.0/24 nexthop 10.1.0.1 interface re0.25
 ```
 
 Add a blackhole/reject route (requires root):
 
 ```bash
-sudo ./build/net set route protocol static dest 192.168.100.0/24 nexthop reject vrf 2
+sudo net set route protocol static dest 192.168.100.0/24 nexthop reject vrf 2
 ```
 
 Delete a route (requires root):
 
 ```bash
-sudo ./build/net delete route protocol static dest 192.168.52.0/24 nexthop 10.1.0.1
+sudo net delete route protocol static dest 192.168.52.0/24 nexthop 10.1.0.1
 ```
 
 ### ARP and NDP Management
@@ -253,7 +253,7 @@ sudo ./build/net delete route protocol static dest 192.168.52.0/24 nexthop 10.1.
 Show ARP cache:
 
 ```bash
-./build/net show arp
+net show arp
 ```
 
 Output:
@@ -267,25 +267,25 @@ IP Address    MAC Address       Interface Expire   Flags
 Show NDP (IPv6 neighbor discovery) cache:
 
 ```bash
-./build/net show ndp
+net show ndp
 ```
 
 Add a static ARP entry (requires root):
 
 ```bash
-sudo ./build/net set arp ip 10.1.0.50 mac 00:11:22:33:44:55 interface re0.25 permanent
+sudo net set arp ip 10.1.0.50 mac 00:11:22:33:44:55 interface re0.25 permanent
 ```
 
 Add a static NDP entry (requires root):
 
 ```bash
-sudo ./build/net set ndp ip fe80::1234 mac 00:11:22:33:44:55 interface re0 permanent
+sudo net set ndp ip fe80::1234 mac 00:11:22:33:44:55 interface re0 permanent
 ```
 
 Delete an ARP entry (requires root):
 
 ```bash
-sudo ./build/net delete arp ip 10.1.0.50
+sudo net delete arp ip 10.1.0.50
 ```
 
 ## Configuration Generation
@@ -295,7 +295,7 @@ The `-g` flag generates a complete set of CLI commands that reproduce the curren
 Generate configuration:
 
 ```bash
-./build/net -g > network-config.txt
+net -g > network-config.txt
 ```
 
 Example output:
@@ -318,13 +318,13 @@ The generated commands can be saved to a file and later replayed to restore conf
 
 ```bash
 # Generate and save configuration
-./build/net -g > backup-$(date +%Y%m%d).txt
+net -g > backup-$(date +%Y%m%d).txt
 
 # Restore configuration by piping to STDIN
-sudo ./build/net < backup-20260207.txt
+sudo net < backup-20260207.txt
 
 # Or using cat
-cat backup-20260207.txt | sudo ./build/net
+cat backup-20260207.txt | sudo net
 ```
 
 **Note:** When commands are read from STDIN (via pipe or file redirection), empty lines and lines starting with `#` are automatically skipped as comments.
@@ -366,7 +366,7 @@ Currently tested on FreeBSD 15+. The code uses BSD-specific APIs (`ioctl`, `sysc
 Most configuration changes require root privileges. Run with `sudo`:
 
 ```bash
-sudo ./build/net -c "set interface name em0 inet address 192.168.1.10/24"
+sudo net -c "set interface name em0 inet address 192.168.1.10/24"
 ```
 
 ### Interface Not Found
@@ -374,7 +374,7 @@ sudo ./build/net -c "set interface name em0 inet address 192.168.1.10/24"
 Verify the interface exists:
 
 ```bash
-./build/net -c "show interface"
+net -c "show interface"
 ```
 
 ### Build Errors
