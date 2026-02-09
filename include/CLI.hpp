@@ -72,17 +72,49 @@ private:
   EditLine *el_;
   History *hist_;
   HistEvent ev_;
-  std::string preview_;
   int preview_len_ = 0;
+
+  // Reverse-i-search state
+  bool in_search_ = false;
+  std::string search_query_;
+  std::vector<std::string> search_matches_;
+  int search_index_ = -1;
 
   void loadHistory();
   void saveHistory(const std::string &line);
   void setupEditLine();
   void cleanupEditLine();
 
-  // Completion support using Parser and Token infrastructure
+  // ── Completion helpers ───────────────────────────────────────────────
+
+  /// Get completions for a partial word given preceding tokens.
   std::vector<std::string> getCompletions(const std::vector<std::string> &tokens,
                                           const std::string &partial) const;
+
+  /// Remove any inline preview text from the edit buffer.
+  void clearPreview();
+
+  /// Compute and insert an inline preview for the current line state.
+  void computeAndShowPreview();
+
+  /// Clear the entire edit-line buffer (used by Ctrl-C, search cancel, etc.).
+  void clearLineBuffer();
+
+  /// Load all history lines into a vector (most-recent last).
+  std::vector<std::string> loadHistoryLines() const;
+
+  // ── Reverse-i-search ────────────────────────────────────────────────
+
+  /// Enter interactive reverse-i-search mode.  Returns when the user
+  /// accepts (Enter/Right), cancels (Ctrl-C/Ctrl-G/Esc), or the search
+  /// query changes the buffer content.
+  void runReverseSearch();
+
+  /// Update the search prompt and buffer to reflect the current match.
+  void updateSearchDisplay();
+
+  // ── libedit callbacks (static, retrieve CLI* via EL_CLIENTDATA) ────
+
   static unsigned char completeCommand(EditLine *el, int ch);
   static unsigned char showInlinePreview(EditLine *el, int ch);
   static unsigned char handleBackspacePreview(EditLine *el, int ch);
@@ -92,4 +124,5 @@ private:
   static unsigned char handleCtrlD(EditLine *el, int ch);
   static unsigned char handleCtrlR(EditLine *el, int ch);
   static char *promptFunc(EditLine *el);
+  static char *searchPromptFunc(EditLine *el);
 };

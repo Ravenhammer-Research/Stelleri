@@ -195,7 +195,7 @@ std::unique_ptr<Token> InterfaceToken::clone() const {
   return std::make_unique<InterfaceToken>(*this);
 }
 
-std::vector<std::string> InterfaceToken::autoCompleteWithManager(
+std::vector<std::string> InterfaceToken::autoComplete(
     const std::vector<std::string> &tokens, std::string_view partial,
     ConfigurationManager *mgr) const {
   std::vector<std::string> matches;

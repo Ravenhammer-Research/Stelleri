@@ -37,6 +37,8 @@
 #include <string_view>
 #include <vector>
 
+class ConfigurationManager; // forward declaration
+
 /**
  * @brief Base class for command tokens in the parser chain
  *
@@ -45,7 +47,7 @@
  */
 class Token : public std::enable_shared_from_this<Token> {
 public:
-  virtual ~Token() = default;
+  virtual ~Token();
 
   /**
    * @brief Convert token chain to command string
@@ -60,6 +62,24 @@ public:
    */
   virtual std::vector<std::string>
   autoComplete(std::string_view partial) const = 0;
+
+  /**
+   * @brief Context-aware completion with access to preceding tokens and
+   *        the runtime configuration manager.
+   *
+   * Subclasses that need dynamic data (e.g. interface names from the
+   * system) override this.  The default implementation simply delegates
+   * to autoComplete(partial).
+   *
+   * @param tokens  All tokens preceding the word being completed
+   * @param partial The partially-typed word
+   * @param mgr     Configuration manager (may be nullptr)
+   * @return Vector of possible completions
+   */
+  virtual std::vector<std::string>
+  autoComplete(const std::vector<std::string> &tokens,
+               std::string_view partial,
+               ConfigurationManager *mgr) const;
 
   /**
    * @brief Clone token for copy/transform operations

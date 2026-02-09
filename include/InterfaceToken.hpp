@@ -48,10 +48,10 @@ public:
   InterfaceToken(InterfaceType t, std::string name);
 
   std::string toString() const override;
-  std::vector<std::string> autoComplete(std::string_view) const override;
-  std::vector<std::string> autoCompleteWithManager(
-      const std::vector<std::string> &tokens, std::string_view partial,
-      ConfigurationManager *mgr) const;
+  std::vector<std::string> autoComplete(std::string_view partial) const override;
+  std::vector<std::string> autoComplete(const std::vector<std::string> &tokens,
+                                        std::string_view partial,
+                                        ConfigurationManager *mgr) const override;
   std::unique_ptr<Token> clone() const override;
 
   const std::string &name() const { return name_; }
