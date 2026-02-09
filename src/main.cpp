@@ -41,19 +41,15 @@ int main(int argc, char *argv[]) {
   std::string onecmd;
   bool generate = false;
 
-  struct option longopts[] = {{"command", required_argument, nullptr, 'c'},
-                              {"file", required_argument, nullptr, 'f'},
+  struct option longopts[] = {{"file", required_argument, nullptr, 'f'},
                               {"generate", no_argument, nullptr, 'g'},
                               {"interactive", no_argument, nullptr, 'i'},
                               {"help", no_argument, nullptr, 'h'},
                               {0, 0, 0, 0}};
 
   int ch;
-  while ((ch = getopt_long(argc, argv, "c:f:gih", longopts, nullptr)) != -1) {
+  while ((ch = getopt_long(argc, argv, "f:gih", longopts, nullptr)) != -1) {
     switch (ch) {
-    case 'c':
-      onecmd = optarg;
-      break;
     case 'g':
       generate = true;
       break;
@@ -61,8 +57,8 @@ int main(int argc, char *argv[]) {
       // Interactive mode (default anyway)
       break;
     case 'h':
-      std::cout << "Usage: netcli [-c command] [-g] [-i]\n";
-      std::cout << "  -c, --command     Execute a single command\n";
+      std::cout << "Usage: netcli [command] [-g] [-i]\n";
+      std::cout << "  command           Execute a single command (any non-flag args)\n";
       std::cout << "  -g, --generate    Generate configuration from system\n";
       std::cout << "  -i, --interactive Enter interactive mode\n";
       std::cout << "  -h, --help        Show this help message\n";
@@ -90,10 +86,19 @@ int main(int argc, char *argv[]) {
 #endif
   CLI cli(std::move(mgr));
 
-  if (!onecmd.empty()) {
-    // simple one-shot
-    cli.processLine(onecmd);
-    return 0;
+  // If there are non-option arguments left, treat them as a single one-shot
+  // command (join remaining argv entries with spaces).
+  if (optind < argc) {
+    std::string cmd;
+    for (int i = optind; i < argc; ++i) {
+      if (!cmd.empty())
+        cmd += ' ';
+      cmd += argv[i];
+    }
+    if (!cmd.empty()) {
+      cli.processLine(cmd);
+      return 0;
+    }
   }
 
   // Check if STDIN is redirected (pipe or file)
