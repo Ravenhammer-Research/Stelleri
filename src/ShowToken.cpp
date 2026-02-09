@@ -35,8 +35,15 @@ std::string ShowToken::toString() const {
   return result;
 }
 
-std::vector<std::string> ShowToken::autoComplete(std::string_view) const {
-  return {"interfaces", "route", "vrf"};
+std::vector<std::string> ShowToken::autoComplete(std::string_view partial) const {
+  // Suggest what can come after 'show'
+  std::vector<std::string> options = {"interface", "interfaces", "routes", "route", "arp", "ndp"};
+  std::vector<std::string> matches;
+  for (const auto &opt : options) {
+    if (opt.rfind(partial, 0) == 0)
+      matches.push_back(opt);
+  }
+  return matches;
 }
 
 std::unique_ptr<Token> ShowToken::clone() const {

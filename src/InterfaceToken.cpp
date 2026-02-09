@@ -134,9 +134,24 @@ std::string InterfaceToken::toString() const {
   return result;
 }
 
-std::vector<std::string> InterfaceToken::autoComplete(std::string_view) const {
-  return {}; // suggestions could query ConfigurationManager; keep empty for
-             // now
+std::vector<std::string> InterfaceToken::autoComplete(std::string_view partial) const {
+  // Suggest interface-related keywords and values
+  std::vector<std::string> options = {
+      "name", "type", "inet", "inet6", "address", "mtu", "vrf", "status",
+      "up", "down", "group", "vid", "parent", "member", "source",
+      "destination", "tunnel-vrf", "protocol", "stp",
+      // Type values
+      "ethernet", "loopback", "bridge", "lagg", "vlan", "tunnel",
+      "epair", "virtual", "wireless", "gre", "gif", "vxlan",
+      // Lagg protocols
+      "lacp", "failover", "loadbalance", "roundrobin", "broadcast"
+  };
+  std::vector<std::string> matches;
+  for (const auto &opt : options) {
+    if (opt.rfind(partial, 0) == 0)
+      matches.push_back(opt);
+  }
+  return matches;
 }
 
 std::unique_ptr<Token> InterfaceToken::clone() const {

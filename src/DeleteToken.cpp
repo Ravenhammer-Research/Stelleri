@@ -35,8 +35,14 @@ std::string DeleteToken::toString() const {
   return result;
 }
 
-std::vector<std::string> DeleteToken::autoComplete(std::string_view) const {
-  return {"interfaces", "route", "vrf"};
+std::vector<std::string> DeleteToken::autoComplete(std::string_view partial) const {
+  std::vector<std::string> options = {"interface", "interfaces", "route", "arp", "ndp", "vrf"};
+  std::vector<std::string> matches;
+  for (const auto &opt : options) {
+    if (opt.rfind(partial, 0) == 0)
+      matches.push_back(opt);
+  }
+  return matches;
 }
 
 std::unique_ptr<Token> DeleteToken::clone() const {

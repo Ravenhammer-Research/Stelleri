@@ -30,4 +30,8 @@ endif()
 
 target_compile_options(net PRIVATE -Wall -Wextra -Werror -pedantic)
 
+# Link libedit for interactive command-line editing
+find_library(EDIT_LIBRARY NAMES edit REQUIRED)
+target_link_libraries(net PRIVATE ${EDIT_LIBRARY})
+
 install(TARGETS net DESTINATION bin)

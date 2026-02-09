@@ -33,8 +33,11 @@
 #pragma once
 
 #include "ConfigurationManager.hpp"
+#include "Parser.hpp"
+#include <histedit.h>
 #include <memory>
 #include <string>
+#include <vector>
 
 /**
  * @brief VyOS-style command-line interface
@@ -64,7 +67,20 @@ public:
 
 private:
   std::unique_ptr<ConfigurationManager> mgr_;
+  netcli::Parser parser_;
   std::string historyFile_;
+  EditLine *el_;
+  History *hist_;
+  HistEvent ev_;
+
   void loadHistory();
   void saveHistory(const std::string &line);
+  void setupEditLine();
+  void cleanupEditLine();
+
+  // Completion support using Parser and Token infrastructure
+  std::vector<std::string> getCompletions(const std::vector<std::string> &tokens,
+                                          const std::string &partial) const;
+  static unsigned char completeCommand(EditLine *el, int ch);
+  static char *promptFunc(EditLine *el);
 };

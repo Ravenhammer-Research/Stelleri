@@ -35,8 +35,14 @@ std::string SetToken::toString() const {
   return result;
 }
 
-std::vector<std::string> SetToken::autoComplete(std::string_view) const {
-  return {"interfaces", "route", "vrf", "protocols"};
+std::vector<std::string> SetToken::autoComplete(std::string_view partial) const {
+  std::vector<std::string> options = {"interface", "interfaces", "route", "arp", "ndp", "vrf", "protocols"};
+  std::vector<std::string> matches;
+  for (const auto &opt : options) {
+    if (opt.rfind(partial, 0) == 0)
+      matches.push_back(opt);
+  }
+  return matches;
 }
 
 std::unique_ptr<Token> SetToken::clone() const {
