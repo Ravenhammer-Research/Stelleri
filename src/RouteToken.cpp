@@ -30,20 +30,30 @@
 RouteToken::RouteToken(std::string prefix) : prefix_(std::move(prefix)) {}
 // Static renderer for RouteConfig
 std::string RouteToken::toString(RouteConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   std::string result = "route protocol static dest " + cfg->prefix;
-  if (cfg->nexthop) result += " nexthop " + *cfg->nexthop;
-  if (cfg->iface) result += " interface " + *cfg->iface;
-  if (cfg->vrf) result += " vrf " + std::to_string(*cfg->vrf);
-  if (cfg->blackhole) result += " blackhole";
-  if (cfg->reject) result += " reject";
-  if (cfg->scope) result += " scope " + *cfg->scope;
-  if (cfg->expire) result += " expire " + std::to_string(*cfg->expire);
+  if (cfg->nexthop)
+    result += " nexthop " + *cfg->nexthop;
+  if (cfg->iface)
+    result += " interface " + *cfg->iface;
+  if (cfg->vrf)
+    result += " vrf " + std::to_string(*cfg->vrf);
+  if (cfg->blackhole)
+    result += " blackhole";
+  if (cfg->reject)
+    result += " reject";
+  if (cfg->scope)
+    result += " scope " + *cfg->scope;
+  if (cfg->expire)
+    result += " expire " + std::to_string(*cfg->expire);
   return result;
 }
 
-std::vector<std::string> RouteToken::autoComplete(std::string_view partial) const {
-  std::vector<std::string> options = {"interface", "next-hop", "blackhole", "reject", "vrf"};
+std::vector<std::string>
+RouteToken::autoComplete(std::string_view partial) const {
+  std::vector<std::string> options = {"interface", "next-hop", "blackhole",
+                                      "reject", "vrf"};
   std::vector<std::string> matches;
   for (const auto &opt : options) {
     if (opt.rfind(partial, 0) == 0)

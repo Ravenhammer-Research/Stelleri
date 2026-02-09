@@ -32,8 +32,8 @@
 
 #pragma once
 
-#include "Token.hpp"
 #include "NdpConfig.hpp"
+#include "Token.hpp"
 #include <memory>
 #include <optional>
 #include <string>
@@ -42,7 +42,6 @@ class NdpToken : public Token {
 public:
   explicit NdpToken(std::string ip);
 
-  
   std::vector<std::string> autoComplete(std::string_view) const override;
   std::unique_ptr<Token> clone() const override;
 

@@ -52,6 +52,13 @@ public:
   std::optional<int> expire; ///< Optional expire time (seconds)
   unsigned int flags = 0;    ///< raw rtm_flags from kernel
 
+  // Portable flag bit constants used by formatters. These are unconditional
+  // numeric constants so formatters don't need to include platform headers.
+  static constexpr unsigned int RTF_UP_FLAG = 0x1;
+  static constexpr unsigned int RTF_GATEWAY_FLAG = 0x2;
+  static constexpr unsigned int RTF_HOST_FLAG = 0x4;
+  static constexpr unsigned int RTF_STATIC_FLAG = 0x800;
+
   // Persist route configuration via the supplied manager.
   void save(ConfigurationManager &mgr) const override;
   void destroy(ConfigurationManager &mgr) const override;

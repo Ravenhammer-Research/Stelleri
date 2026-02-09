@@ -83,8 +83,8 @@ public:
       const std::optional<VRFConfig> &vrf = std::nullopt) const override;
   std::vector<RouteConfig>
   GetRoutes(const std::optional<VRFConfig> &vrf = std::nullopt) const override;
-    /** @brief Return discovered VRF configurations on this system */
-    std::vector<VRFConfig> GetVrfs() const override;
+  /** @brief Return discovered VRF configurations on this system */
+  std::vector<VRFConfig> GetVrfs() const override;
 
   // ARP/NDP neighbor cache management
   std::vector<ArpConfig>

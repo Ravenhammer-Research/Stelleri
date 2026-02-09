@@ -38,7 +38,7 @@
 #include <vector>
 
 class ConfigurationManager; // forward declaration
-class ConfigData; // forward declaration for toString parameter
+class ConfigData;           // forward declaration for toString parameter
 
 /**
  * @brief Base class for command tokens in the parser chain
@@ -86,8 +86,7 @@ public:
    * @return Vector of possible completions
    */
   virtual std::vector<std::string>
-  autoComplete(const std::vector<std::string> &tokens,
-               std::string_view partial,
+  autoComplete(const std::vector<std::string> &tokens, std::string_view partial,
                ConfigurationManager *mgr) const;
 
   /**

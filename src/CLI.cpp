@@ -125,8 +125,8 @@ char *CLI::searchPromptFunc(EditLine *el) {
   // We use a static buffer that persists across calls.
   static char buf[256];
   if (cli)
-    snprintf(buf, sizeof(buf), "(reverse-i-search)`%s': ",
-             cli->search_query_.c_str());
+    snprintf(buf, sizeof(buf),
+             "(reverse-i-search)`%s': ", cli->search_query_.c_str());
   else
     snprintf(buf, sizeof(buf), "(reverse-i-search)`': ");
   return buf;
@@ -181,16 +181,13 @@ void CLI::setupEditLine() {
   el_set(el_, EL_BIND, "\\x20", "ed-space-preview", nullptr);
 
   // ── Control keys ───────────────────────────────────────────────────
-  el_set(el_, EL_ADDFN, "ed-ctrlc", "Cancel line (Ctrl-C)",
-         &CLI::handleCtrlC);
+  el_set(el_, EL_ADDFN, "ed-ctrlc", "Cancel line (Ctrl-C)", &CLI::handleCtrlC);
   el_set(el_, EL_BIND, "^C", "ed-ctrlc", nullptr);
 
-  el_set(el_, EL_ADDFN, "ed-ctrll", "Clear screen (Ctrl-L)",
-         &CLI::handleCtrlL);
+  el_set(el_, EL_ADDFN, "ed-ctrll", "Clear screen (Ctrl-L)", &CLI::handleCtrlL);
   el_set(el_, EL_BIND, "^L", "ed-ctrll", nullptr);
 
-  el_set(el_, EL_ADDFN, "ed-ctrld", "EOF/Delete (Ctrl-D)",
-         &CLI::handleCtrlD);
+  el_set(el_, EL_ADDFN, "ed-ctrld", "EOF/Delete (Ctrl-D)", &CLI::handleCtrlD);
   el_set(el_, EL_BIND, "^D", "ed-ctrld", nullptr);
 
   el_set(el_, EL_ADDFN, "ed-ctrl-r", "Reverse search history",
@@ -647,8 +644,7 @@ void CLI::run() {
       cmd.pop_back();
 
     // Strip any trailing preview text that was in the buffer.
-    if (preview_len_ > 0 &&
-        cmd.size() >= static_cast<size_t>(preview_len_)) {
+    if (preview_len_ > 0 && cmd.size() >= static_cast<size_t>(preview_len_)) {
       cmd.erase(cmd.size() - static_cast<size_t>(preview_len_));
       preview_len_ = 0;
     }

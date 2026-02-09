@@ -33,9 +33,9 @@
 #pragma once
 
 #include "Token.hpp"
+#include "VRFConfig.hpp"
 #include <optional>
 #include <string>
-#include "VRFConfig.hpp"
 
 /**
  * @brief Token representing a VRF (Virtual Routing and Forwarding) instance
@@ -51,7 +51,6 @@ public:
   explicit VRFToken(int table);
 
   /** @brief Convert to command string */
-  
 
   /** @brief Get autocomplete suggestions (none for VRF) */
   std::vector<std::string> autoComplete(std::string_view) const override;

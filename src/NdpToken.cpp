@@ -32,17 +32,24 @@ NdpToken::NdpToken(std::string ip) : ip_(std::move(ip)) {}
 
 // Static renderer for NdpConfig
 std::string NdpToken::toString(NdpConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   std::string result = "ndp " + cfg->ip;
-  if (!cfg->mac.empty()) result += " mac " + cfg->mac;
-  if (cfg->iface) result += " interface " + *cfg->iface;
-  if (cfg->permanent) result += " permanent";
-  if (cfg->router) result += " router";
-  if (cfg->expire) result += " expire " + std::to_string(*cfg->expire);
+  if (!cfg->mac.empty())
+    result += " mac " + cfg->mac;
+  if (cfg->iface)
+    result += " interface " + *cfg->iface;
+  if (cfg->permanent)
+    result += " permanent";
+  if (cfg->router)
+    result += " router";
+  if (cfg->expire)
+    result += " expire " + std::to_string(*cfg->expire);
   return result;
 }
 
-std::vector<std::string> NdpToken::autoComplete(std::string_view partial) const {
+std::vector<std::string>
+NdpToken::autoComplete(std::string_view partial) const {
   std::vector<std::string> options = {"mac", "interface", "permanent", "temp"};
   std::vector<std::string> matches;
   for (const auto &opt : options) {

@@ -31,8 +31,10 @@ std::string DeleteToken::toString() const { return "delete"; }
 
 // toString(ConfigData*) removed — implementation deleted per request
 
-std::vector<std::string> DeleteToken::autoComplete(std::string_view partial) const {
-  std::vector<std::string> options = {"interface", "interfaces", "route", "arp", "ndp", "vrf"};
+std::vector<std::string>
+DeleteToken::autoComplete(std::string_view partial) const {
+  std::vector<std::string> options = {"interface", "interfaces", "route",
+                                      "arp",       "ndp",        "vrf"};
   std::vector<std::string> matches;
   for (const auto &opt : options) {
     if (opt.rfind(partial, 0) == 0)

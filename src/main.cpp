@@ -58,7 +58,8 @@ int main(int argc, char *argv[]) {
       break;
     case 'h':
       std::cout << "Usage: netcli [command] [-g] [-i]\n";
-      std::cout << "  command           Execute a single command (any non-flag args)\n";
+      std::cout << "  command           Execute a single command (any non-flag "
+                   "args)\n";
       std::cout << "  -g, --generate    Generate configuration from system\n";
       std::cout << "  -i, --interactive Enter interactive mode\n";
       std::cout << "  -h, --help        Show this help message\n";

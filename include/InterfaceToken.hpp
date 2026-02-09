@@ -32,17 +32,17 @@
 
 #pragma once
 
-#include "BridgeInterfaceConfig.hpp"
 #include "BridgeConfig.hpp"
+#include "BridgeInterfaceConfig.hpp"
 #include "CarpConfig.hpp"
 #include "ConfigurationManager.hpp"
 #include "GREConfig.hpp"
+#include "InterfaceConfig.hpp"
 #include "InterfaceType.hpp"
 #include "LaggConfig.hpp"
-#include "InterfaceConfig.hpp"
-#include "Token.hpp"
 #include "SixToFourConfig.hpp"
 #include "TapConfig.hpp"
+#include "Token.hpp"
 #include "TunnelConfig.hpp"
 #include "VLANConfig.hpp"
 #include "VXLANConfig.hpp"
@@ -54,7 +54,7 @@
 class InterfaceToken : public Token {
 public:
   InterfaceToken(InterfaceType t, std::string name);
-  
+
   /**
    * @brief Render an InterfaceConfig to a command string
    */
@@ -71,10 +71,11 @@ public:
   static std::string toString(VLANConfig *cfg);
   static std::string toString(VXLANConfig *cfg);
   static std::string toString(WlanConfig *cfg);
-  std::vector<std::string> autoComplete(std::string_view partial) const override;
-  std::vector<std::string> autoComplete(const std::vector<std::string> &tokens,
-                                        std::string_view partial,
-                                        ConfigurationManager *mgr) const override;
+  std::vector<std::string>
+  autoComplete(std::string_view partial) const override;
+  std::vector<std::string>
+  autoComplete(const std::vector<std::string> &tokens, std::string_view partial,
+               ConfigurationManager *mgr) const override;
   std::unique_ptr<Token> clone() const override;
 
   const std::string &name() const { return name_; }

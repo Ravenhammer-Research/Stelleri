@@ -26,40 +26,43 @@
  */
 
 #include "InterfaceToken.hpp"
+#include "BridgeConfig.hpp"
 #include "BridgeTableFormatter.hpp"
+#include "CarpConfig.hpp"
+#include "GREConfig.hpp"
+#include "InterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
 #include "InterfaceTableFormatter.hpp"
 #include "InterfaceType.hpp"
+#include "LaggConfig.hpp"
 #include "LaggTableFormatter.hpp"
 #include "SingleInterfaceSummaryFormatter.hpp"
+#include "SixToFourConfig.hpp"
+#include "TapConfig.hpp"
+#include "TunnelConfig.hpp"
 #include "TunnelTableFormatter.hpp"
+#include "VLANConfig.hpp"
 #include "VLANTableFormatter.hpp"
+#include "VXLANConfig.hpp"
 #include "VirtualTableFormatter.hpp"
+#include "WlanConfig.hpp"
 #include <iostream>
 #include <netinet/in.h>
 #include <sstream>
 #include <unordered_set>
-#include "InterfaceConfig.hpp"
-#include "BridgeConfig.hpp"
-#include "CarpConfig.hpp"
-#include "GREConfig.hpp"
-#include "LaggConfig.hpp"
-#include "SixToFourConfig.hpp"
-#include "TapConfig.hpp"
-#include "TunnelConfig.hpp"
-#include "VLANConfig.hpp"
-#include "VXLANConfig.hpp"
-#include "WlanConfig.hpp"
 
 InterfaceToken::InterfaceToken(InterfaceType t, std::string name)
     : type_(t), name_(std::move(name)) {}
 
 // toString(ConfigData*) removed — implementation deleted per request
 
-std::vector<std::string> InterfaceToken::autoComplete(std::string_view partial) const {
+std::vector<std::string>
+InterfaceToken::autoComplete(std::string_view partial) const {
   // If user typed `type` and is now completing the type value, suggest types
   if (expect_type_value_) {
-    std::vector<std::string> types = {"ethernet", "loopback", "bridge", "lagg", "vlan", "tunnel", "epair", "virtual", "wireless", "gre", "gif", "vxlan"};
+    std::vector<std::string> types = {
+        "ethernet", "loopback", "bridge",   "lagg", "vlan", "tunnel",
+        "epair",    "virtual",  "wireless", "gre",  "gif",  "vxlan"};
     std::vector<std::string> matches;
     for (const auto &t : types) {
       if (t.rfind(partial, 0) == 0)
@@ -70,7 +73,8 @@ std::vector<std::string> InterfaceToken::autoComplete(std::string_view partial) 
 
   // If we are at the top-level after `show interface`, only suggest these
   // primary keywords.
-  if (name_.empty() && type_ == InterfaceType::Unknown && !vrf && !mtu && !status && !vlan && !lagg && !bridge && !tunnel) {
+  if (name_.empty() && type_ == InterfaceType::Unknown && !vrf && !mtu &&
+      !status && !vlan && !lagg && !bridge && !tunnel) {
     std::vector<std::string> top = {"name", "group", "type"};
     std::vector<std::string> matches;
     for (const auto &opt : top) {
@@ -95,15 +99,14 @@ std::vector<std::string> InterfaceToken::autoComplete(std::string_view partial) 
 
   // Fallback: suggest the usual wide set
   std::vector<std::string> options = {
-      "name", "type", "inet", "inet6", "address", "mtu", "vrf", "status",
-      "up", "down", "group", "vid", "parent", "member", "source",
-      "destination", "tunnel-vrf", "protocol", "stp",
+      "name", "type", "inet", "inet6", "address", "mtu", "vrf", "status", "up",
+      "down", "group", "vid", "parent", "member", "source", "destination",
+      "tunnel-vrf", "protocol", "stp",
       // Type values
-      "ethernet", "loopback", "bridge", "lagg", "vlan", "tunnel",
-      "epair", "virtual", "wireless", "gre", "gif", "vxlan",
+      "ethernet", "loopback", "bridge", "lagg", "vlan", "tunnel", "epair",
+      "virtual", "wireless", "gre", "gif", "vxlan",
       // Lagg protocols
-      "lacp", "failover", "loadbalance", "roundrobin", "broadcast"
-  };
+      "lacp", "failover", "loadbalance", "roundrobin", "broadcast"};
   std::vector<std::string> matches;
   for (const auto &opt : options) {
     if (opt.rfind(partial, 0) == 0)
@@ -116,9 +119,10 @@ std::unique_ptr<Token> InterfaceToken::clone() const {
   return std::make_unique<InterfaceToken>(*this);
 }
 
-std::vector<std::string> InterfaceToken::autoComplete(
-    const std::vector<std::string> &tokens, std::string_view partial,
-    ConfigurationManager *mgr) const {
+std::vector<std::string>
+InterfaceToken::autoComplete(const std::vector<std::string> &tokens,
+                             std::string_view partial,
+                             ConfigurationManager *mgr) const {
   std::vector<std::string> matches;
   if (!mgr)
     return matches;
@@ -167,7 +171,8 @@ std::vector<std::string> InterfaceToken::autoComplete(
 
 // Static renderers for interface configs
 std::string InterfaceToken::toString(InterfaceConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   std::string result = "interface name " + cfg->name;
   switch (cfg->type) {
   case InterfaceType::VLAN:
@@ -191,85 +196,114 @@ std::string InterfaceToken::toString(InterfaceConfig *cfg) {
   default:
     break;
   }
-  if (cfg->vrf) result += " vrf " + std::to_string(cfg->vrf->table);
-  if (cfg->mtu) result += " mtu " + std::to_string(*cfg->mtu);
+  if (cfg->vrf)
+    result += " vrf " + std::to_string(cfg->vrf->table);
+  if (cfg->mtu)
+    result += " mtu " + std::to_string(*cfg->mtu);
   if (!cfg->groups.empty()) {
-    for (const auto &g : cfg->groups) result += " group " + g;
+    for (const auto &g : cfg->groups)
+      result += " group " + g;
   }
   return result;
 }
 
 std::string InterfaceToken::toString(BridgeConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   return std::string("interface type bridge");
 }
 
 std::string InterfaceToken::toString(CarpConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  if (cfg->vhid) s += " vhid " + std::to_string(*cfg->vhid);
-  if (cfg->advskew) s += " advskew " + std::to_string(*cfg->advskew);
-  if (cfg->advbase) s += " advbase " + std::to_string(*cfg->advbase);
-  if (cfg->state) s += " state " + *cfg->state;
+  if (cfg->vhid)
+    s += " vhid " + std::to_string(*cfg->vhid);
+  if (cfg->advskew)
+    s += " advskew " + std::to_string(*cfg->advskew);
+  if (cfg->advbase)
+    s += " advbase " + std::to_string(*cfg->advbase);
+  if (cfg->state)
+    s += " state " + *cfg->state;
   return s;
 }
 
 std::string InterfaceToken::toString(GREConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  if (cfg->greSource) s += " source " + *cfg->greSource;
-  if (cfg->greDestination) s += " destination " + *cfg->greDestination;
+  if (cfg->greSource)
+    s += " source " + *cfg->greSource;
+  if (cfg->greDestination)
+    s += " destination " + *cfg->greDestination;
   return s;
 }
 
 std::string InterfaceToken::toString(LaggConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  for (const auto &m : cfg->members) s += " member " + m;
+  for (const auto &m : cfg->members)
+    s += " member " + m;
   return s;
 }
 
 std::string InterfaceToken::toString(SixToFourConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   return InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
 }
 
 std::string InterfaceToken::toString(TapConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   return InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
 }
 
 std::string InterfaceToken::toString(TunnelConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  if (cfg->source) s += " source " + cfg->source->toString();
-  if (cfg->destination) s += " destination " + cfg->destination->toString();
+  if (cfg->source)
+    s += " source " + cfg->source->toString();
+  if (cfg->destination)
+    s += " destination " + cfg->destination->toString();
   return s;
 }
 
 std::string InterfaceToken::toString(VLANConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
   s += " vid " + std::to_string(cfg->id);
-  if (cfg->parent) s += " parent " + *cfg->parent;
+  if (cfg->parent)
+    s += " parent " + *cfg->parent;
   return s;
 }
 
 std::string InterfaceToken::toString(VXLANConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  if (cfg->vni) s += " vni " + std::to_string(*cfg->vni);
-  if (cfg->localAddr) s += " local " + *cfg->localAddr;
-  if (cfg->remoteAddr) s += " remote " + *cfg->remoteAddr;
+  if (cfg->vni)
+    s += " vni " + std::to_string(*cfg->vni);
+  if (cfg->localAddr)
+    s += " local " + *cfg->localAddr;
+  if (cfg->remoteAddr)
+    s += " remote " + *cfg->remoteAddr;
   return s;
 }
 
 std::string InterfaceToken::toString(WlanConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  if (cfg->ssid) s += " ssid " + *cfg->ssid;
-  if (cfg->channel) s += " channel " + std::to_string(*cfg->channel);
-  if (cfg->parent) s += " parent " + *cfg->parent;
+  if (cfg->ssid)
+    s += " ssid " + *cfg->ssid;
+  if (cfg->channel)
+    s += " channel " + std::to_string(*cfg->channel);
+  if (cfg->parent)
+    s += " parent " + *cfg->parent;
   return s;
 }
 
@@ -389,14 +423,16 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
   if (start + 1 < tokens.size()) {
     // There is at least one token after 'interfaces'
     const std::string &a = tokens[start + 1];
-    const std::string b = (start + 2 < tokens.size()) ? tokens[start + 2] : std::string();
+    const std::string b =
+        (start + 2 < tokens.size()) ? tokens[start + 2] : std::string();
 
     // support `interfaces group <group>`
     if (a == "group") {
       if (!b.empty()) {
         std::string grp = b;
         size_t nnext = start + 3;
-        auto tok = std::make_shared<InterfaceToken>(InterfaceType::Unknown, std::string());
+        auto tok = std::make_shared<InterfaceToken>(InterfaceType::Unknown,
+                                                    std::string());
         tok->group = grp;
         next = nnext;
         return tok;
@@ -407,7 +443,8 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
     if (a == "name") {
       if (!b.empty()) {
         std::string name = b;
-        auto tok = std::make_shared<InterfaceToken>(InterfaceType::Unknown, name);
+        auto tok =
+            std::make_shared<InterfaceToken>(InterfaceType::Unknown, name);
         size_t cur = start + 3;
         parseKeywords(tok, tokens, cur);
         next = cur;
@@ -422,7 +459,8 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
       // form: interfaces type <type> [name]
       if (start + 2 >= tokens.size()) {
         // user typed 'type' but no value yet
-        auto tok = std::make_shared<InterfaceToken>(InterfaceType::Unknown, std::string());
+        auto tok = std::make_shared<InterfaceToken>(InterfaceType::Unknown,
+                                                    std::string());
         tok->expect_type_value_ = true;
         next = start + 2;
         return tok;
@@ -438,7 +476,8 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
           else
             name = tokens[start + 3];
         }
-        size_t cur = start + (name.empty() ? 3 : (tokens[start + 3] == "name" ? 5 : 4));
+        size_t cur =
+            start + (name.empty() ? 3 : (tokens[start + 3] == "name" ? 5 : 4));
 
         auto tok = std::make_shared<InterfaceToken>(itype, name);
         parseKeywords(tok, tokens, cur);

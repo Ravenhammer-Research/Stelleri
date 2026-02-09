@@ -32,8 +32,8 @@
 
 #pragma once
 
-#include "Token.hpp"
 #include "ArpConfig.hpp"
+#include "Token.hpp"
 #include <memory>
 #include <optional>
 #include <string>

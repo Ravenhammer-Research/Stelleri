@@ -31,7 +31,8 @@ VRFToken::VRFToken(int table) : table_(table) {}
 
 // Static renderer for VRFConfig
 std::string VRFToken::toString(VRFConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   return std::string("vrf ") + std::to_string(cfg->table);
 }
 

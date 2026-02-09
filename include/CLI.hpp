@@ -88,8 +88,9 @@ private:
   // ── Completion helpers ───────────────────────────────────────────────
 
   /// Get completions for a partial word given preceding tokens.
-  std::vector<std::string> getCompletions(const std::vector<std::string> &tokens,
-                                          const std::string &partial) const;
+  std::vector<std::string>
+  getCompletions(const std::vector<std::string> &tokens,
+                 const std::string &partial) const;
 
   /// Remove any inline preview text from the edit buffer.
   void clearPreview();

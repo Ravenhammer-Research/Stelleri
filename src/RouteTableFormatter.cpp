@@ -28,9 +28,6 @@
 #include "RouteTableFormatter.hpp"
 #include "RouteConfig.hpp"
 #include <iomanip>
-#include <sys/socket.h>
-#include <net/route.h>
-#include <sstream>
 
 std::string
 RouteTableFormatter::format(const std::vector<RouteConfig> &routes) {
@@ -59,15 +56,15 @@ RouteTableFormatter::format(const std::vector<RouteConfig> &routes) {
       expire = std::to_string(*route.expire);
 
     // Build flags in netstat order: U G H S B R (plain letters — legend is
-    // bold)
+    // bold). Use portable constants from RouteConfig.
     std::string flags;
-    if (route.flags & RTF_UP)
+    if (route.flags & RouteConfig::RTF_UP_FLAG)
       flags += "U";
-    if (route.flags & RTF_GATEWAY)
+    if (route.flags & RouteConfig::RTF_GATEWAY_FLAG)
       flags += "G";
-    if (route.flags & RTF_HOST)
+    if (route.flags & RouteConfig::RTF_HOST_FLAG)
       flags += "H";
-    if (route.flags & RTF_STATIC)
+    if (route.flags & RouteConfig::RTF_STATIC_FLAG)
       flags += "S";
     if (route.blackhole)
       flags += "B";

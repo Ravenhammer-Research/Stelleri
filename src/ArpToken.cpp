@@ -32,8 +32,10 @@ ArpToken::ArpToken(std::string ip) : ip_(std::move(ip)) {}
 
 // toString(ConfigData*) removed — implementation deleted per request
 
-std::vector<std::string> ArpToken::autoComplete(std::string_view partial) const {
-  std::vector<std::string> options = {"mac", "interface", "permanent", "temp", "pub"};
+std::vector<std::string>
+ArpToken::autoComplete(std::string_view partial) const {
+  std::vector<std::string> options = {"mac", "interface", "permanent", "temp",
+                                      "pub"};
   std::vector<std::string> matches;
   for (const auto &opt : options) {
     if (opt.rfind(partial, 0) == 0)
@@ -92,12 +94,18 @@ ArpToken::parseFromTokens(const std::vector<std::string> &tokens, size_t start,
 
 // Static renderer for ArpConfig
 std::string ArpToken::toString(ArpConfig *cfg) {
-  if (!cfg) return std::string();
+  if (!cfg)
+    return std::string();
   std::string result = "arp " + cfg->ip;
-  if (!cfg->mac.empty()) result += " mac " + cfg->mac;
-  if (cfg->iface) result += " interface " + *cfg->iface;
-  if (cfg->permanent) result += " permanent";
-  if (cfg->published) result += " pub";
-  if (cfg->expire) result += " expire " + std::to_string(*cfg->expire);
+  if (!cfg->mac.empty())
+    result += " mac " + cfg->mac;
+  if (cfg->iface)
+    result += " interface " + *cfg->iface;
+  if (cfg->permanent)
+    result += " permanent";
+  if (cfg->published)
+    result += " pub";
+  if (cfg->expire)
+    result += " expire " + std::to_string(*cfg->expire);
   return result;
 }
