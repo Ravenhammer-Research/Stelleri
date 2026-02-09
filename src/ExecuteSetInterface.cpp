@@ -26,22 +26,22 @@
  */
 
 #include "BridgeInterfaceConfig.hpp"
-#include "CarpConfig.hpp"
+#include "CarpInterfaceConfig.hpp"
 #include "ConfigurationManager.hpp"
-#include "GREConfig.hpp"
+#include "GreInterfaceConfig.hpp"
 #include "IPAddress.hpp"
 #include "IPNetwork.hpp"
 #include "InterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
 #include "InterfaceToken.hpp"
-#include "LaggConfig.hpp"
-#include "LoopBackConfig.hpp"
-#include "TunConfig.hpp"
-#include "GifConfig.hpp"
-#include "OvpnConfig.hpp"
-#include "IpsecConfig.hpp"
-#include "VLANConfig.hpp"
-#include "VXLANConfig.hpp"
+#include "LaggInterfaceConfig.hpp"
+#include "LoopBackInterfaceConfig.hpp"
+#include "TunInterfaceConfig.hpp"
+#include "GifInterfaceConfig.hpp"
+#include "OvpnInterfaceConfig.hpp"
+#include "IpsecInterfaceConfig.hpp"
+#include "VlanInterfaceConfig.hpp"
+#include "VxlanInterfaceConfig.hpp"
 #include "EpairInterfaceConfig.hpp"
 #include <iostream>
 
@@ -157,9 +157,9 @@ namespace netcli {
                        "<if1,if2,...> [protocol <proto>]\n";
           return;
         }
-        LaggConfig lac(base, tok.lagg->protocol, tok.lagg->members,
-                       tok.lagg->hash_policy, tok.lagg->lacp_rate,
-                       tok.lagg->min_links);
+        LaggInterfaceConfig lac(base, tok.lagg->protocol, tok.lagg->members,
+                 tok.lagg->hash_policy, tok.lagg->lacp_rate,
+                 tok.lagg->min_links);
         lac.save(*mgr);
         std::cout << "set interface: " << (exists ? "updated" : "created")
                   << " lagg '" << name << "'\n";
@@ -175,7 +175,7 @@ namespace netcli {
                  "parent <parent_iface>\n";
           return;
         }
-        VLANConfig vc(base, tok.vlan->id, tok.vlan->parent, tok.vlan->pcp);
+        VlanInterfaceConfig vc(base, tok.vlan->id, tok.vlan->parent, tok.vlan->pcp);
         vc.InterfaceConfig::name = name;
         vc.save(*mgr);
         std::cout << "set interface: " << (exists ? "updated" : "created")
@@ -184,7 +184,7 @@ namespace netcli {
       }
 
       if (effectiveType == InterfaceType::Tun) {
-        TunConfig tc(base);
+        TunInterfaceConfig tc(base);
         if (tok.tunnel_vrf) {
           if (!tc.vrf)
             tc.vrf = std::make_unique<VRFConfig>(*tok.tunnel_vrf);
@@ -197,7 +197,7 @@ namespace netcli {
         return;
       }
       if (effectiveType == InterfaceType::Gif) {
-        GifConfig gc(base);
+        GifInterfaceConfig gc(base);
         if (tok.tunnel_vrf) {
           if (!gc.vrf)
             gc.vrf = std::make_unique<VRFConfig>(*tok.tunnel_vrf);
@@ -210,7 +210,7 @@ namespace netcli {
         return;
       }
       if (effectiveType == InterfaceType::IPsec) {
-        IpsecConfig icfg(base);
+        IpsecInterfaceConfig icfg(base);
         if (tok.tunnel_vrf) {
           if (!icfg.vrf)
             icfg.vrf = std::make_unique<VRFConfig>(*tok.tunnel_vrf);
@@ -224,7 +224,7 @@ namespace netcli {
       }
       if (effectiveType == InterfaceType::Tunnel) {
         // Generic tunnel -> default to Tun
-        TunConfig tc(base);
+        TunInterfaceConfig tc(base);
         if (tok.tunnel_vrf) {
           if (!tc.vrf)
             tc.vrf = std::make_unique<VRFConfig>(*tok.tunnel_vrf);
@@ -238,7 +238,7 @@ namespace netcli {
       }
 
       if (effectiveType == InterfaceType::Loopback) {
-        LoopBackConfig lbc(base);
+        LoopBackInterfaceConfig lbc(base);
         lbc.save(*mgr);
         std::cout << "set interface: " << (exists ? "updated" : "created")
                   << " loopback '" << name << "'\n";
@@ -246,7 +246,7 @@ namespace netcli {
       }
 
       if (effectiveType == InterfaceType::GRE) {
-        GREConfig gc(base);
+        GreInterfaceConfig gc(base);
         gc.save(*mgr);
         std::cout << "set interface: " << (exists ? "updated" : "created")
                   << " gre '" << name << "'\n";
@@ -254,7 +254,7 @@ namespace netcli {
       }
 
       if (effectiveType == InterfaceType::VXLAN) {
-        VXLANConfig vxc(base);
+        VxlanInterfaceConfig vxc(base);
         vxc.save(*mgr);
         std::cout << "set interface: " << (exists ? "updated" : "created")
                   << " vxlan '" << name << "'\n";

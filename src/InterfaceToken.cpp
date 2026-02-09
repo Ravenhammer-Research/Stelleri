@@ -26,32 +26,31 @@
  */
 
 #include "InterfaceToken.hpp"
-#include "BridgeConfig.hpp"
 #include "BridgeTableFormatter.hpp"
-#include "CarpConfig.hpp"
-#include "GREConfig.hpp"
+#include "CarpInterfaceConfig.hpp"
+#include "GreInterfaceConfig.hpp"
 #include "InterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
 #include "InterfaceTableFormatter.hpp"
 #include "InterfaceType.hpp"
-#include "LaggConfig.hpp"
+#include "LaggInterfaceConfig.hpp"
 #include "LaggTableFormatter.hpp"
 #include "SingleInterfaceSummaryFormatter.hpp"
-#include "SixToFourConfig.hpp"
-#include "TapConfig.hpp"
-#include "TunConfig.hpp"
-#include "GifConfig.hpp"
-#include "OvpnConfig.hpp"
-#include "IpsecConfig.hpp"
+#include "SixToFourInterfaceConfig.hpp"
+#include "TapInterfaceConfig.hpp"
+#include "TunInterfaceConfig.hpp"
+#include "GifInterfaceConfig.hpp"
+#include "OvpnInterfaceConfig.hpp"
+#include "IpsecInterfaceConfig.hpp"
 #include "TunTableFormatter.hpp"
 #include "GifTableFormatter.hpp"
 #include "OvpnTableFormatter.hpp"
 #include "IpsecTableFormatter.hpp"
-#include "VLANConfig.hpp"
-#include "VLANTableFormatter.hpp"
-#include "VXLANConfig.hpp"
+#include "VlanInterfaceConfig.hpp"
+#include "VlanTableFormatter.hpp"
+#include "VxlanInterfaceConfig.hpp"
 #include "EpairTableFormatter.hpp"
-#include "WlanConfig.hpp"
+#include "WlanInterfaceConfig.hpp"
 #include <iostream>
 #include <netinet/in.h>
 #include <sstream>
@@ -213,13 +212,13 @@ std::string InterfaceToken::toString(InterfaceConfig *cfg) {
   return result;
 }
 
-std::string InterfaceToken::toString(BridgeConfig *cfg) {
+std::string InterfaceToken::toString(BridgeInterfaceConfig *cfg) {
   if (!cfg)
     return std::string();
   return std::string("interface type bridge");
 }
 
-std::string InterfaceToken::toString(CarpConfig *cfg) {
+std::string InterfaceToken::toString(CarpInterfaceConfig *cfg) {
   if (!cfg)
     return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
@@ -234,7 +233,7 @@ std::string InterfaceToken::toString(CarpConfig *cfg) {
   return s;
 }
 
-std::string InterfaceToken::toString(GREConfig *cfg) {
+std::string InterfaceToken::toString(GreInterfaceConfig *cfg) {
   if (!cfg)
     return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
@@ -245,7 +244,7 @@ std::string InterfaceToken::toString(GREConfig *cfg) {
   return s;
 }
 
-std::string InterfaceToken::toString(LaggConfig *cfg) {
+std::string InterfaceToken::toString(LaggInterfaceConfig *cfg) {
   if (!cfg)
     return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
@@ -254,13 +253,13 @@ std::string InterfaceToken::toString(LaggConfig *cfg) {
   return s;
 }
 
-std::string InterfaceToken::toString(SixToFourConfig *cfg) {
+std::string InterfaceToken::toString(SixToFourInterfaceConfig *cfg) {
   if (!cfg)
     return std::string();
   return InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
 }
 
-std::string InterfaceToken::toString(TapConfig *cfg) {
+std::string InterfaceToken::toString(TapInterfaceConfig *cfg) {
   if (!cfg)
     return std::string();
   return InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
@@ -268,7 +267,7 @@ std::string InterfaceToken::toString(TapConfig *cfg) {
 
 // legacy TunnelConfig removed
 
-std::string InterfaceToken::toString(TunConfig *cfg) {
+std::string InterfaceToken::toString(TunInterfaceConfig *cfg) {
   if (!cfg)
     return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
@@ -279,7 +278,7 @@ std::string InterfaceToken::toString(TunConfig *cfg) {
   return s;
 }
 
-std::string InterfaceToken::toString(GifConfig *cfg) {
+std::string InterfaceToken::toString(GifInterfaceConfig *cfg) {
   if (!cfg)
     return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
@@ -290,7 +289,7 @@ std::string InterfaceToken::toString(GifConfig *cfg) {
   return s;
 }
 
-std::string InterfaceToken::toString(OvpnConfig *cfg) {
+std::string InterfaceToken::toString(OvpnInterfaceConfig *cfg) {
   if (!cfg)
     return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
@@ -301,7 +300,7 @@ std::string InterfaceToken::toString(OvpnConfig *cfg) {
   return s;
 }
 
-std::string InterfaceToken::toString(IpsecConfig *cfg) {
+std::string InterfaceToken::toString(IpsecInterfaceConfig *cfg) {
   if (!cfg)
     return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
@@ -312,7 +311,7 @@ std::string InterfaceToken::toString(IpsecConfig *cfg) {
   return s;
 }
 
-std::string InterfaceToken::toString(VLANConfig *cfg) {
+std::string InterfaceToken::toString(VlanInterfaceConfig *cfg) {
   if (!cfg)
     return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
@@ -322,7 +321,7 @@ std::string InterfaceToken::toString(VLANConfig *cfg) {
   return s;
 }
 
-std::string InterfaceToken::toString(VXLANConfig *cfg) {
+std::string InterfaceToken::toString(VxlanInterfaceConfig *cfg) {
   if (!cfg)
     return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
@@ -335,7 +334,7 @@ std::string InterfaceToken::toString(VXLANConfig *cfg) {
   return s;
 }
 
-std::string InterfaceToken::toString(WlanConfig *cfg) {
+std::string InterfaceToken::toString(WlanInterfaceConfig *cfg) {
   if (!cfg)
     return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
@@ -407,7 +406,7 @@ void InterfaceToken::parseKeywords(std::shared_ptr<InterfaceToken> &tok,
     }
     if (kw == "lagg" || kw == "lag") {
       ++cur;
-      LaggConfig lc;
+      LaggInterfaceConfig lc;
       while (cur < tokens.size()) {
         const std::string &k2 = tokens[cur];
         if (k2 == "members" && cur + 1 < tokens.size()) {
