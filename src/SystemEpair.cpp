@@ -27,7 +27,7 @@
 
 #include "Socket.hpp"
 #include "SystemConfigurationManager.hpp"
-#include "VirtualInterfaceConfig.hpp"
+#include "EpairInterfaceConfig.hpp"
 
 #include <cerrno>
 #include <cstring>

@@ -1,10 +1,10 @@
 /*
- * Tunnel system helper implementations
+ * GIF system helper implementations
  */
 
 #include "Socket.hpp"
 #include "SystemConfigurationManager.hpp"
-#include "TunnelConfig.hpp"
+#include "GifConfig.hpp"
 
 #include "IPAddress.hpp"
 
@@ -18,27 +18,27 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 
-void SystemConfigurationManager::SaveTunnel(const TunnelConfig &t) const {
+void SystemConfigurationManager::SaveGif(const GifConfig &t) const {
   if (t.name.empty())
-    throw std::runtime_error("TunnelConfig has no interface name set");
+    throw std::runtime_error("GifConfig has no interface name set");
 
   if (!t.source || !t.destination) {
-    throw std::runtime_error("Tunnel endpoints not configured");
+    throw std::runtime_error("Gif endpoints not configured");
   }
 
   if (!InterfaceConfig::exists(*this, t.name))
-    CreateTunnel(t.name);
+    CreateGif(t.name);
   else
     SaveInterface(static_cast<const InterfaceConfig &>(t));
 
   auto src_addr = IPAddress::fromString(t.source->toString());
   auto dst_addr = IPAddress::fromString(t.destination->toString());
   if (!src_addr || !dst_addr) {
-    throw std::runtime_error("Invalid tunnel endpoint addresses");
+    throw std::runtime_error("Invalid gif endpoint addresses");
   }
   if (src_addr->family() != dst_addr->family()) {
     throw std::runtime_error(
-        "Tunnel endpoints must be same address family (both IPv4 or IPv6)");
+        "Gif endpoints must be same address family (both IPv4 or IPv6)");
   }
 
   Socket tsock(AF_INET, SOCK_DGRAM);
@@ -64,26 +64,25 @@ void SystemConfigurationManager::SaveTunnel(const TunnelConfig &t) const {
     sin_dst->sin_addr.s_addr = htonl(v4dst->value());
 
     if (ioctl(tsock, SIOCSIFPHYADDR, &ifra) < 0) {
-      throw std::runtime_error("Failed to configure GIF tunnel endpoints: " +
+      throw std::runtime_error("Failed to configure GIF endpoints: " +
                                std::string(strerror(errno)));
     }
   } else {
-    std::cerr << "Warning: IPv6 tunnel configuration requires routing socket - "
+    std::cerr << "Warning: IPv6 gif configuration requires routing socket - "
                  "not fully implemented\n";
   }
 }
 
-void SystemConfigurationManager::CreateTunnel(const std::string &nm) const {
+void SystemConfigurationManager::CreateGif(const std::string &nm) const {
   cloneInterface(nm, SIOCIFCREATE);
 }
 
-std::vector<TunnelConfig> SystemConfigurationManager::GetTunnelInterfaces(
+std::vector<GifConfig> SystemConfigurationManager::GetGifInterfaces(
     const std::optional<VRFConfig> &vrf) const {
   auto bases = GetInterfaces(vrf);
-  std::vector<TunnelConfig> out;
+  std::vector<GifConfig> out;
   for (const auto &ic : bases) {
-    if (ic.type == InterfaceType::Tunnel || ic.type == InterfaceType::Tun ||
-        ic.type == InterfaceType::Gif) {
+    if (ic.type == InterfaceType::Gif) {
       out.emplace_back(ic);
     }
   }

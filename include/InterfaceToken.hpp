@@ -43,7 +43,10 @@
 #include "SixToFourConfig.hpp"
 #include "TapConfig.hpp"
 #include "Token.hpp"
-#include "TunnelConfig.hpp"
+#include "TunConfig.hpp"
+#include "GifConfig.hpp"
+#include "OvpnConfig.hpp"
+#include "IpsecConfig.hpp"
 #include "VLANConfig.hpp"
 #include "VXLANConfig.hpp"
 #include "WlanConfig.hpp"
@@ -67,7 +70,11 @@ public:
   static std::string toString(LaggConfig *cfg);
   static std::string toString(SixToFourConfig *cfg);
   static std::string toString(TapConfig *cfg);
-  static std::string toString(TunnelConfig *cfg);
+  
+  static std::string toString(TunConfig *cfg);
+  static std::string toString(GifConfig *cfg);
+  static std::string toString(OvpnConfig *cfg);
+  static std::string toString(IpsecConfig *cfg);
   static std::string toString(VLANConfig *cfg);
   static std::string toString(VXLANConfig *cfg);
   static std::string toString(WlanConfig *cfg);
@@ -90,7 +97,10 @@ public:
   std::optional<BridgeInterfaceConfig> bridge;
   std::optional<LaggConfig> lagg;
   std::optional<VLANConfig> vlan;
-  std::optional<TunnelConfig> tunnel;
+  std::optional<TunConfig> tun;
+  std::optional<GifConfig> gif;
+  std::optional<OvpnConfig> ovpn;
+  std::optional<IpsecConfig> ipsec;
 
   // (Rendering moved to execute handlers. Token is parse-only.)
 

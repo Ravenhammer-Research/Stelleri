@@ -25,7 +25,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "VirtualInterfaceConfig.hpp"
+#include "EpairInterfaceConfig.hpp"
 
 #include "ConfigurationManager.hpp"
 
@@ -35,7 +35,7 @@
 #include <stdexcept>
 #include <string>
 
-VirtualInterfaceConfig::VirtualInterfaceConfig(const InterfaceConfig &base) {
+EpairInterfaceConfig::EpairInterfaceConfig(const InterfaceConfig &base) {
   name = base.name;
   type = base.type;
   if (base.address)
@@ -52,10 +52,10 @@ VirtualInterfaceConfig::VirtualInterfaceConfig(const InterfaceConfig &base) {
   mtu = base.mtu;
 }
 
-VirtualInterfaceConfig::VirtualInterfaceConfig(const InterfaceConfig &base,
-                                               std::optional<std::string> peer_,
-                                               std::optional<int> rdomain_,
-                                               bool promiscuous_) {
+EpairInterfaceConfig::EpairInterfaceConfig(const InterfaceConfig &base,
+                                           std::optional<std::string> peer_,
+                                           std::optional<int> rdomain_,
+                                           bool promiscuous_) {
   name = base.name;
   type = base.type;
   if (base.address)
@@ -76,10 +76,10 @@ VirtualInterfaceConfig::VirtualInterfaceConfig(const InterfaceConfig &base,
   promiscuous = promiscuous_;
 }
 
-void VirtualInterfaceConfig::save(ConfigurationManager &mgr) const {
+void EpairInterfaceConfig::save(ConfigurationManager &mgr) const {
   mgr.SaveVirtual(*this);
 }
 
-void VirtualInterfaceConfig::create(ConfigurationManager &mgr) const {
+void EpairInterfaceConfig::create(ConfigurationManager &mgr) const {
   mgr.CreateVirtual(name);
 }

@@ -31,7 +31,10 @@
 #include "InterfaceFlags.hpp"
 #include "InterfaceType.hpp"
 #include "LaggConfig.hpp"
-#include "TunnelConfig.hpp"
+#include "TunConfig.hpp"
+#include "GifConfig.hpp"
+#include "OvpnConfig.hpp"
+#include "IpsecConfig.hpp"
 #include "VLANConfig.hpp"
 #include <sstream>
 
@@ -112,14 +115,38 @@ SingleInterfaceSummaryFormatter::format(const InterfaceConfig &ic) const {
     oss << "VRF:       " << ic.vrf->table << "\n";
   }
 
-  // Tunnel details (use dynamic_cast to access derived TunnelConfig)
-  if (auto tptr = dynamic_cast<const TunnelConfig *>(&ic)) {
+  // Tunnel details (support multiple tunnel-derived config types)
+  if (auto tptr = dynamic_cast<const TunConfig *>(&ic)) {
     if (tptr->tunnel_vrf)
       oss << "Tunnel VRF: " << *tptr->tunnel_vrf << "\n";
     if (tptr->source)
       oss << "Tunnel Src: " << tptr->source->toString() << "\n";
     if (tptr->destination)
       oss << "Tunnel Dst: " << tptr->destination->toString() << "\n";
+  }
+  if (auto gptr = dynamic_cast<const GifConfig *>(&ic)) {
+    if (gptr->tunnel_vrf)
+      oss << "Tunnel VRF: " << *gptr->tunnel_vrf << "\n";
+    if (gptr->source)
+      oss << "Tunnel Src: " << gptr->source->toString() << "\n";
+    if (gptr->destination)
+      oss << "Tunnel Dst: " << gptr->destination->toString() << "\n";
+  }
+  if (auto optr = dynamic_cast<const OvpnConfig *>(&ic)) {
+    if (optr->tunnel_vrf)
+      oss << "Tunnel VRF: " << *optr->tunnel_vrf << "\n";
+    if (optr->source)
+      oss << "Tunnel Src: " << optr->source->toString() << "\n";
+    if (optr->destination)
+      oss << "Tunnel Dst: " << optr->destination->toString() << "\n";
+  }
+  if (auto iptr = dynamic_cast<const IpsecConfig *>(&ic)) {
+    if (iptr->tunnel_vrf)
+      oss << "Tunnel VRF: " << *iptr->tunnel_vrf << "\n";
+    if (iptr->source)
+      oss << "Tunnel Src: " << iptr->source->toString() << "\n";
+    if (iptr->destination)
+      oss << "Tunnel Dst: " << iptr->destination->toString() << "\n";
   }
 
   // Show bridge details

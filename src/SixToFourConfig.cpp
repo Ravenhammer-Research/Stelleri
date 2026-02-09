@@ -35,7 +35,7 @@ void SixToFourConfig::create(ConfigurationManager &mgr) const {
   if (InterfaceConfig::exists(mgr, name))
     return;
 
-  mgr.CreateTunnel(name);
+  mgr.CreateTun(name);
 }
 
 void SixToFourConfig::save(ConfigurationManager &mgr) const {

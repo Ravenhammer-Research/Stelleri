@@ -25,11 +25,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "VirtualTableFormatter.hpp"
+#include "EpairTableFormatter.hpp"
 #include "InterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
 #include "InterfaceType.hpp"
-#include "VirtualInterfaceConfig.hpp"
+#include "EpairInterfaceConfig.hpp"
 #include <algorithm>
 #include <array>
 #include <iomanip>
@@ -39,9 +39,9 @@
 #include <string>
 
 std::string
-VirtualTableFormatter::format(const std::vector<InterfaceConfig> &interfaces) {
+EpairTableFormatter::format(const std::vector<InterfaceConfig> &interfaces) {
   if (interfaces.empty())
-    return "No virtual interfaces found.\n";
+    return "No epair interfaces found.\n";
 
   // Columns: peer_a | VRF | MTU | Status | Flags | peer_b | VRF | MTU | Status
   // | Flags

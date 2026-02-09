@@ -37,10 +37,13 @@
 #include "SingleInterfaceSummaryFormatter.hpp"
 #include "SixToFourTableFormatter.hpp"
 #include "TapTableFormatter.hpp"
-#include "TunnelTableFormatter.hpp"
+#include "TunTableFormatter.hpp"
+#include "GifTableFormatter.hpp"
+#include "OvpnTableFormatter.hpp"
+#include "IpsecTableFormatter.hpp"
 #include "VLANTableFormatter.hpp"
 #include "VXLANTableFormatter.hpp"
-#include "VirtualTableFormatter.hpp"
+#include "EpairTableFormatter.hpp"
 #include "WlanTableFormatter.hpp"
 #include <iomanip>
 #include <iostream>

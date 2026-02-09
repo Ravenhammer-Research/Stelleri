@@ -41,11 +41,14 @@
 #include "NdpConfig.hpp"
 #include "RouteConfig.hpp"
 #include "TapConfig.hpp"
-#include "TunnelConfig.hpp"
+#include "TunConfig.hpp"
+#include "GifConfig.hpp"
+#include "OvpnConfig.hpp"
+#include "IpsecConfig.hpp"
 #include "VLANConfig.hpp"
 #include "VRFConfig.hpp"
 #include "VXLANConfig.hpp"
-#include "VirtualInterfaceConfig.hpp"
+#include "EpairInterfaceConfig.hpp"
 #include "WlanConfig.hpp"
 #include <optional>
 #include <string_view>
@@ -71,7 +74,14 @@ public:
       const std::optional<VRFConfig> &vrf = std::nullopt) const override;
   std::vector<VLANConfig> GetVLANInterfaces(
       const std::optional<VRFConfig> &vrf = std::nullopt) const override;
-  std::vector<TunnelConfig> GetTunnelInterfaces(
+  
+  std::vector<TunConfig> GetTunInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+  std::vector<GifConfig> GetGifInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+  std::vector<OvpnConfig> GetOvpnInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+  std::vector<IpsecConfig> GetIpsecInterfaces(
       const std::optional<VRFConfig> &vrf = std::nullopt) const override;
   std::vector<VirtualInterfaceConfig> GetVirtualInterfaces(
       const std::optional<VRFConfig> &vrf = std::nullopt) const override;
@@ -177,9 +187,15 @@ public:
   // CARP-specific operations
   void SaveCarp(const CarpConfig &carp) const override;
 
-  // Tunnel-specific operations
-  void CreateTunnel(const std::string &name) const override;
-  void SaveTunnel(const TunnelConfig &tunnel) const override;
+    // Tunnel-specific operations for concrete types
+    void CreateTun(const std::string &name) const override;
+    void SaveTun(const TunConfig &tun) const override;
+    void CreateGif(const std::string &name) const override;
+    void SaveGif(const GifConfig &gif) const override;
+    void CreateOvpn(const std::string &name) const override;
+    void SaveOvpn(const OvpnConfig &ovpn) const override;
+    void CreateIpsec(const std::string &name) const override;
+    void SaveIpsec(const IpsecConfig &ipsec) const override;
 
   // VLAN-specific operations
   void SaveVlan(const VLANConfig &vlan) const override;

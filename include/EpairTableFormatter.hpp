@@ -26,8 +26,8 @@
  */
 
 /**
- * @file TunnelTableFormatter.hpp
- * @brief Formatter for tunnel interface details
+ * @file VirtualTableFormatter.hpp
+ * @brief Formatter for epair interface details
  */
 
 #pragma once
@@ -38,18 +38,23 @@
 #include <vector>
 
 /**
- * @brief Formats tunnel interface configuration as ASCII table
+ * @brief Formats virtual interface configuration as ASCII table
  *
- * Shows tunnel-specific details like source, destination, tunnel-vrf (FIB).
+ * Shows virtual interface details like epair peers, tap devices, routing
+ * domain.
  */
-class TunnelTableFormatter : public TableFormatter<InterfaceConfig> {
+class EpairTableFormatter : public TableFormatter<InterfaceConfig> {
 public:
-  TunnelTableFormatter() = default;
+  EpairTableFormatter() = default;
 
   /**
-   * @brief Format tunnel interfaces into a detailed table
-   * @param interfaces List of InterfaceConfig with tunnel configurations
+   * @brief Format epair interfaces into a detailed table
+   * @param interfaces List of InterfaceConfig with epair interface
+   * configurations
    * @return Formatted ASCII table string
    */
   std::string format(const std::vector<InterfaceConfig> &interfaces) override;
 };
+
+// Backwards compatibility alias
+using VirtualTableFormatter = EpairTableFormatter;

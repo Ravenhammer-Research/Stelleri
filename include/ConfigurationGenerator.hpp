@@ -68,9 +68,7 @@ namespace netcli {
                                std::set<std::string> &processedInterfaces) = 0;
     virtual void generateVLANs(ConfigurationManager &mgr,
                                std::set<std::string> &processedInterfaces) = 0;
-    virtual void
-    generateTunnels(ConfigurationManager &mgr,
-                    std::set<std::string> &processedInterfaces) = 0;
+    // Tunnel generation is handled centrally by ConfigurationGenerator
     virtual void
     generateVirtuals(ConfigurationManager &mgr,
                      std::set<std::string> &processedInterfaces) = 0;

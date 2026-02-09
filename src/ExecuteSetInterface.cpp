@@ -36,10 +36,13 @@
 #include "InterfaceToken.hpp"
 #include "LaggConfig.hpp"
 #include "LoopBackConfig.hpp"
-#include "TunnelConfig.hpp"
+#include "TunConfig.hpp"
+#include "GifConfig.hpp"
+#include "OvpnConfig.hpp"
+#include "IpsecConfig.hpp"
 #include "VLANConfig.hpp"
 #include "VXLANConfig.hpp"
-#include "VirtualInterfaceConfig.hpp"
+#include "EpairInterfaceConfig.hpp"
 #include <iostream>
 
 namespace netcli {
@@ -180,11 +183,48 @@ namespace netcli {
         return;
       }
 
-      if (effectiveType == InterfaceType::Tunnel ||
-          effectiveType == InterfaceType::Gif ||
-          effectiveType == InterfaceType::Tun) {
-        TunnelConfig tc(base);
-        // Handle tunnel-specific VRF if provided
+      if (effectiveType == InterfaceType::Tun) {
+        TunConfig tc(base);
+        if (tok.tunnel_vrf) {
+          if (!tc.vrf)
+            tc.vrf = std::make_unique<VRFConfig>(*tok.tunnel_vrf);
+          else
+            tc.vrf->table = *tok.tunnel_vrf;
+        }
+        tc.save(*mgr);
+        std::cout << "set interface: " << (exists ? "updated" : "created")
+                  << " tun '" << name << "'\n";
+        return;
+      }
+      if (effectiveType == InterfaceType::Gif) {
+        GifConfig gc(base);
+        if (tok.tunnel_vrf) {
+          if (!gc.vrf)
+            gc.vrf = std::make_unique<VRFConfig>(*tok.tunnel_vrf);
+          else
+            gc.vrf->table = *tok.tunnel_vrf;
+        }
+        gc.save(*mgr);
+        std::cout << "set interface: " << (exists ? "updated" : "created")
+                  << " gif '" << name << "'\n";
+        return;
+      }
+      if (effectiveType == InterfaceType::IPsec) {
+        IpsecConfig icfg(base);
+        if (tok.tunnel_vrf) {
+          if (!icfg.vrf)
+            icfg.vrf = std::make_unique<VRFConfig>(*tok.tunnel_vrf);
+          else
+            icfg.vrf->table = *tok.tunnel_vrf;
+        }
+        icfg.save(*mgr);
+        std::cout << "set interface: " << (exists ? "updated" : "created")
+                  << " ipsec '" << name << "'\n";
+        return;
+      }
+      if (effectiveType == InterfaceType::Tunnel) {
+        // Generic tunnel -> default to Tun
+        TunConfig tc(base);
         if (tok.tunnel_vrf) {
           if (!tc.vrf)
             tc.vrf = std::make_unique<VRFConfig>(*tok.tunnel_vrf);

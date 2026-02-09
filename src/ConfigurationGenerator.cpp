@@ -26,6 +26,10 @@
  */
 
 #include "ConfigurationGenerator.hpp"
+#include "GenerateTunCommands.hpp"
+#include "GenerateGifCommands.hpp"
+#include "GenerateOvpnCommands.hpp"
+#include "GenerateIpsecCommands.hpp"
 
 namespace netcli {
 
@@ -43,7 +47,11 @@ namespace netcli {
     generateBridges(mgr, processedInterfaces);
     generateLaggs(mgr, processedInterfaces);
     generateVLANs(mgr, processedInterfaces);
-    generateTunnels(mgr, processedInterfaces);
+    // Generate tunnels by specific type
+    generateTunCommands(mgr, processedInterfaces);
+    generateGifCommands(mgr, processedInterfaces);
+    generateOvpnCommands(mgr, processedInterfaces);
+    generateIpsecCommands(mgr, processedInterfaces);
     generateVirtuals(mgr, processedInterfaces);
 
     // Generate routes

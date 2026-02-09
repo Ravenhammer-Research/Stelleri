@@ -39,12 +39,18 @@
 #include "SingleInterfaceSummaryFormatter.hpp"
 #include "SixToFourConfig.hpp"
 #include "TapConfig.hpp"
-#include "TunnelConfig.hpp"
-#include "TunnelTableFormatter.hpp"
+#include "TunConfig.hpp"
+#include "GifConfig.hpp"
+#include "OvpnConfig.hpp"
+#include "IpsecConfig.hpp"
+#include "TunTableFormatter.hpp"
+#include "GifTableFormatter.hpp"
+#include "OvpnTableFormatter.hpp"
+#include "IpsecTableFormatter.hpp"
 #include "VLANConfig.hpp"
 #include "VLANTableFormatter.hpp"
 #include "VXLANConfig.hpp"
-#include "VirtualTableFormatter.hpp"
+#include "EpairTableFormatter.hpp"
 #include "WlanConfig.hpp"
 #include <iostream>
 #include <netinet/in.h>
@@ -73,8 +79,8 @@ InterfaceToken::autoComplete(std::string_view partial) const {
 
   // If we are at the top-level after `show interface`, only suggest these
   // primary keywords.
-  if (name_.empty() && type_ == InterfaceType::Unknown && !vrf && !mtu &&
-      !status && !vlan && !lagg && !bridge && !tunnel) {
+    if (name_.empty() && type_ == InterfaceType::Unknown && !vrf && !mtu &&
+      !status && !vlan && !lagg && !bridge && !tun && !gif && !ovpn && !ipsec) {
     std::vector<std::string> top = {"name", "group", "type"};
     std::vector<std::string> matches;
     for (const auto &opt : top) {
@@ -86,8 +92,8 @@ InterfaceToken::autoComplete(std::string_view partial) const {
 
   // If a name is already set but no other attributes, only suggest
   // type and group as the next keywords.
-  if (!name_.empty() && type_ == InterfaceType::Unknown && !vrf && !mtu &&
-      !status && !vlan && !lagg && !bridge && !tunnel) {
+    if (!name_.empty() && type_ == InterfaceType::Unknown && !vrf && !mtu &&
+      !status && !vlan && !lagg && !bridge && !tun && !gif && !ovpn && !ipsec) {
     std::vector<std::string> next_opts = {"type", "group"};
     std::vector<std::string> matches;
     for (const auto &opt : next_opts) {
@@ -260,7 +266,42 @@ std::string InterfaceToken::toString(TapConfig *cfg) {
   return InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
 }
 
-std::string InterfaceToken::toString(TunnelConfig *cfg) {
+// legacy TunnelConfig removed
+
+std::string InterfaceToken::toString(TunConfig *cfg) {
+  if (!cfg)
+    return std::string();
+  std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
+  if (cfg->source)
+    s += " source " + cfg->source->toString();
+  if (cfg->destination)
+    s += " destination " + cfg->destination->toString();
+  return s;
+}
+
+std::string InterfaceToken::toString(GifConfig *cfg) {
+  if (!cfg)
+    return std::string();
+  std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
+  if (cfg->source)
+    s += " source " + cfg->source->toString();
+  if (cfg->destination)
+    s += " destination " + cfg->destination->toString();
+  return s;
+}
+
+std::string InterfaceToken::toString(OvpnConfig *cfg) {
+  if (!cfg)
+    return std::string();
+  std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
+  if (cfg->source)
+    s += " source " + cfg->source->toString();
+  if (cfg->destination)
+    s += " destination " + cfg->destination->toString();
+  return s;
+}
+
+std::string InterfaceToken::toString(IpsecConfig *cfg) {
   if (!cfg)
     return std::string();
   std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));

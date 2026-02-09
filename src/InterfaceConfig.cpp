@@ -43,11 +43,14 @@
 #include "LaggTableFormatter.hpp"
 #include "SixToFourTableFormatter.hpp"
 #include "TapTableFormatter.hpp"
-#include "TunnelTableFormatter.hpp"
+#include "TunTableFormatter.hpp"
+#include "GifTableFormatter.hpp"
+#include "OvpnTableFormatter.hpp"
+#include "IpsecTableFormatter.hpp"
 #include "VLANTableFormatter.hpp"
 #include "VRFConfig.hpp"
 #include "VXLANTableFormatter.hpp"
-#include "VirtualTableFormatter.hpp"
+#include "EpairTableFormatter.hpp"
 #include "WlanTableFormatter.hpp"
 
 // (no helpers) prepare `ifreq` inline where needed
@@ -228,7 +231,27 @@ InterfaceConfig::formatInterfaces(const std::vector<InterfaceConfig> &ifaces,
     return formatter.format(ifaces);
   }
   if (ifaces[0].isTunnelish()) {
-    TunnelTableFormatter formatter;
+    // Choose specific tunnel formatter by concrete type or name heuristics
+    auto t = ifaces[0].type;
+    if (t == InterfaceType::Gif) {
+      GifTableFormatter formatter;
+      return formatter.format(ifaces);
+    }
+    if (t == InterfaceType::Tun) {
+      TunTableFormatter formatter;
+      return formatter.format(ifaces);
+    }
+    if (t == InterfaceType::IPsec) {
+      IpsecTableFormatter formatter;
+      return formatter.format(ifaces);
+    }
+    // Heuristic: if name prefix 'ovpn' use Ovpn formatter
+    if (ifaces[0].name.rfind("ovpn", 0) == 0) {
+      OvpnTableFormatter formatter;
+      return formatter.format(ifaces);
+    }
+    // Default to Tun formatter for generic tunnel type
+    TunTableFormatter formatter;
     return formatter.format(ifaces);
   }
   if (ifaces[0].isGre()) {

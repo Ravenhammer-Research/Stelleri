@@ -48,11 +48,15 @@
 #include "NdpConfig.hpp"
 #include "RouteConfig.hpp"
 #include "TapConfig.hpp"
-#include "TunnelConfig.hpp"
+#include "TunConfig.hpp"
+#include "TunConfig.hpp"
+#include "GifConfig.hpp"
+#include "OvpnConfig.hpp"
+#include "IpsecConfig.hpp"
 #include "VLANConfig.hpp"
 #include "VRFConfig.hpp"
 #include "VXLANConfig.hpp"
-#include "VirtualInterfaceConfig.hpp"
+#include "EpairInterfaceConfig.hpp"
 #include "WlanConfig.hpp"
 
 /**
@@ -79,7 +83,14 @@ public:
       const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
   virtual std::vector<VLANConfig> GetVLANInterfaces(
       const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
-  virtual std::vector<TunnelConfig> GetTunnelInterfaces(
+  
+  virtual std::vector<TunConfig> GetTunInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+  virtual std::vector<GifConfig> GetGifInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+  virtual std::vector<OvpnConfig> GetOvpnInterfaces(
+      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+  virtual std::vector<IpsecConfig> GetIpsecInterfaces(
       const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
   virtual std::vector<VirtualInterfaceConfig> GetVirtualInterfaces(
       const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
@@ -143,9 +154,16 @@ public:
   // VLAN operations
   virtual void SaveVlan(const VLANConfig &vlan) const = 0;
 
-  // Tunnel operations
-  virtual void CreateTunnel(const std::string &name) const = 0;
-  virtual void SaveTunnel(const TunnelConfig &tunnel) const = 0;
+    // Tunnel operations (specific types below)
+  
+    virtual void CreateTun(const std::string &name) const = 0;
+    virtual void SaveTun(const TunConfig &tun) const = 0;
+    virtual void CreateGif(const std::string &name) const = 0;
+    virtual void SaveGif(const GifConfig &gif) const = 0;
+    virtual void CreateOvpn(const std::string &name) const = 0;
+    virtual void SaveOvpn(const OvpnConfig &ovpn) const = 0;
+    virtual void CreateIpsec(const std::string &name) const = 0;
+    virtual void SaveIpsec(const IpsecConfig &ipsec) const = 0;
 
   // Virtual interface (epair/clone) operations
   virtual void CreateVirtual(const std::string &name) const = 0;

@@ -68,7 +68,19 @@ public:
     return {};
   }
 
-  std::vector<TunnelConfig> GetTunnelInterfaces(
+  std::vector<TunConfig> GetTunInterfaces(
+      const std::optional<VRFConfig> & /*vrf*/ = std::nullopt) const override {
+    return {};
+  }
+  std::vector<GifConfig> GetGifInterfaces(
+      const std::optional<VRFConfig> & /*vrf*/ = std::nullopt) const override {
+    return {};
+  }
+  std::vector<OvpnConfig> GetOvpnInterfaces(
+      const std::optional<VRFConfig> & /*vrf*/ = std::nullopt) const override {
+    return {};
+  }
+  std::vector<IpsecConfig> GetIpsecInterfaces(
       const std::optional<VRFConfig> & /*vrf*/ = std::nullopt) const override {
     return {};
   }
@@ -88,10 +100,7 @@ public:
     return {};
   }
 
-  std::vector<VRFConfig> GetNetworkInstances(
-      const std::optional<int> & /*table*/ = std::nullopt) const override {
-    return {};
-  }
+  std::vector<VRFConfig> GetVrfs() const override { return {}; }
 
   // ARP/NDP
   std::vector<ArpConfig>
@@ -162,8 +171,14 @@ public:
 
   void SaveVlan(const VLANConfig & /*vlan*/) const override {}
 
-  void CreateTunnel(const std::string & /*name*/) const override {}
-  void SaveTunnel(const TunnelConfig & /*tunnel*/) const override {}
+  void CreateTun(const std::string & /*name*/) const override {}
+  void SaveTun(const TunConfig & /*tun*/) const override {}
+  void CreateGif(const std::string & /*name*/) const override {}
+  void SaveGif(const GifConfig & /*gif*/) const override {}
+  void CreateOvpn(const std::string & /*name*/) const override {}
+  void SaveOvpn(const OvpnConfig & /*ovpn*/) const override {}
+  void CreateIpsec(const std::string & /*name*/) const override {}
+  void SaveIpsec(const IpsecConfig & /*ipsec*/) const override {}
 
   void CreateVirtual(const std::string & /*name*/) const override {}
   void SaveVirtual(const VirtualInterfaceConfig & /*vic*/) const override {}

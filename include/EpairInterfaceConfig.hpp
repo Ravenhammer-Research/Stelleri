@@ -27,7 +27,7 @@
 
 /**
  * @file VirtualInterfaceConfig.hpp
- * @brief Virtual interface configuration (epair, tap, etc.)
+ * @brief Epair interface configuration (epair, tap, etc.)
  */
 
 #pragma once
@@ -43,13 +43,13 @@
  * epair interfaces come in pairs (e.g., epair0a and epair0b) connected
  * back-to-back.
  */
-class VirtualInterfaceConfig : public InterfaceConfig {
+class EpairInterfaceConfig : public InterfaceConfig {
 public:
-  VirtualInterfaceConfig() = default;
-  VirtualInterfaceConfig(const InterfaceConfig &base);
-  VirtualInterfaceConfig(const InterfaceConfig &base,
-                         std::optional<std::string> peer,
-                         std::optional<int> rdomain, bool promiscuous);
+  EpairInterfaceConfig() = default;
+  EpairInterfaceConfig(const InterfaceConfig &base);
+  EpairInterfaceConfig(const InterfaceConfig &base,
+                       std::optional<std::string> peer,
+                       std::optional<int> rdomain, bool promiscuous);
 
   std::optional<std::string> peer; ///< Peer interface name (for epair pairs)
   std::optional<int> rdomain;      ///< Routing domain / FIB
@@ -60,3 +60,6 @@ public:
 private:
   void create(ConfigurationManager &mgr) const;
 };
+
+// Backwards compatibility alias
+using VirtualInterfaceConfig = EpairInterfaceConfig;
