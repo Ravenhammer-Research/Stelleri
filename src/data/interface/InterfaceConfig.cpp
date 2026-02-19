@@ -135,35 +135,23 @@ bool InterfaceConfig::isLagg() const { return type == InterfaceType::Lagg; }
 
 bool InterfaceConfig::isVlan() const { return type == InterfaceType::VLAN; }
 
-bool InterfaceConfig::isVirtual() const {
-  return type == InterfaceType::Virtual;
-}
+bool InterfaceConfig::isEpair() const { return type == InterfaceType::Epair; }
 
 bool InterfaceConfig::isWlan() const { return type == InterfaceType::Wireless; }
 
 bool InterfaceConfig::isSixToFour() const {
-  return name.rfind("stf", 0) == 0 || name.rfind("sit", 0) == 0;
+  return type == InterfaceType::SixToFour;
 }
 
-bool InterfaceConfig::isTap() const {
-  return name.rfind("tap", 0) == 0;
-}
+bool InterfaceConfig::isTap() const { return type == InterfaceType::Tap; }
 
-bool InterfaceConfig::isCarp() const {
-  return name.rfind("carp", 0) == 0 || name.rfind("vh", 0) == 0;
-}
+bool InterfaceConfig::isCarp() const { return type == InterfaceType::Carp; }
 
-bool InterfaceConfig::isGre() const {
-  return type == InterfaceType::GRE || name.rfind("gre", 0) == 0;
-}
+bool InterfaceConfig::isGre() const { return type == InterfaceType::GRE; }
 
-bool InterfaceConfig::isVxlan() const {
-  return type == InterfaceType::VXLAN || name.rfind("vxlan", 0) == 0;
-}
+bool InterfaceConfig::isVxlan() const { return type == InterfaceType::VXLAN; }
 
-bool InterfaceConfig::isIpsec() const {
-  return type == InterfaceType::IPsec || name.rfind("ipsec", 0) == 0;
-}
+bool InterfaceConfig::isIpsec() const { return type == InterfaceType::IPsec; }
 
 // Check if this interface matches a requested type (handles tunnel special
 // cases)
@@ -195,66 +183,61 @@ InterfaceConfig::formatInterfaces(const std::vector<InterfaceConfig> &ifaces,
     return formatter.format(ifaces);
   }
 
-  // All same type - check which specialized formatter to use
-  if (ifaces[0].isBridge()) {
-    BridgeTableFormatter formatter(mgr);
-    return formatter.format(ifaces);
+  // All same type - dispatch to specialized formatter
+  if (checkType == InterfaceType::Bridge) {
+    BridgeTableFormatter formatter;
+    return formatter.format(mgr->GetBridgeInterfaces(ifaces));
   }
-  if (ifaces[0].isLagg()) {
+  if (checkType == InterfaceType::Lagg) {
     LaggTableFormatter formatter;
-    return formatter.format(ifaces);
+    return formatter.format(mgr->GetLaggInterfaces(ifaces));
   }
-  if (ifaces[0].isVlan()) {
-    VlanTableFormatter formatter(mgr);
-    return formatter.format(ifaces);
+  if (checkType == InterfaceType::VLAN) {
+    VlanTableFormatter formatter;
+    return formatter.format(mgr->GetVLANInterfaces(ifaces));
   }
-  if (ifaces[0].isWlan()) {
-    WlanTableFormatter formatter(mgr);
-    return formatter.format(ifaces);
+  if (checkType == InterfaceType::Wireless) {
+    WlanTableFormatter formatter;
+    return formatter.format(mgr->GetWlanInterfaces(ifaces));
   }
-  if (ifaces[0].isSixToFour()) {
+  if (checkType == InterfaceType::SixToFour) {
     SixToFourTableFormatter formatter;
     return formatter.format(ifaces);
   }
   if (checkType == InterfaceType::Gif) {
     GifTableFormatter formatter;
-    return formatter.format(ifaces);
+    return formatter.format(mgr->GetGifInterfaces(ifaces));
   }
-  if (checkType == InterfaceType::Tun) {
+  if (checkType == InterfaceType::Tun || checkType == InterfaceType::Tunnel) {
     TunTableFormatter formatter;
-    return formatter.format(ifaces);
+    return formatter.format(mgr->GetTunInterfaces(ifaces));
   }
   if (checkType == InterfaceType::IPsec) {
     IpsecTableFormatter formatter;
-    return formatter.format(ifaces);
+    return formatter.format(mgr->GetIpsecInterfaces(ifaces));
   }
-  if (checkType == InterfaceType::Tunnel) {
-    // Generic tunnel — use name heuristic for ovpn, else default Tun
-    if (ifaces[0].name.rfind("ovpn", 0) == 0) {
-      OvpnTableFormatter formatter;
-      return formatter.format(ifaces);
-    }
-    TunTableFormatter formatter;
-    return formatter.format(ifaces);
+  if (checkType == InterfaceType::Ovpn) {
+    OvpnTableFormatter formatter;
+    return formatter.format(mgr->GetOvpnInterfaces(ifaces));
   }
-  if (ifaces[0].isGre()) {
+  if (checkType == InterfaceType::GRE) {
     GRETableFormatter formatter;
-    return formatter.format(ifaces);
+    return formatter.format(mgr->GetGreInterfaces(ifaces));
   }
-  if (ifaces[0].isVxlan()) {
+  if (checkType == InterfaceType::VXLAN) {
     VxlanTableFormatter formatter;
-    return formatter.format(ifaces);
+    return formatter.format(mgr->GetVxlanInterfaces(ifaces));
   }
-  if (ifaces[0].isTap()) {
+  if (checkType == InterfaceType::Tap) {
     TapTableFormatter formatter;
     return formatter.format(ifaces);
   }
-  if (ifaces[0].isCarp()) {
+  if (checkType == InterfaceType::Carp) {
     CarpTableFormatter formatter;
     return formatter.format(ifaces);
   }
-  if (ifaces[0].isVirtual()) {
-    VirtualTableFormatter formatter;
+  if (checkType == InterfaceType::Epair) {
+    EpairTableFormatter formatter;
     return formatter.format(ifaces);
   }
 

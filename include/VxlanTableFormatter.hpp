@@ -32,12 +32,12 @@
 
 #pragma once
 
-#include "InterfaceConfig.hpp"
+#include "VxlanInterfaceConfig.hpp"
 #include "TableFormatter.hpp"
 #include <vector>
 
-class VxlanTableFormatter : public TableFormatter<InterfaceConfig> {
+class VxlanTableFormatter : public TableFormatter<VxlanInterfaceConfig> {
 public:
   VxlanTableFormatter() = default;
-  std::string format(const std::vector<InterfaceConfig> &items) override;
+  std::string format(const std::vector<VxlanInterfaceConfig> &items) override;
 };

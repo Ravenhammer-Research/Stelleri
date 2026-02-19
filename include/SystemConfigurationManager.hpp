@@ -34,6 +34,7 @@
 
 #include "ConfigurationManager.hpp"
 #include "InterfaceConfig.hpp"
+#include "PolicyConfig.hpp"
 #include "VRFConfig.hpp"
 
 #include <optional>
@@ -55,27 +56,31 @@ public:
   GetInterfacesByGroup(const std::optional<VRFConfig> &vrf,
 					   std::string_view group) const override;
   std::vector<BridgeInterfaceConfig> GetBridgeInterfaces(
-	  const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+	  const std::vector<InterfaceConfig> &bases) const override;
   std::vector<LaggInterfaceConfig> GetLaggInterfaces(
-	  const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+	  const std::vector<InterfaceConfig> &bases) const override;
   std::vector<VlanInterfaceConfig> GetVLANInterfaces(
-	  const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+	  const std::vector<InterfaceConfig> &bases) const override;
 
   std::vector<TunInterfaceConfig> GetTunInterfaces(
-	  const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+	  const std::vector<InterfaceConfig> &bases) const override;
   std::vector<GifInterfaceConfig> GetGifInterfaces(
-	  const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+	  const std::vector<InterfaceConfig> &bases) const override;
   std::vector<OvpnInterfaceConfig> GetOvpnInterfaces(
-	  const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+	  const std::vector<InterfaceConfig> &bases) const override;
   std::vector<IpsecInterfaceConfig> GetIpsecInterfaces(
-	  const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+	  const std::vector<InterfaceConfig> &bases) const override;
   std::vector<GreInterfaceConfig> GetGreInterfaces(
-	  const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+	  const std::vector<InterfaceConfig> &bases) const override;
   std::vector<VxlanInterfaceConfig> GetVxlanInterfaces(
-	  const std::optional<VRFConfig> &vrf = std::nullopt) const override;
+	  const std::vector<InterfaceConfig> &bases) const override;
   std::vector<EpairInterfaceConfig> GetEpairInterfaces(
-	  const std::optional<VRFConfig> &vrf = std::nullopt) const override;  std::vector<WlanInterfaceConfig> GetWlanInterfaces(
-	const std::optional<VRFConfig> &vrf = std::nullopt) const override;  std::vector<RouteConfig>
+	  const std::vector<InterfaceConfig> &bases) const override;
+  std::vector<WlanInterfaceConfig> GetWlanInterfaces(
+	const std::vector<InterfaceConfig> &bases) const override;
+  std::vector<CarpInterfaceConfig> GetCarpInterfaces(
+	const std::vector<InterfaceConfig> &bases) const override;
+  std::vector<RouteConfig>
   GetStaticRoutes(const std::optional<VRFConfig> &vrf = std::nullopt) const override;
   std::vector<RouteConfig>
   GetRoutes(const std::optional<VRFConfig> &vrf = std::nullopt) const override;
@@ -172,6 +177,10 @@ public:
   // Epair
   void CreateEpair(const std::string &name) const override;
   void SaveEpair(const EpairInterfaceConfig &epair) const override;
-  bool interfaceIsLagg(const std::string &ifname) const override;
-  bool interfaceIsBridge(const std::string &ifname) const override;
+
+  // Policy
+  std::vector<PolicyConfig>
+  GetPolicies(const std::optional<uint32_t> &acl_filter = std::nullopt) const override;
+  void SetPolicy(const PolicyConfig &pc) const override;
+  void DeletePolicy(const PolicyConfig &pc) const override;
 };

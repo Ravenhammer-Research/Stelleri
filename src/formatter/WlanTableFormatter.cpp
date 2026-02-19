@@ -26,8 +26,6 @@
  */
 
 #include "WlanTableFormatter.hpp"
-#include "ConfigurationManager.hpp"
-#include "InterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
 #include "WlanAuthMode.hpp"
 #include "WlanInterfaceConfig.hpp"
@@ -75,15 +73,9 @@ std::string buildCapsString(uint32_t dc, uint32_t ht, uint32_t vht) {
 } // anonymous namespace
 
 std::string
-WlanTableFormatter::format(const std::vector<InterfaceConfig> &items) {
+WlanTableFormatter::format(const std::vector<WlanInterfaceConfig> &items) {
   if (items.empty())
     return "No wireless interfaces found.\n";
-
-  // Re-query via the manager to get full WlanInterfaceConfig objects
-  // (the input vector is sliced to base InterfaceConfig).
-  std::vector<WlanInterfaceConfig> wlanIfaces;
-  if (mgr_)
-    wlanIfaces = mgr_->GetWlanInterfaces();
 
   addColumn("Interface", "Interface", 10, 9, true);
   addColumn("SSID", "SSID", 9, 4, true);
@@ -93,64 +85,38 @@ WlanTableFormatter::format(const std::vector<InterfaceConfig> &items) {
   addColumn("Auth", "Auth", 6, 4, true);
   addColumn("Caps", "HWCaps", 4, 6, true);
 
-  for (const auto &ic : items) {
-    if (ic.type != InterfaceType::Wireless)
-      continue;
-
+  for (const auto &w : items) {
     std::string status = "-";
-    std::string ssid = "-";
+    if (w.status)
+      status = *w.status;
+    else if (w.flags) {
+      if (hasFlag(*w.flags, InterfaceFlag::RUNNING))
+        status = "active";
+      else if (hasFlag(*w.flags, InterfaceFlag::UP))
+        status = "no-carrier";
+      else
+        status = "down";
+    }
+
+    std::string ssid = w.ssid ? *w.ssid : std::string("-");
     std::string channel = "-";
-    std::string parent = "-";
+    if (w.channel) {
+      channel = std::to_string(*w.channel);
+      if (w.channel_freq)
+        channel += " (" + std::to_string(*w.channel_freq) + " MHz)";
+    }
+    std::string parent = w.parent ? *w.parent : std::string("-");
     std::string auth = "-";
-    std::string caps = "-";
-
-    // Find matching WlanInterfaceConfig from re-queried data
-    const WlanInterfaceConfig *w = nullptr;
-    for (const auto &wl : wlanIfaces) {
-      if (wl.name == ic.name) {
-        w = &wl;
-        break;
-      }
+    if (w.authmode) {
+      int wpa = w.wpa_version ? *w.wpa_version : 0;
+      auth = WlanAuthModeToString(*w.authmode, wpa);
     }
+    std::string caps = buildCapsString(
+        w.drivercaps.value_or(0),
+        w.htcaps.value_or(0),
+        w.vhtcaps.value_or(0));
 
-    if (w) {
-      if (w->status)
-        status = *w->status;
-      else if (ic.flags) {
-        if (hasFlag(*ic.flags, InterfaceFlag::RUNNING))
-          status = "active";
-        else if (hasFlag(*ic.flags, InterfaceFlag::UP))
-          status = "no-carrier";
-        else
-          status = "down";
-      }
-      ssid = w->ssid ? *w->ssid : std::string("-");
-      if (w->channel) {
-        channel = std::to_string(*w->channel);
-        if (w->channel_freq)
-          channel += " (" + std::to_string(*w->channel_freq) + " MHz)";
-      }
-      parent = w->parent ? *w->parent : std::string("-");
-      if (w->authmode) {
-        int wpa = w->wpa_version ? *w->wpa_version : 0;
-        auth = WlanAuthModeToString(*w->authmode, wpa);
-      }
-      caps = buildCapsString(
-          w->drivercaps.value_or(0),
-          w->htcaps.value_or(0),
-          w->vhtcaps.value_or(0));
-    } else {
-      if (ic.flags) {
-        if (hasFlag(*ic.flags, InterfaceFlag::RUNNING))
-          status = "active";
-        else if (hasFlag(*ic.flags, InterfaceFlag::UP))
-          status = "no-carrier";
-        else
-          status = "down";
-      }
-    }
-
-    addRow({ic.name, ssid, channel, parent, status, auth, caps});
+    addRow({w.name, ssid, channel, parent, status, auth, caps});
   }
 
   // Legend for HWCaps letters (bold letter = legend key)

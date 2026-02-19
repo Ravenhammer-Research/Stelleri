@@ -4,13 +4,13 @@
 
 #pragma once
 
-#include "InterfaceConfig.hpp"
+#include "OvpnInterfaceConfig.hpp"
 #include "TableFormatter.hpp"
 #include <string>
 #include <vector>
 
-class OvpnTableFormatter : public TableFormatter<InterfaceConfig> {
+class OvpnTableFormatter : public TableFormatter<OvpnInterfaceConfig> {
 public:
   OvpnTableFormatter() = default;
-  std::string format(const std::vector<InterfaceConfig> &interfaces) override;
+  std::string format(const std::vector<OvpnInterfaceConfig> &interfaces) override;
 };

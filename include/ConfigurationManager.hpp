@@ -47,6 +47,7 @@ class GreInterfaceConfig;
 class InterfaceConfig;
 class LaggInterfaceConfig;
 class NdpConfig;
+class PolicyConfig;
 class RouteConfig;
 class TunInterfaceConfig;
 class GifInterfaceConfig;
@@ -79,28 +80,30 @@ public:
   GetInterfacesByGroup(const std::optional<VRFConfig> &vrf,
                        std::string_view group) const = 0;
   virtual std::vector<BridgeInterfaceConfig> GetBridgeInterfaces(
-      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+      const std::vector<InterfaceConfig> &bases) const = 0;
   virtual std::vector<LaggInterfaceConfig> GetLaggInterfaces(
-      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+      const std::vector<InterfaceConfig> &bases) const = 0;
   virtual std::vector<VlanInterfaceConfig> GetVLANInterfaces(
-      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+      const std::vector<InterfaceConfig> &bases) const = 0;
   
   virtual std::vector<TunInterfaceConfig> GetTunInterfaces(
-      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+      const std::vector<InterfaceConfig> &bases) const = 0;
   virtual std::vector<GifInterfaceConfig> GetGifInterfaces(
-      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+      const std::vector<InterfaceConfig> &bases) const = 0;
   virtual std::vector<OvpnInterfaceConfig> GetOvpnInterfaces(
-      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+      const std::vector<InterfaceConfig> &bases) const = 0;
   virtual std::vector<IpsecInterfaceConfig> GetIpsecInterfaces(
-      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+      const std::vector<InterfaceConfig> &bases) const = 0;
   virtual std::vector<GreInterfaceConfig> GetGreInterfaces(
-      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+      const std::vector<InterfaceConfig> &bases) const = 0;
   virtual std::vector<VxlanInterfaceConfig> GetVxlanInterfaces(
-      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+      const std::vector<InterfaceConfig> &bases) const = 0;
   virtual std::vector<EpairInterfaceConfig> GetEpairInterfaces(
-      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+      const std::vector<InterfaceConfig> &bases) const = 0;
   virtual std::vector<WlanInterfaceConfig> GetWlanInterfaces(
-      const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
+      const std::vector<InterfaceConfig> &bases) const = 0;
+  virtual std::vector<CarpInterfaceConfig> GetCarpInterfaces(
+      const std::vector<InterfaceConfig> &bases) const = 0;
   virtual std::vector<RouteConfig>
   GetStaticRoutes(const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
   virtual std::vector<RouteConfig>
@@ -191,6 +194,12 @@ public:
   virtual void AddRoute(const RouteConfig &route) const = 0;
   virtual void DeleteRoute(const RouteConfig &route) const = 0;
 
+  // Policy operations (access-lists, prefix-lists, route-maps)
+  virtual std::vector<PolicyConfig>
+  GetPolicies(const std::optional<uint32_t> &acl_filter = std::nullopt) const = 0;
+  virtual void SetPolicy(const PolicyConfig &pc) const = 0;
+  virtual void DeletePolicy(const PolicyConfig &pc) const = 0;
+
   virtual void CreateEpair(const std::string &name) const = 0;
   virtual void SaveEpair(const EpairInterfaceConfig &epair) const = 0;
 
@@ -222,10 +231,6 @@ public:
   virtual std::vector<std::string> query_interface_groups(const std::string &ifname)
       const = 0;
   virtual void populateInterfaceMetadata(InterfaceConfig &ic) const = 0;
-
-  // Interface type detection
-    virtual bool interfaceIsLagg(const std::string &ifname) const = 0;
-    virtual bool interfaceIsBridge(const std::string &ifname) const = 0;
 
   // VRF matching helper
     virtual bool matches_vrf(const InterfaceConfig &ic,

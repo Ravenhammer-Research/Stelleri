@@ -1,16 +1,9 @@
 #include "GifTableFormatter.hpp"
-#include "InterfaceConfig.hpp"
-#include "InterfaceFlags.hpp"
-#include "InterfaceType.hpp"
 #include "GifInterfaceConfig.hpp"
-#include <algorithm>
-#include <cstdio>
-#include <iomanip>
-#include <sstream>
 #include <string>
 #include <vector>
 
-std::string GifTableFormatter::format(const std::vector<InterfaceConfig> &interfaces) {
+std::string GifTableFormatter::format(const std::vector<GifInterfaceConfig> &interfaces) {
   if (interfaces.empty()) {
     return "No gif interfaces found.\n";
   }
@@ -18,68 +11,16 @@ std::string GifTableFormatter::format(const std::vector<InterfaceConfig> &interf
   addColumn("Interface", "Interface", 10, 4, true);
   addColumn("Source", "Source", 5, 6, true);
   addColumn("Destination", "Destination", 5, 6, true);
-  addColumn("Flags", "Flags", 5, 3, true);
-  addColumn("Metric", "Metric", 4, 3, false);
-  addColumn("MTU", "MTU", 4, 3, false);
-  addColumn("Groups", "Groups", 2, 6, true);
-  addColumn("FIB", "FIB", 5, 3, false);
-  addColumn("TunFIB", "TunFIB", 4, 3, false);
-  addColumn("ND6Opts", "ND6Opts", 1, 6, true);
+  addColumn("VRF", "VRF", 5, 3, false);
+  addColumn("Tunnel VRF", "Tunnel VRF", 4, 3, false);
 
-  for (const auto &ic : interfaces) {
-    if (!(ic.type == InterfaceType::Gif))
-      continue;
+  for (const auto &gif : interfaces) {
+    std::string source = gif.source ? gif.source->toString() : "-";
+    std::string destination = gif.destination ? gif.destination->toString() : "-";
+    std::string vrfStr = gif.vrf ? std::to_string(gif.vrf->table) : "-";
+    std::string tunnelVrfStr = gif.tunnel_vrf ? std::to_string(*gif.tunnel_vrf) : "-";
 
-    std::string source = "-";
-    std::string destination = "-";
-    std::string flagsStr = "-";
-    std::string metricStr = "-";
-    std::string mtuStr = "-";
-    std::string groupsCell = "-";
-    std::string fibStr = "-";
-    std::string tunnelFibStr = "-";
-    std::string nd6Cell = "-";
-
-    const GifInterfaceConfig *tptr = dynamic_cast<const GifInterfaceConfig *>(&ic);
-    if (tptr) {
-      if (tptr->source)
-        source = tptr->source->toString();
-      if (tptr->destination)
-        destination = tptr->destination->toString();
-    }
-
-    if (ic.flags)
-      flagsStr = flagsToString(*ic.flags);
-    if (ic.metric)
-      metricStr = std::to_string(*ic.metric);
-    if (ic.mtu)
-      mtuStr = std::to_string(*ic.mtu);
-
-    if (!ic.groups.empty()) {
-      std::ostringstream goss;
-      for (size_t i = 0; i < ic.groups.size(); ++i) {
-        if (i)
-          goss << '\n';
-        goss << ic.groups[i];
-      }
-      groupsCell = goss.str();
-    }
-
-    if (ic.vrf) {
-      if (ic.vrf->table)
-        fibStr = std::to_string(ic.vrf->table);
-      else if (ic.vrf->table >= 0)
-        fibStr = std::to_string(ic.vrf->table);
-    }
-
-    if (tptr && tptr->tunnel_vrf)
-      tunnelFibStr = std::to_string(*tptr->tunnel_vrf);
-
-    if (ic.nd6_options)
-      nd6Cell = *ic.nd6_options;
-
-    addRow({ic.name, source, destination, flagsStr, metricStr, mtuStr,
-            groupsCell, fibStr, tunnelFibStr, nd6Cell});
+    addRow({gif.name, source, destination, vrfStr, tunnelVrfStr});
   }
 
   auto out = renderTable(80);

@@ -38,33 +38,13 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 
-bool SystemConfigurationManager::interfaceIsLagg(
-    const std::string &ifname) const {
-  try {
-    Socket sock(AF_LOCAL, SOCK_DGRAM);
-
-    struct _local_lagg_status {
-      struct lagg_reqall ra;
-      struct lagg_reqport rpbuf[LAGG_MAX_PORTS];
-    } ls_buf{};
-    ls_buf.ra.ra_port = ls_buf.rpbuf;
-    ls_buf.ra.ra_size = sizeof(ls_buf.rpbuf);
-    std::strncpy(ls_buf.ra.ra_ifname, ifname.c_str(), IFNAMSIZ - 1);
-
-    return (ioctl(sock, SIOCGLAGG, &ls_buf.ra) == 0);
-  } catch (...) {
-    return false;
-  }
-}
-
 std::vector<LaggInterfaceConfig> SystemConfigurationManager::GetLaggInterfaces(
-    const std::optional<VRFConfig> &vrf) const {
-  auto bases = GetInterfaces(vrf);
+    const std::vector<InterfaceConfig> &bases) const {
   std::vector<LaggInterfaceConfig> out;
   for (const auto &ic : bases) {
     LaggInterfaceConfig lac(ic);
 
-    try {
+    {
       Socket sock(AF_LOCAL, SOCK_DGRAM);
 
       struct _local_lagg_status {
@@ -173,9 +153,6 @@ std::vector<LaggInterfaceConfig> SystemConfigurationManager::GetLaggInterfaces(
 
         out.emplace_back(std::move(lac));
       }
-    } catch (...) {
-      // Socket creation failed, skip this interface
-      continue;
     }
   }
 

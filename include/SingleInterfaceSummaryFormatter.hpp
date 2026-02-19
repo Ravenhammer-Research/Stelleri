@@ -35,17 +35,15 @@
 #include "InterfaceConfig.hpp"
 #include <string>
 
-class ConfigurationManager;
-
 /**
  * @brief Formats a single interface as detailed summary
  *
- * Shows all interface properties in a human-readable format.
+ * Shows base interface properties in a human-readable format.
+ * Derived formatters add type-specific fields.
  */
 class SingleInterfaceSummaryFormatter {
 public:
-  explicit SingleInterfaceSummaryFormatter(ConfigurationManager *mgr = nullptr)
-      : mgr_(mgr) {}
+  SingleInterfaceSummaryFormatter() = default;
 
   /**
    * @brief Format a single interface into a detailed summary
@@ -53,7 +51,4 @@ public:
    * @return Formatted summary string
    */
   std::string format(const InterfaceConfig &ic) const;
-
-private:
-  ConfigurationManager *mgr_ = nullptr;
 };

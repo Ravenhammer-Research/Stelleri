@@ -6,23 +6,9 @@ void GifInterfaceConfig::save(ConfigurationManager &mgr) const { mgr.SaveGif(*th
 
 void GifInterfaceConfig::create(ConfigurationManager &mgr) const { mgr.CreateGif(name); }
 
-GifInterfaceConfig::GifInterfaceConfig(const InterfaceConfig &base) {
-  name = base.name;
+GifInterfaceConfig::GifInterfaceConfig(const InterfaceConfig &base)
+    : InterfaceConfig(base) {
   type = InterfaceType::Gif;
-  if (base.address)
-    address = base.address->clone();
-  aliases.clear();
-  for (const auto &a : base.aliases) {
-    if (a)
-      aliases.emplace_back(a->clone());
-    else
-      aliases.emplace_back(nullptr);
-  }
-  if (base.vrf)
-    vrf = std::make_unique<VRFConfig>(*base.vrf);
-  flags = base.flags;
-  groups = base.groups;
-  mtu = base.mtu;
 }
 
 GifInterfaceConfig::GifInterfaceConfig(const InterfaceConfig &base,

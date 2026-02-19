@@ -54,6 +54,7 @@ public:
   std::optional<std::string> iface;
   bool permanent = false;
   bool temp = false;
+  bool router = false;
 
   /**
    * @brief Render an NdpConfig to a command string

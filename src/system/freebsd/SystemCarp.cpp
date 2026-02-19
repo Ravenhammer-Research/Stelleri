@@ -60,3 +60,45 @@ void SystemConfigurationManager::SaveCarp(const CarpInterfaceConfig &carp) const
                              strerror(errno));
   }
 }
+
+std::vector<CarpInterfaceConfig>
+SystemConfigurationManager::GetCarpInterfaces(
+    const std::vector<InterfaceConfig> &bases) const {
+  std::vector<CarpInterfaceConfig> out;
+  for (const auto &ic : bases) {
+    if (ic.type == InterfaceType::Carp) {
+      CarpInterfaceConfig cc(ic);
+
+      Socket sock(AF_INET, SOCK_DGRAM);
+      struct ifreq ifr;
+      prepare_ifreq(ifr, ic.name);
+      struct carpreq carpr;
+      std::memset(&carpr, 0, sizeof(carpr));
+      ifr.ifr_data = reinterpret_cast<caddr_t>(&carpr);
+
+      if (ioctl(sock, SIOCGVH, &ifr) == 0) {
+        if (carpr.carpr_vhid != 0)
+          cc.vhid = carpr.carpr_vhid;
+        cc.advskew = carpr.carpr_advskew;
+        cc.advbase = carpr.carpr_advbase;
+        switch (carpr.carpr_state) {
+        case 0:
+          cc.state = "INIT";
+          break;
+        case 1:
+          cc.state = "BACKUP";
+          break;
+        case 2:
+          cc.state = "MASTER";
+          break;
+        default:
+          cc.state = std::to_string(carpr.carpr_state);
+          break;
+        }
+      }
+
+      out.push_back(std::move(cc));
+    }
+  }
+  return out;
+}

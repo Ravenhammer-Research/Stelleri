@@ -47,6 +47,12 @@ target_compile_options(net PRIVATE -Wall -Wextra -Werror -pedantic)
 find_library(EDIT_LIBRARY NAMES edit REQUIRED)
 target_link_libraries(net PRIVATE ${EDIT_LIBRARY})
 
+# Link libipsec for ipsec_set_policy / ipsec_get_policylen / ipsec_dump_policy
+if(NETCLI_CLIENT STREQUAL "lite")
+  find_library(IPSEC_LIBRARY NAMES ipsec REQUIRED)
+  target_link_libraries(net PRIVATE ${IPSEC_LIBRARY})
+endif()
+
 install(TARGETS net DESTINATION bin)
 
 # Prefer BSD make (`bmake`) if available. Do not override an explicit

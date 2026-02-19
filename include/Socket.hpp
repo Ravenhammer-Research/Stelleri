@@ -39,6 +39,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+/// Exception thrown when socket creation fails.
+class SocketException : public std::runtime_error {
+public:
+  explicit SocketException(const std::string &msg) : std::runtime_error(msg) {}
+};
+
 /**
  * @brief RAII socket wrapper that automatically closes the file descriptor.
  *
@@ -49,12 +55,12 @@
  */
 class Socket {
 public:
-  /// Create a socket, throwing on failure.
+  /// Create a socket, throwing SocketException on failure.
   Socket(int domain, int type, int protocol = 0)
       : fd_(::socket(domain, type, protocol)) {
     if (fd_ < 0)
-      throw std::runtime_error(std::string("Failed to create socket: ") +
-                               std::strerror(errno));
+      throw SocketException(std::string("Failed to create socket: ") +
+                            std::strerror(errno));
   }
 
   /// Non-copyable.

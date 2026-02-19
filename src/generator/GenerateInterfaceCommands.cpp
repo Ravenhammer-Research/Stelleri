@@ -24,18 +24,7 @@ namespace netcli {
                            const_cast<InterfaceConfig *>(&ifc))
                 << "\n";
       processedInterfaces.insert(ifc.name);
-    }
 
-    // Assign addresses (only Ethernet)
-    for (const auto &ifc : interfaces) {
-      if (ifc.type != InterfaceType::Ethernet)
-        continue;
-      if (ifc.address) {
-        std::cout << std::string("set ") +
-                         InterfaceToken::toString(
-                             const_cast<InterfaceConfig *>(&ifc))
-                  << "\n";
-      }
       for (const auto &alias : ifc.aliases) {
         InterfaceConfig tmp = ifc;
         tmp.address = alias->clone();

@@ -13,10 +13,12 @@
 #include <cstring>
 #include <iostream>
 #include <net/if.h>
+#include <net/if_gif.h>
 #include <netinet/in.h>
 #include <stdexcept>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <sys/sockio.h>
 
 void SystemConfigurationManager::SaveGif(const GifInterfaceConfig &t) const {
   if (t.name.empty())
@@ -78,13 +80,57 @@ void SystemConfigurationManager::CreateGif(const std::string &nm) const {
 }
 
 std::vector<GifInterfaceConfig> SystemConfigurationManager::GetGifInterfaces(
-    const std::optional<VRFConfig> &vrf) const {
-  auto bases = GetInterfaces(vrf);
+    const std::vector<InterfaceConfig> &bases) const {
   std::vector<GifInterfaceConfig> out;
   for (const auto &ic : bases) {
-    if (ic.type == InterfaceType::Gif) {
-      out.emplace_back(ic);
+    if (ic.type != InterfaceType::Gif)
+      continue;
+
+    GifInterfaceConfig gif(ic);
+
+    Socket sock(AF_INET, SOCK_DGRAM);
+
+    // --- Tunnel source (SIOCGIFPSRCADDR) ---
+    {
+      struct ifreq ifr;
+      prepare_ifreq(ifr, ic.name);
+      if (ioctl(sock, SIOCGIFPSRCADDR, &ifr) == 0 &&
+          ifr.ifr_addr.sa_family == AF_INET) {
+        auto *sin = reinterpret_cast<struct sockaddr_in *>(&ifr.ifr_addr);
+        char buf[INET_ADDRSTRLEN] = {0};
+        if (inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf)))
+          gif.source = IPAddress::fromString(buf);
+      }
     }
+
+    // --- Tunnel destination (SIOCGIFPDSTADDR) ---
+    {
+      struct ifreq ifr;
+      prepare_ifreq(ifr, ic.name);
+      if (ioctl(sock, SIOCGIFPDSTADDR, &ifr) == 0 &&
+          ifr.ifr_addr.sa_family == AF_INET) {
+        auto *sin = reinterpret_cast<struct sockaddr_in *>(&ifr.ifr_addr);
+        char buf[INET_ADDRSTRLEN] = {0};
+        if (inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf)))
+          gif.destination = IPAddress::fromString(buf);
+      }
+    }
+
+    // --- Tunnel VRF (SIOCGTUNFIB) ---
+    if (auto tfib = query_ifreq_int(ic.name, SIOCGTUNFIB, IfreqIntField::Fib))
+      gif.tunnel_vrf = *tfib;
+
+    // --- Gif options (GIFGOPTS) ---
+    {
+      int opts = 0;
+      struct ifreq ifr;
+      prepare_ifreq(ifr, ic.name);
+      ifr.ifr_data = reinterpret_cast<caddr_t>(&opts);
+      if (ioctl(sock, GIFGOPTS, &ifr) == 0)
+        gif.options = static_cast<uint32_t>(opts);
+    }
+
+    out.emplace_back(std::move(gif));
   }
   return out;
 }

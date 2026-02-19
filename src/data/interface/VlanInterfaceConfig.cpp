@@ -34,41 +34,13 @@
 #include <stdexcept>
 #include <string>
 
-VlanInterfaceConfig::VlanInterfaceConfig(const InterfaceConfig &base) {
-  name = base.name;
-  type = base.type;
-  if (base.address)
-    address = base.address->clone();
-  aliases.clear();
-  for (const auto &a : base.aliases) {
-    if (a)
-      aliases.push_back(a->clone());
-  }
-  if (base.vrf)
-    vrf = std::make_unique<VRFConfig>(*base.vrf);
-  flags = base.flags;
-  groups = base.groups;
-  mtu = base.mtu;
-}
+VlanInterfaceConfig::VlanInterfaceConfig(const InterfaceConfig &base)
+    : InterfaceConfig(base) {}
 
 VlanInterfaceConfig::VlanInterfaceConfig(const InterfaceConfig &base, uint16_t id_,
                        std::optional<std::string> parent_,
-                       std::optional<PriorityCodePoint> pcp_) {
-  name = base.name;
-  type = base.type;
-  if (base.address)
-    address = base.address->clone();
-  aliases.clear();
-  for (const auto &a : base.aliases) {
-    if (a)
-      aliases.push_back(a->clone());
-  }
-  if (base.vrf)
-    vrf = std::make_unique<VRFConfig>(*base.vrf);
-  flags = base.flags;
-  groups = base.groups;
-  mtu = base.mtu;
-
+                       std::optional<PriorityCodePoint> pcp_)
+    : VlanInterfaceConfig(base) {
   id = id_;
   parent = parent_;
   pcp = pcp_;

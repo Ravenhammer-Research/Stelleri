@@ -26,7 +26,7 @@
  */
 
 /**
- * @file VirtualInterfaceConfig.hpp
+ * @file EpairInterfaceConfig.hpp
  * @brief Epair interface configuration (epair, tap, etc.)
  */
 
@@ -60,6 +60,3 @@ public:
 private:
   void create(ConfigurationManager &mgr) const;
 };
-
-// Backwards compatibility alias
-using VirtualInterfaceConfig = EpairInterfaceConfig;

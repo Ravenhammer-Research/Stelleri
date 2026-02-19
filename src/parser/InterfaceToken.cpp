@@ -26,40 +26,19 @@
  */
 
 #include "InterfaceToken.hpp"
-#include "BridgeTableFormatter.hpp"
-#include "CarpInterfaceConfig.hpp"
-#include "GreInterfaceConfig.hpp"
 #include "InterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
-#include "InterfaceTableFormatter.hpp"
 #include "InterfaceType.hpp"
-#include "LaggInterfaceConfig.hpp"
-#include "LaggTableFormatter.hpp"
+#include "IPAddress.hpp"
+#include "IPNetwork.hpp"
+#include "InterfaceTableFormatter.hpp"
 #include "SingleInterfaceSummaryFormatter.hpp"
-#include "SixToFourInterfaceConfig.hpp"
-#include "TapInterfaceConfig.hpp"
-#include "TunInterfaceConfig.hpp"
-#include "GifInterfaceConfig.hpp"
-#include "OvpnInterfaceConfig.hpp"
-#include "IpsecInterfaceConfig.hpp"
-#include "TunTableFormatter.hpp"
-#include "GifTableFormatter.hpp"
-#include "OvpnTableFormatter.hpp"
-#include "IpsecTableFormatter.hpp"
-#include "VlanInterfaceConfig.hpp"
-#include "VlanTableFormatter.hpp"
-#include "VxlanInterfaceConfig.hpp"
-#include "EpairTableFormatter.hpp"
-#include "WlanInterfaceConfig.hpp"
 #include <iostream>
 #include <netinet/in.h>
-#include <sstream>
 #include <unordered_set>
 
 InterfaceToken::InterfaceToken(InterfaceType t, std::string name)
     : type_(t), name_(std::move(name)) {}
-
-// toString(ConfigData*) removed — implementation deleted per request
 
 // ---------------------------------------------------------------------------
 // Helpers: keyword sets for context-aware autocompletion
@@ -73,49 +52,14 @@ std::vector<std::string> generalKeywords() {
           "description"};
 }
 
-/// Additional keywords relevant to a specific interface type.
-std::vector<std::string> keywordsForType(InterfaceType t) {
-  switch (t) {
-  case InterfaceType::Bridge:
-    return {"member", "stp", "priority"};
-  case InterfaceType::VLAN:
-    return {"vid", "parent", "vlan"};
-  case InterfaceType::Lagg:
-    return {"lagg", "members", "protocol"};
-  case InterfaceType::Tunnel:
-  case InterfaceType::Tun:
-  case InterfaceType::Gif:
-  case InterfaceType::IPsec:
-    return {"source", "destination", "tunnel-vrf"};
-  case InterfaceType::GRE:
-    return {"source", "destination", "key"};
-  case InterfaceType::VXLAN:
-    return {"vni", "local", "remote", "port"};
-  case InterfaceType::Wireless:
-    return {"ssid", "channel", "parent", "authmode"};
-  case InterfaceType::Virtual:
-    return {};
-  default:
-    return {};
-  }
-}
-
 /// Value suggestions for a keyword that expects a fixed set of values.
 std::vector<std::string> valuesForKeyword(const std::string &kw) {
   if (kw == "type") {
-    return {"ethernet", "loopback", "bridge", "lagg", "vlan",  "tunnel",
-            "tun",      "gif",      "gre",    "vxlan", "ipsec", "epair",
-            "virtual",  "wireless", "tap",    "ppp"};
-  }
-  if (kw == "protocol") {
-    return {"lacp", "failover", "loadbalance", "roundrobin", "broadcast",
-            "none"};
-  }
-  if (kw == "authmode") {
-    return {"open", "shared", "wpa", "wpa2"};
-  }
-  if (kw == "stp") {
-    return {"on", "off"};
+    return {"ethernet", "loopback", "bridge", "lagg",  "vlan",
+            "tunnel",   "tun",      "gif",    "gre",   "vxlan",
+            "ipsec",    "epair",    "virtual","wireless","tap",
+            "ppp",      "stf",      "ovpn",   "carp",  "pflog",
+            "pfsync",   "wg"};
   }
   if (kw == "status") {
     return {"up", "down"};
@@ -172,19 +116,11 @@ InterfaceToken::autoComplete(const std::vector<std::string> &tokens,
     return filterPrefix(valuesForKeyword("type"), partial);
   }
 
-  // After "protocol", suggest lagg protocol values
-  if (prev == "protocol") {
-    return filterPrefix(valuesForKeyword("protocol"), partial);
-  }
-
-  // After "authmode", suggest WLAN auth modes
-  if (prev == "authmode") {
-    return filterPrefix(valuesForKeyword("authmode"), partial);
-  }
-
-  // After "stp", suggest on/off
-  if (prev == "stp") {
-    return filterPrefix(valuesForKeyword("stp"), partial);
+  // Type-specific value completions (stp, protocol, authmode, etc.)
+  if (type_ != InterfaceType::Unknown) {
+    auto vals = typeCompletions(type_, prev);
+    if (!vals.empty())
+      return filterPrefix(vals, partial);
   }
 
   // After "status", suggest up/down
@@ -264,7 +200,7 @@ InterfaceToken::autoComplete(const std::vector<std::string> &tokens,
     opts.push_back("group");
     // If we can detect the type from the name, add type-specific keywords
     if (type_ != InterfaceType::Unknown) {
-      auto extra = keywordsForType(type_);
+      auto extra = typeCompletions(type_, "");
       opts.insert(opts.end(), extra.begin(), extra.end());
     }
     return filterPrefix(opts, partial);
@@ -273,7 +209,7 @@ InterfaceToken::autoComplete(const std::vector<std::string> &tokens,
   // If a type has been set (from earlier tokens), offer type-aware keywords
   if (type_ != InterfaceType::Unknown) {
     auto opts = generalKeywords();
-    auto extra = keywordsForType(type_);
+    auto extra = typeCompletions(type_, "");
     opts.insert(opts.end(), extra.begin(), extra.end());
     return filterPrefix(opts, partial);
   }
@@ -298,184 +234,54 @@ InterfaceToken::autoComplete(const std::vector<std::string> &tokens,
   return filterPrefix({"name", "type", "group"}, partial);
 }
 
+// ---------------------------------------------------------------------------
 // Static renderers for interface configs
+// ---------------------------------------------------------------------------
 std::string InterfaceToken::toString(InterfaceConfig *cfg) {
   if (!cfg)
     return std::string();
   std::string result = "interface name " + cfg->name;
-  switch (cfg->type) {
-  case InterfaceType::VLAN:
-    result += " type vlan";
-    break;
-  case InterfaceType::Lagg:
-    result += " type lagg";
-    break;
-  case InterfaceType::Bridge:
-    result += " type bridge";
-    break;
-  case InterfaceType::Tunnel:
-    result += " type tunnel";
-    break;
-  case InterfaceType::Virtual:
-    result += " type epair";
-    break;
-  case InterfaceType::Loopback:
-    result += " type loopback";
-    break;
-  default:
-    break;
-  }
+  if (auto *d = dispatch(cfg->type))
+    result += std::string(" type ") + d->typeName;
   if (cfg->vrf)
     result += " vrf " + std::to_string(cfg->vrf->table);
   if (cfg->mtu)
     result += " mtu " + std::to_string(*cfg->mtu);
+  if (cfg->address)
+    result += " address " + cfg->address->toString();
   if (!cfg->groups.empty()) {
-    for (const auto &g : cfg->groups)
+    // Skip the default group that FreeBSD assigns automatically.
+    auto *dg = dispatch(cfg->type);
+    const char *defaultGrp = (dg && dg->defaultGroup) ? dg->defaultGroup : "";
+    for (const auto &g : cfg->groups) {
+      if (g == "all" || g == defaultGrp)
+        continue;
       result += " group " + g;
+    }
   }
   return result;
 }
 
-std::string InterfaceToken::toString(BridgeInterfaceConfig *cfg) {
-  if (!cfg)
-    return std::string();
-  return std::string("interface type bridge");
+// ---------------------------------------------------------------------------
+// typeCompletions — dispatch to per-type completion providers
+// ---------------------------------------------------------------------------
+std::vector<std::string>
+InterfaceToken::typeCompletions(InterfaceType t, const std::string &prev) {
+  if (auto *d = dispatch(t); d && d->completions)
+    return d->completions(prev);
+  return {};
 }
 
-std::string InterfaceToken::toString(CarpInterfaceConfig *cfg) {
-  if (!cfg)
-    return std::string();
-  std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  if (cfg->vhid)
-    s += " vhid " + std::to_string(*cfg->vhid);
-  if (cfg->advskew)
-    s += " advskew " + std::to_string(*cfg->advskew);
-  if (cfg->advbase)
-    s += " advbase " + std::to_string(*cfg->advbase);
-  if (cfg->state)
-    s += " state " + *cfg->state;
-  return s;
-}
-
-std::string InterfaceToken::toString(GreInterfaceConfig *cfg) {
-  if (!cfg)
-    return std::string();
-  std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  if (cfg->greSource)
-    s += " source " + *cfg->greSource;
-  if (cfg->greDestination)
-    s += " destination " + *cfg->greDestination;
-  return s;
-}
-
-std::string InterfaceToken::toString(LaggInterfaceConfig *cfg) {
-  if (!cfg)
-    return std::string();
-  std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  for (const auto &m : cfg->members)
-    s += " member " + m;
-  return s;
-}
-
-std::string InterfaceToken::toString(SixToFourInterfaceConfig *cfg) {
-  if (!cfg)
-    return std::string();
-  return InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-}
-
-std::string InterfaceToken::toString(TapInterfaceConfig *cfg) {
-  if (!cfg)
-    return std::string();
-  return InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-}
-
-// legacy TunnelConfig removed
-
-std::string InterfaceToken::toString(TunInterfaceConfig *cfg) {
-  if (!cfg)
-    return std::string();
-  std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  if (cfg->source)
-    s += " source " + cfg->source->toString();
-  if (cfg->destination)
-    s += " destination " + cfg->destination->toString();
-  return s;
-}
-
-std::string InterfaceToken::toString(GifInterfaceConfig *cfg) {
-  if (!cfg)
-    return std::string();
-  std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  if (cfg->source)
-    s += " source " + cfg->source->toString();
-  if (cfg->destination)
-    s += " destination " + cfg->destination->toString();
-  return s;
-}
-
-std::string InterfaceToken::toString(OvpnInterfaceConfig *cfg) {
-  if (!cfg)
-    return std::string();
-  std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  if (cfg->source)
-    s += " source " + cfg->source->toString();
-  if (cfg->destination)
-    s += " destination " + cfg->destination->toString();
-  return s;
-}
-
-std::string InterfaceToken::toString(IpsecInterfaceConfig *cfg) {
-  if (!cfg)
-    return std::string();
-  std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  if (cfg->source)
-    s += " source " + cfg->source->toString();
-  if (cfg->destination)
-    s += " destination " + cfg->destination->toString();
-  return s;
-}
-
-std::string InterfaceToken::toString(VlanInterfaceConfig *cfg) {
-  if (!cfg)
-    return std::string();
-  std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  s += " vid " + std::to_string(cfg->id);
-  if (cfg->parent)
-    s += " parent " + *cfg->parent;
-  return s;
-}
-
-std::string InterfaceToken::toString(VxlanInterfaceConfig *cfg) {
-  if (!cfg)
-    return std::string();
-  std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  if (cfg->vni)
-    s += " vni " + std::to_string(*cfg->vni);
-  if (cfg->localAddr)
-    s += " local " + *cfg->localAddr;
-  if (cfg->remoteAddr)
-    s += " remote " + *cfg->remoteAddr;
-  return s;
-}
-
-std::string InterfaceToken::toString(WlanInterfaceConfig *cfg) {
-  if (!cfg)
-    return std::string();
-  std::string s = InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
-  if (cfg->ssid)
-    s += " ssid " + *cfg->ssid;
-  if (cfg->channel)
-    s += " channel " + std::to_string(*cfg->channel);
-  if (cfg->parent)
-    s += " parent " + *cfg->parent;
-  return s;
-}
-
+// ---------------------------------------------------------------------------
+// parseKeywords — general keywords + type-based dispatch
+// ---------------------------------------------------------------------------
 void InterfaceToken::parseKeywords(std::shared_ptr<InterfaceToken> &tok,
                                    const std::vector<std::string> &tokens,
                                    size_t &cur) {
   while (cur < tokens.size()) {
     const std::string &kw = tokens[cur];
+
+    // --- General keywords (all types) ---
     if (kw == "inet" || kw == "inet6") {
       tok->address_family = (kw == "inet") ? AF_INET : AF_INET6;
       if (cur + 1 < tokens.size() && tokens[cur + 1] == "address" &&
@@ -502,81 +308,6 @@ void InterfaceToken::parseKeywords(std::shared_ptr<InterfaceToken> &tok,
       cur += 2;
       continue;
     }
-    if (kw == "vlan") {
-      ++cur;
-      std::optional<uint16_t> vid;
-      std::optional<std::string> parent;
-      while (cur < tokens.size()) {
-        const std::string &k2 = tokens[cur];
-        if (k2 == "id" && cur + 1 < tokens.size()) {
-          vid = static_cast<uint16_t>(std::stoi(tokens[cur + 1]));
-          cur += 2;
-          continue;
-        }
-        if (k2 == "parent" && cur + 1 < tokens.size()) {
-          parent = tokens[cur + 1];
-          cur += 2;
-          continue;
-        }
-        break;
-      }
-      if (vid && parent) {
-        tok->vlan.emplace();
-        tok->vlan->name = tok->name();
-        tok->vlan->id = *vid;
-        tok->vlan->parent = *parent;
-      }
-      continue;
-    }
-    if (kw == "lagg" || kw == "lag") {
-      ++cur;
-      LaggInterfaceConfig lc;
-      while (cur < tokens.size()) {
-        const std::string &k2 = tokens[cur];
-        if (k2 == "members" && cur + 1 < tokens.size()) {
-          const std::string &m = tokens[cur + 1];
-          size_t p = 0, len = m.size();
-          while (p < len) {
-            size_t q = m.find(',', p);
-            if (q == std::string::npos)
-              q = len;
-            lc.members.emplace_back(m.substr(p, q - p));
-            p = q + 1;
-          }
-          cur += 2;
-          continue;
-        }
-        if (k2 == "protocol" && cur + 1 < tokens.size()) {
-          const std::string &proto = tokens[cur + 1];
-          if (proto == "lacp")
-            lc.protocol = LaggProtocol::LACP;
-          else if (proto == "failover")
-            lc.protocol = LaggProtocol::FAILOVER;
-          else if (proto == "loadbalance")
-            lc.protocol = LaggProtocol::LOADBALANCE;
-          else if (proto == "roundrobin")
-            lc.protocol = LaggProtocol::ROUNDROBIN;
-          else if (proto == "broadcast")
-            lc.protocol = LaggProtocol::BROADCAST;
-          else if (proto == "none")
-            lc.protocol = LaggProtocol::NONE;
-          cur += 2;
-          continue;
-        }
-        break;
-      }
-      if (!lc.members.empty()) {
-        tok->lagg.emplace();
-        tok->lagg->members = std::move(lc.members);
-        tok->lagg->protocol = lc.protocol;
-        tok->lagg->hash_policy = lc.hash_policy;
-        tok->lagg->lacp_rate = lc.lacp_rate;
-        tok->lagg->min_links = lc.min_links;
-      }
-      continue;
-    }
-
-    // --- Status keywords ---
     if (kw == "up") {
       tok->status = true;
       ++cur;
@@ -596,209 +327,27 @@ void InterfaceToken::parseKeywords(std::shared_ptr<InterfaceToken> &tok,
       cur += 2;
       continue;
     }
-
-    // --- Description ---
     if (kw == "description" && cur + 1 < tokens.size()) {
       tok->description = tokens[cur + 1];
       cur += 2;
       continue;
     }
 
-    // --- Tunnel VRF ---
-    if ((kw == "tunnel-vrf" || kw == "tunnel-fib") &&
-        cur + 1 < tokens.size()) {
-      tok->tunnel_vrf = std::stoi(tokens[cur + 1]);
-      cur += 2;
+    // --- Type-specific keywords ---
+    bool consumed = false;
+    if (auto *d = dispatch(tok->type()); d && d->parseKeywords)
+      consumed = d->parseKeywords(tok, tokens, cur);
+    if (consumed)
       continue;
-    }
-
-    // --- Tunnel source / destination ---
-    if (kw == "source" && cur + 1 < tokens.size()) {
-      tok->source = tokens[cur + 1];
-      cur += 2;
-      continue;
-    }
-    if (kw == "destination" && cur + 1 < tokens.size()) {
-      tok->destination = tokens[cur + 1];
-      cur += 2;
-      continue;
-    }
-
-    // --- Bridge top-level keywords ---
-    if (kw == "member" && cur + 1 < tokens.size()) {
-      if (!tok->bridge)
-        tok->bridge.emplace();
-      tok->bridge->members.push_back(tokens[cur + 1]);
-      cur += 2;
-      continue;
-    }
-    if (kw == "stp" && cur + 1 < tokens.size()) {
-      if (!tok->bridge)
-        tok->bridge.emplace();
-      const std::string &val = tokens[cur + 1];
-      tok->bridge->stp =
-          (val == "on" || val == "yes" || val == "true" || val == "enable");
-      cur += 2;
-      continue;
-    }
-    if (kw == "priority" && cur + 1 < tokens.size()) {
-      if (!tok->bridge)
-        tok->bridge.emplace();
-      tok->bridge->priority = std::stoi(tokens[cur + 1]);
-      cur += 2;
-      continue;
-    }
-
-    // --- Top-level VLAN keywords (outside vlan sub-block) ---
-    if (kw == "vid" && cur + 1 < tokens.size()) {
-      if (!tok->vlan) {
-        tok->vlan.emplace();
-        tok->vlan->name = tok->name();
-      }
-      tok->vlan->id = static_cast<uint16_t>(std::stoi(tokens[cur + 1]));
-      cur += 2;
-      continue;
-    }
-    if (kw == "parent" && cur + 1 < tokens.size()) {
-      // Dual-use: populate VLAN parent if vlan context exists, else WLAN parent
-      if (tok->vlan) {
-        tok->vlan->parent = tokens[cur + 1];
-      } else {
-        if (!tok->wlan)
-          tok->wlan.emplace(InterfaceConfig{});
-        tok->wlan->parent = tokens[cur + 1];
-      }
-      cur += 2;
-      continue;
-    }
-
-    // --- Top-level protocol keyword (for lagg outside sub-block) ---
-    if (kw == "protocol" && cur + 1 < tokens.size()) {
-      const std::string &proto = tokens[cur + 1];
-      if (!tok->lagg)
-        tok->lagg.emplace();
-      if (proto == "lacp")
-        tok->lagg->protocol = LaggProtocol::LACP;
-      else if (proto == "failover")
-        tok->lagg->protocol = LaggProtocol::FAILOVER;
-      else if (proto == "loadbalance")
-        tok->lagg->protocol = LaggProtocol::LOADBALANCE;
-      else if (proto == "roundrobin")
-        tok->lagg->protocol = LaggProtocol::ROUNDROBIN;
-      else if (proto == "broadcast")
-        tok->lagg->protocol = LaggProtocol::BROADCAST;
-      else if (proto == "none")
-        tok->lagg->protocol = LaggProtocol::NONE;
-      cur += 2;
-      continue;
-    }
-
-    // --- VXLAN keywords ---
-    if (kw == "vni" && cur + 1 < tokens.size()) {
-      if (!tok->vxlan)
-        tok->vxlan.emplace(InterfaceConfig{});
-      tok->vxlan->vni =
-          static_cast<uint32_t>(std::stoul(tokens[cur + 1]));
-      cur += 2;
-      continue;
-    }
-    if (kw == "local" && cur + 1 < tokens.size()) {
-      if (!tok->vxlan)
-        tok->vxlan.emplace(InterfaceConfig{});
-      tok->vxlan->localAddr = tokens[cur + 1];
-      cur += 2;
-      continue;
-    }
-    if (kw == "remote" && cur + 1 < tokens.size()) {
-      if (!tok->vxlan)
-        tok->vxlan.emplace(InterfaceConfig{});
-      tok->vxlan->remoteAddr = tokens[cur + 1];
-      cur += 2;
-      continue;
-    }
-    if (kw == "port" && cur + 1 < tokens.size()) {
-      if (!tok->vxlan)
-        tok->vxlan.emplace(InterfaceConfig{});
-      tok->vxlan->localPort =
-          static_cast<uint16_t>(std::stoi(tokens[cur + 1]));
-      cur += 2;
-      continue;
-    }
-
-    // --- WLAN keywords ---
-    if (kw == "ssid" && cur + 1 < tokens.size()) {
-      if (!tok->wlan)
-        tok->wlan.emplace(InterfaceConfig{});
-      tok->wlan->ssid = tokens[cur + 1];
-      cur += 2;
-      continue;
-    }
-    if (kw == "channel" && cur + 1 < tokens.size()) {
-      if (!tok->wlan)
-        tok->wlan.emplace(InterfaceConfig{});
-      tok->wlan->channel = std::stoi(tokens[cur + 1]);
-      cur += 2;
-      continue;
-    }
-    if (kw == "authmode" && cur + 1 < tokens.size()) {
-      if (!tok->wlan)
-        tok->wlan.emplace(InterfaceConfig{});
-      const std::string &mode = tokens[cur + 1];
-      if (mode == "open")
-        tok->wlan->authmode = WlanAuthMode::OPEN;
-      else if (mode == "shared")
-        tok->wlan->authmode = WlanAuthMode::SHARED;
-      else if (mode == "wpa" || mode == "wpa2")
-        tok->wlan->authmode = WlanAuthMode::WPA;
-      cur += 2;
-      continue;
-    }
-
-    // --- GRE / CARP key keyword ---
-    if (kw == "key" && cur + 1 < tokens.size()) {
-      // Numeric → GRE key; non-numeric → CARP passphrase
-      try {
-        uint32_t k = static_cast<uint32_t>(std::stoul(tokens[cur + 1]));
-        if (!tok->gre)
-          tok->gre.emplace(InterfaceConfig{});
-        tok->gre->greKey = k;
-      } catch (...) {
-        if (!tok->carp)
-          tok->carp.emplace(InterfaceConfig{});
-        tok->carp->key = tokens[cur + 1];
-      }
-      cur += 2;
-      continue;
-    }
-
-    // --- CARP keywords ---
-    if (kw == "vhid" && cur + 1 < tokens.size()) {
-      if (!tok->carp)
-        tok->carp.emplace(InterfaceConfig{});
-      tok->carp->vhid = std::stoi(tokens[cur + 1]);
-      cur += 2;
-      continue;
-    }
-    if (kw == "advskew" && cur + 1 < tokens.size()) {
-      if (!tok->carp)
-        tok->carp.emplace(InterfaceConfig{});
-      tok->carp->advskew = std::stoi(tokens[cur + 1]);
-      cur += 2;
-      continue;
-    }
-    if (kw == "advbase" && cur + 1 < tokens.size()) {
-      if (!tok->carp)
-        tok->carp.emplace(InterfaceConfig{});
-      tok->carp->advbase = std::stoi(tokens[cur + 1]);
-      cur += 2;
-      continue;
-    }
 
     // Unknown keyword; stop parsing
     break;
   }
 }
 
+// ---------------------------------------------------------------------------
+// parseFromTokens — entry point
+// ---------------------------------------------------------------------------
 std::shared_ptr<InterfaceToken>
 InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
                                 size_t start, size_t &next) {
@@ -882,4 +431,216 @@ InterfaceToken::parseFromTokens(const std::vector<std::string> &tokens,
   // bare interfaces
   return std::make_shared<InterfaceToken>(InterfaceType::Unknown,
                                           std::string());
+}
+
+// ---------------------------------------------------------------------------
+// executeSet — common base setup + type dispatch
+// ---------------------------------------------------------------------------
+void InterfaceToken::executeSet(ConfigurationManager *mgr) const {
+  if (name_.empty()) {
+    std::cerr << "set interface: missing interface name\n";
+    return;
+  }
+
+  try {
+    bool exists = InterfaceConfig::exists(*mgr, name_);
+    auto ifopt = (exists && mgr) ? mgr->GetInterface(name_)
+                                 : std::optional<InterfaceConfig>{};
+    InterfaceConfig base = ifopt ? *ifopt : InterfaceConfig();
+    if (!ifopt)
+      base.name = name_;
+
+    if (vrf) {
+      if (!base.vrf)
+        base.vrf = std::make_unique<VRFConfig>(*vrf);
+      else
+        base.vrf->table = *vrf;
+    }
+
+    InterfaceType effectiveType = InterfaceType::Unknown;
+    if (type_ != InterfaceType::Unknown)
+      effectiveType = type_;
+    else if (base.type != InterfaceType::Unknown)
+      effectiveType = base.type;
+
+    if (address) {
+      auto net = IPNetwork::fromString(*address);
+      if (net) {
+        if (!base.address)
+          base.address = std::move(net);
+        else
+          base.aliases.emplace_back(net->clone());
+      } else {
+        std::cerr << "set interface: invalid address '" << *address << "'\n";
+      }
+    }
+
+    if (group) {
+      bool has_group = false;
+      for (const auto &g : base.groups) {
+        if (g == *group) { has_group = true; break; }
+      }
+      if (!has_group)
+        base.groups.push_back(*group);
+    }
+
+    if (mtu)
+      base.mtu = *mtu;
+    else
+      base.mtu.reset();
+
+    if (status) {
+      if (base.flags) {
+        if (*status)
+          *base.flags |= flagBit(InterfaceFlag::UP);
+        else
+          *base.flags &= ~flagBit(InterfaceFlag::UP);
+      } else {
+        base.flags = *status ? flagBit(InterfaceFlag::UP) : 0u;
+      }
+    }
+
+    if (description)
+      base.description = *description;
+
+    if (auto *d = dispatch(effectiveType); d && d->setInterface) {
+      d->setInterface(*this, mgr, base, exists);
+      return;
+    }
+
+    // No specific type matched — alias or generic update
+    if (address && exists) {
+      auto net = IPNetwork::fromString(*address);
+      if (!net) {
+        std::cerr << "set interface: invalid address '" << *address << "'\n";
+        return;
+      }
+      base.aliases.emplace_back(net->clone());
+      base.save(*mgr);
+      std::cout << "set interface: added alias '" << *address << "' to '"
+                << name_ << "'\n";
+      return;
+    }
+
+    base.save(*mgr);
+    std::cout << "set interface: " << (exists ? "updated" : "created")
+              << " interface '" << name_ << "'\n";
+  } catch (const std::exception &e) {
+    std::cerr << "set interface: failed to create/update '" << name_
+              << "': " << e.what() << "\n";
+  }
+}
+
+// ---------------------------------------------------------------------------
+// executeShow — collection + single-interface dispatch + multi-interface table
+// ---------------------------------------------------------------------------
+void InterfaceToken::executeShow(ConfigurationManager *mgr) const {
+  if (!mgr) {
+    std::cout << "No ConfigurationManager provided\n";
+    return;
+  }
+  std::vector<InterfaceConfig> interfaces;
+  if (!name_.empty()) {
+    auto ifopt = mgr->GetInterface(name_);
+    if (ifopt)
+      interfaces.push_back(std::move(*ifopt));
+  } else if (type_ != InterfaceType::Unknown) {
+    auto allIfaces = mgr->GetInterfaces();
+    for (auto &iface : allIfaces) {
+      if (group) {
+        bool has = false;
+        for (const auto &g : iface.groups) {
+          if (g == *group) { has = true; break; }
+        }
+        if (!has) continue;
+      }
+      if (iface.matchesType(type_))
+        interfaces.push_back(std::move(iface));
+    }
+  } else {
+    if (group)
+      interfaces = mgr->GetInterfacesByGroup(std::nullopt, *group);
+    else
+      interfaces = mgr->GetInterfaces();
+  }
+
+  if (group && type_ == InterfaceType::Unknown) {
+    InterfaceTableFormatter formatter;
+    std::cout << formatter.format(interfaces);
+    return;
+  }
+
+  if (interfaces.size() == 1 && !name_.empty()) {
+    const auto &ic = interfaces[0];
+    bool handled = false;
+    if (auto *d = dispatch(ic.type); d && d->showInterface)
+      handled = d->showInterface(ic, mgr);
+    if (handled) return;
+    SingleInterfaceSummaryFormatter f;
+    std::cout << f.format(ic);
+    return;
+  }
+
+  // Multi-interface: use type-specific table formatter when type is known
+  if (auto *d = dispatch(type_); d && d->showInterfaces) {
+    std::cout << d->showInterfaces(interfaces, mgr);
+    return;
+  }
+
+  std::cout << InterfaceConfig::formatInterfaces(interfaces, mgr);
+}
+
+// ---------------------------------------------------------------------------
+// executeDelete — group/address/destroy
+// ---------------------------------------------------------------------------
+void InterfaceToken::executeDelete(ConfigurationManager *mgr) const {
+  if (name_.empty()) {
+    std::cerr << "delete interface: missing interface name\n";
+    return;
+  }
+
+  if (!InterfaceConfig::exists(*mgr, name_)) {
+    std::cerr << "delete interface: interface '" << name_ << "' not found\n";
+    return;
+  }
+
+  InterfaceConfig ic;
+  ic.name = name_;
+  try {
+    if (group) {
+      mgr->RemoveInterfaceGroup(name_, *group);
+      std::cout << "delete interface: removed group '" << *group
+                << "' from '" << name_ << "'\n";
+      return;
+    }
+
+    if (address || address_family) {
+      std::vector<std::string> to_remove;
+      if (address) {
+        to_remove.push_back(*address);
+      } else if (address_family && *address_family == AF_INET) {
+        to_remove = mgr->GetInterfaceAddresses(name_, AF_INET);
+      } else if (address_family && *address_family == AF_INET6) {
+        to_remove = mgr->GetInterfaceAddresses(name_, AF_INET6);
+      }
+
+      for (const auto &a : to_remove) {
+        try {
+          ic.removeAddress(*mgr, a);
+          std::cout << "delete interface: removed address '" << a
+                    << "' from '" << name_ << "'\n";
+        } catch (const std::exception &e) {
+          std::cerr << "delete interface: failed to remove address '" << a
+                    << "': " << e.what() << "\n";
+        }
+      }
+      return;
+    }
+
+    ic.destroy(*mgr);
+    std::cout << "delete interface: removed '" << name_ << "'\n";
+  } catch (const std::exception &e) {
+    std::cerr << "delete interface: failed to remove '" << name_
+              << "': " << e.what() << "\n";
+  }
 }

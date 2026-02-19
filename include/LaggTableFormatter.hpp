@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include "InterfaceConfig.hpp"
+#include "LaggInterfaceConfig.hpp"
 #include "TableFormatter.hpp"
 #include <string>
 #include <vector>
@@ -43,14 +43,14 @@
  * Shows LAGG-specific details like protocol, members, hash policy, LACP
  * settings.
  */
-class LaggTableFormatter : public TableFormatter<InterfaceConfig> {
+class LaggTableFormatter : public TableFormatter<LaggInterfaceConfig> {
 public:
   LaggTableFormatter() = default;
 
   /**
    * @brief Format LAGG interfaces into a detailed table
-   * @param interfaces List of InterfaceConfig with LAGG configurations
+   * @param interfaces List of LaggInterfaceConfig
    * @return Formatted ASCII table string
    */
-  std::string format(const std::vector<InterfaceConfig> &interfaces) override;
+  std::string format(const std::vector<LaggInterfaceConfig> &interfaces) override;
 };

@@ -25,10 +25,9 @@ namespace {
 // Buffer-type queries: kernel fills req.i_data buffer    (set i_len=bufsize, i_data=buf)
 void populateWlanMetadata(WlanInterfaceConfig &w, const std::string &ifname,
                           std::optional<uint32_t> flags) {
-  try {
-    Socket s(AF_INET, SOCK_DGRAM);
-    struct ieee80211req req{};
-    std::strncpy(req.i_name, ifname.c_str(), IFNAMSIZ - 1);
+  Socket s(AF_INET, SOCK_DGRAM);
+  struct ieee80211req req{};
+  std::strncpy(req.i_name, ifname.c_str(), IFNAMSIZ - 1);
 
     // SSID (buffer-type)
     {
@@ -375,8 +374,6 @@ void populateWlanMetadata(WlanInterfaceConfig &w, const std::string &ifname,
         else                                  w.media_mode = WlanMediaMode::AUTO;
       }
     }
-  } catch (...) {
-  }
 }
 
 } // anonymous namespace
@@ -401,8 +398,7 @@ void SystemConfigurationManager::SaveWlan(
 
 std::vector<WlanInterfaceConfig>
 SystemConfigurationManager::GetWlanInterfaces(
-    const std::optional<VRFConfig> &vrf) const {
-  auto bases = GetInterfaces(vrf);
+    const std::vector<InterfaceConfig> &bases) const {
   std::vector<WlanInterfaceConfig> out;
   for (const auto &ic : bases) {
     if (ic.type != InterfaceType::Wireless)

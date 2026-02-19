@@ -7,7 +7,7 @@ namespace netcli {
 
 void generateIpsecCommands(ConfigurationManager &mgr,
                            std::set<std::string> &processedInterfaces) {
-  auto ipsecs = mgr.GetIpsecInterfaces();
+  auto ipsecs = mgr.GetIpsecInterfaces(mgr.GetInterfaces());
   for (const auto &ifc : ipsecs) {
     if (processedInterfaces.count(ifc.name))
       continue;

@@ -71,34 +71,9 @@ namespace {
 
 } // namespace
 
-bool SystemConfigurationManager::interfaceIsBridge(
-    const std::string &ifname) const {
-  try {
-    Socket sock(AF_INET, SOCK_DGRAM);
-
-    const size_t entries = 8;
-    std::vector<struct ifbreq> buf(entries);
-
-    struct ifbifconf ifbic{};
-    ifbic.ifbic_len = static_cast<uint32_t>(buf.size() * sizeof(struct ifbreq));
-    ifbic.ifbic_buf = reinterpret_cast<caddr_t>(buf.data());
-
-    struct ifdrv ifd{};
-    std::strncpy(ifd.ifd_name, ifname.c_str(), IFNAMSIZ - 1);
-    ifd.ifd_cmd = BRDGGIFS;
-    ifd.ifd_len = static_cast<int>(sizeof(ifbic));
-    ifd.ifd_data = &ifbic;
-
-    return (ioctl(sock, SIOCGDRVSPEC, &ifd) == 0);
-  } catch (...) {
-    return false;
-  }
-}
-
 std::vector<BridgeInterfaceConfig>
 SystemConfigurationManager::GetBridgeInterfaces(
-    const std::optional<VRFConfig> &vrf) const {
-  auto bases = GetInterfaces(vrf);
+    const std::vector<InterfaceConfig> &bases) const {
   std::vector<BridgeInterfaceConfig> out;
   for (const auto &ic : bases) {
     if (ic.type == InterfaceType::Bridge) {
@@ -246,48 +221,44 @@ void SystemConfigurationManager::SaveBridge(
 std::vector<std::string>
 SystemConfigurationManager::GetBridgeMembers(const std::string &name) const {
   std::vector<std::string> members;
-  try {
-    Socket sock(AF_INET, SOCK_DGRAM);
+  Socket sock(AF_INET, SOCK_DGRAM);
 
-    // Try with a small buffer first, then retry with a larger buffer if needed.
-    const size_t small_entries = 64;
-    const size_t large_entries = 1024;
-    for (size_t entries : {small_entries, large_entries}) {
-      std::vector<struct ifbreq> buf(entries);
+  // Try with a small buffer first, then retry with a larger buffer if needed.
+  const size_t small_entries = 64;
+  const size_t large_entries = 1024;
+  for (size_t entries : {small_entries, large_entries}) {
+    std::vector<struct ifbreq> buf(entries);
 
-      struct ifbifconf ifbic{};
-      ifbic.ifbic_len =
-          static_cast<uint32_t>(buf.size() * sizeof(struct ifbreq));
-      ifbic.ifbic_buf = reinterpret_cast<caddr_t>(buf.data());
+    struct ifbifconf ifbic{};
+    ifbic.ifbic_len =
+        static_cast<uint32_t>(buf.size() * sizeof(struct ifbreq));
+    ifbic.ifbic_buf = reinterpret_cast<caddr_t>(buf.data());
 
-      struct ifdrv ifd{};
-      std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
-      ifd.ifd_cmd = BRDGGIFS;
-      ifd.ifd_len = static_cast<int>(sizeof(ifbic));
-      ifd.ifd_data = &ifbic;
+    struct ifdrv ifd{};
+    std::strncpy(ifd.ifd_name, name.c_str(), IFNAMSIZ - 1);
+    ifd.ifd_cmd = BRDGGIFS;
+    ifd.ifd_len = static_cast<int>(sizeof(ifbic));
+    ifd.ifd_data = &ifbic;
 
-      if (ioctl(sock, SIOCGDRVSPEC, &ifd) < 0) {
-        int e = errno;
-        if (entries == large_entries || e != EINVAL)
-          break;
-        continue;
-      }
-
-      size_t used_bytes = static_cast<size_t>(ifbic.ifbic_len);
-      size_t count = (used_bytes / sizeof(struct ifbreq));
-      if (count > buf.size())
-        count = buf.size();
-
-      for (size_t i = 0; i < count; ++i) {
-        if (buf[i].ifbr_ifsname[0] != '\0')
-          members.emplace_back(std::string(buf[i].ifbr_ifsname));
-      }
-
-      if (!members.empty() || entries == large_entries)
+    if (ioctl(sock, SIOCGDRVSPEC, &ifd) < 0) {
+      int e = errno;
+      if (entries == large_entries || e != EINVAL)
         break;
+      continue;
     }
-  } catch (...) {
-    // Socket creation failed, return empty
+
+    size_t used_bytes = static_cast<size_t>(ifbic.ifbic_len);
+    size_t count = (used_bytes / sizeof(struct ifbreq));
+    if (count > buf.size())
+      count = buf.size();
+
+    for (size_t i = 0; i < count; ++i) {
+      if (buf[i].ifbr_ifsname[0] != '\0')
+        members.emplace_back(std::string(buf[i].ifbr_ifsname));
+    }
+
+    if (!members.empty() || entries == large_entries)
+      break;
   }
   return members;
 }

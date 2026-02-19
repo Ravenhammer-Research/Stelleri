@@ -13,7 +13,7 @@ namespace netcli {
   void
   CommandGenerator::generateLaggs(ConfigurationManager &mgr,
                                   std::set<std::string> &processedInterfaces) {
-    auto laggs = mgr.GetLaggInterfaces();
+    auto laggs = mgr.GetLaggInterfaces(mgr.GetInterfaces());
     for (const auto &ifc : laggs) {
       if (processedInterfaces.count(ifc.name))
         continue;

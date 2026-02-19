@@ -38,7 +38,7 @@ CarpTableFormatter::format(const std::vector<InterfaceConfig> &items) {
   addColumn("MTU", "MTU", 6, 6, true);
 
   for (const auto &ic : items) {
-    if (ic.name.rfind("carp", 0) != 0 && ic.name.rfind("vh", 0) != 0)
+    if (ic.type != InterfaceType::Carp)
       continue;
 
     std::vector<std::string> addrs;

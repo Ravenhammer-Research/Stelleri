@@ -39,6 +39,7 @@
 #include <net/if_media.h>
 #include <net/if_types.h>
 #include <netinet/in.h>
+#include <sys/types.h>
 #include <netinet6/in6_var.h>
 #include <string>
 #include <sys/ioctl.h>
@@ -46,6 +47,29 @@
 #include <sys/sockio.h>
 #include <unistd.h>
 #include <unordered_map>
+
+// nd6.h cannot be included directly from C++ because it references a nested
+// C struct tag (struct prf_ra) that is invisible at file scope in C++.
+// Replicate only the structures we need for SIOCGIFINFO_IN6.
+struct nd_ifinfo {
+  uint32_t linkmtu;
+  uint32_t maxmtu;
+  uint32_t basereachable;
+  uint32_t reachable;
+  uint32_t retrans;
+  uint32_t flags;
+  int recalctm;
+  uint8_t chlim;
+  uint8_t initialized;
+  uint8_t randomseed0[8];
+  uint8_t randomseed1[8];
+  uint8_t randomid[8];
+};
+
+struct in6_ndireq {
+  char ifname[IFNAMSIZ];
+  struct nd_ifinfo ndi;
+};
 
 namespace {
 
@@ -92,7 +116,17 @@ namespace {
         return InterfaceType::ATM;
       case IFT_PROPVIRTUAL:
       case IFT_VIRTUALIPADDRESS:
-        return InterfaceType::Virtual;
+        return InterfaceType::Epair;
+      case IFT_STF:
+        return InterfaceType::SixToFour;
+      case IFT_PFLOG:
+        return InterfaceType::Pflog;
+      case IFT_PFSYNC:
+        return InterfaceType::Pfsync;
+      case IFT_ENC:
+        return InterfaceType::Enc;
+      case IFT_WIREGUARD:
+        return InterfaceType::WireGuard;
       default:
         return InterfaceType::Other;
       }
@@ -127,26 +161,23 @@ void SystemConfigurationManager::cloneInterface(const std::string &name,
 
 std::optional<int> SystemConfigurationManager::query_ifreq_int(
     const std::string &ifname, unsigned long req, IfreqIntField which) const {
-  try {
-    Socket s(AF_INET, SOCK_DGRAM);
-    struct ifreq ifr;
-    prepare_ifreq(ifr, ifname);
-    if (ioctl(s, req, &ifr) == 0) {
-      int v = 0;
-      switch (which) {
-      case IfreqIntField::Metric:
-        v = ifr.ifr_metric;
-        break;
-      case IfreqIntField::Fib:
-        v = ifr.ifr_fib;
-        break;
-      case IfreqIntField::Mtu:
-        v = ifr.ifr_mtu;
-        break;
-      }
-      return v;
+  Socket s(AF_INET, SOCK_DGRAM);
+  struct ifreq ifr;
+  prepare_ifreq(ifr, ifname);
+  if (ioctl(s, req, &ifr) == 0) {
+    int v = 0;
+    switch (which) {
+    case IfreqIntField::Metric:
+      v = ifr.ifr_metric;
+      break;
+    case IfreqIntField::Fib:
+      v = ifr.ifr_fib;
+      break;
+    case IfreqIntField::Mtu:
+      v = ifr.ifr_mtu;
+      break;
     }
-  } catch (...) {
+    return v;
   }
   return std::nullopt;
 }
@@ -154,26 +185,23 @@ std::optional<int> SystemConfigurationManager::query_ifreq_int(
 std::optional<std::pair<std::string, int>>
 SystemConfigurationManager::query_ifreq_sockaddr(const std::string &ifname,
                                                  unsigned long req) const {
-  try {
-    Socket s(AF_INET, SOCK_DGRAM);
-    struct ifreq ifr;
-    prepare_ifreq(ifr, ifname);
-    if (ioctl(s, req, &ifr) == 0) {
-      if (ifr.ifr_addr.sa_family == AF_INET) {
-        struct sockaddr_in *sin =
-            reinterpret_cast<struct sockaddr_in *>(&ifr.ifr_addr);
-        char buf[INET_ADDRSTRLEN] = {0};
-        if (inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf)))
-          return std::make_pair(std::string(buf), AF_INET);
-      } else if (ifr.ifr_addr.sa_family == AF_INET6) {
-        struct sockaddr_in6 *sin6 =
-            reinterpret_cast<struct sockaddr_in6 *>(&ifr.ifr_addr);
-        char buf[INET6_ADDRSTRLEN] = {0};
-        if (inet_ntop(AF_INET6, &sin6->sin6_addr, buf, sizeof(buf)))
-          return std::make_pair(std::string(buf), AF_INET6);
-      }
+  Socket s(AF_INET, SOCK_DGRAM);
+  struct ifreq ifr;
+  prepare_ifreq(ifr, ifname);
+  if (ioctl(s, req, &ifr) == 0) {
+    if (ifr.ifr_addr.sa_family == AF_INET) {
+      struct sockaddr_in *sin =
+          reinterpret_cast<struct sockaddr_in *>(&ifr.ifr_addr);
+      char buf[INET_ADDRSTRLEN] = {0};
+      if (inet_ntop(AF_INET, &sin->sin_addr, buf, sizeof(buf)))
+        return std::make_pair(std::string(buf), AF_INET);
+    } else if (ifr.ifr_addr.sa_family == AF_INET6) {
+      struct sockaddr_in6 *sin6 =
+          reinterpret_cast<struct sockaddr_in6 *>(&ifr.ifr_addr);
+      char buf[INET6_ADDRSTRLEN] = {0};
+      if (inet_ntop(AF_INET6, &sin6->sin6_addr, buf, sizeof(buf)))
+        return std::make_pair(std::string(buf), AF_INET6);
     }
-  } catch (...) {
   }
   return std::nullopt;
 }
@@ -181,27 +209,24 @@ SystemConfigurationManager::query_ifreq_sockaddr(const std::string &ifname,
 std::vector<std::string> SystemConfigurationManager::query_interface_groups(
     const std::string &ifname) const {
   std::vector<std::string> out;
-  try {
-    Socket s(AF_LOCAL, SOCK_DGRAM);
-    struct ifgroupreq ifgr;
-    std::memset(&ifgr, 0, sizeof(ifgr));
-    std::strncpy(ifgr.ifgr_name, ifname.c_str(), IFNAMSIZ - 1);
-    if (ioctl(s, SIOCGIFGROUP, &ifgr) == 0) {
-      size_t len = ifgr.ifgr_len;
-      if (len > 0) {
-        size_t count = len / sizeof(struct ifg_req);
-        std::vector<struct ifg_req> groups(count);
-        ifgr.ifgr_groups = groups.data();
-        if (ioctl(s, SIOCGIFGROUP, &ifgr) == 0) {
-          for (size_t i = 0; i < count; ++i) {
-            std::string gname(groups[i].ifgrq_group);
-            if (!gname.empty())
-              out.emplace_back(gname);
-          }
+  Socket s(AF_LOCAL, SOCK_DGRAM);
+  struct ifgroupreq ifgr;
+  std::memset(&ifgr, 0, sizeof(ifgr));
+  std::strncpy(ifgr.ifgr_name, ifname.c_str(), IFNAMSIZ - 1);
+  if (ioctl(s, SIOCGIFGROUP, &ifgr) == 0) {
+    size_t len = ifgr.ifgr_len;
+    if (len > 0) {
+      size_t count = len / sizeof(struct ifg_req);
+      std::vector<struct ifg_req> groups(count);
+      ifgr.ifgr_groups = groups.data();
+      if (ioctl(s, SIOCGIFGROUP, &ifgr) == 0) {
+        for (size_t i = 0; i < count; ++i) {
+          std::string gname(groups[i].ifgrq_group);
+          if (!gname.empty())
+            out.emplace_back(gname);
         }
       }
     }
-  } catch (...) {
   }
   return out;
 }
@@ -229,8 +254,15 @@ namespace {
         uint8_t masklen = 128;
         if (ifa->ifa_netmask)
           masklen = IPNetwork::masklenFromSockaddr(ifa->ifa_netmask);
-        return IPNetwork::fromString(std::string(buf) + "/" +
-                                     std::to_string(masklen));
+        auto net = IPNetwork::fromString(std::string(buf) + "/" +
+                                         std::to_string(masklen));
+        // Capture scope ID from the original sockaddr_in6
+        if (net && a6->sin6_scope_id != 0) {
+          auto *v6 = dynamic_cast<IPv6Network *>(net.get());
+          if (v6)
+            v6->scopeid = a6->sin6_scope_id;
+        }
+        return net;
       }
     }
     return nullptr;
@@ -307,6 +339,46 @@ namespace {
 
 } // anonymous namespace
 
+/// Populate per-address IPv6 flags (IN6_IFF_*) and lifetimes on each
+/// IPv6Network owned by an InterfaceConfig.
+static void populateIPv6AddrFlags(InterfaceConfig &ic) {
+  auto populate = [&](IPNetwork *net) {
+    if (!net || net->family() != AddressFamily::IPv6)
+      return;
+    auto *v6 = dynamic_cast<IPv6Network *>(net);
+    if (!v6)
+      return;
+
+    auto addr = v6->address();
+    auto *a6 = dynamic_cast<IPv6Address *>(addr.get());
+    if (!a6)
+      return;
+
+    Socket s(AF_INET6, SOCK_DGRAM);
+    struct in6_ifreq ifr6{};
+    std::strncpy(ifr6.ifr_name, ic.name.c_str(), IFNAMSIZ - 1);
+
+    auto sa6 = makeSockaddrIn6(a6->value());
+    std::memcpy(&ifr6.ifr_ifru.ifru_addr, &sa6, sizeof(sa6));
+
+    // Per-address flags (IN6_IFF_AUTOCONF, IN6_IFF_TEMPORARY, etc.)
+    if (ioctl(s, SIOCGIFAFLAG_IN6, &ifr6) == 0)
+      v6->addr_flags = static_cast<uint32_t>(ifr6.ifr_ifru.ifru_flags6);
+
+    // Preferred / valid lifetimes
+    if (ioctl(s, SIOCGIFALIFETIME_IN6, &ifr6) == 0) {
+      v6->pltime = ifr6.ifr_ifru.ifru_lifetime.ia6t_pltime;
+      v6->vltime = ifr6.ifr_ifru.ifru_lifetime.ia6t_vltime;
+    }
+  };
+
+  if (ic.address)
+    populate(ic.address.get());
+  for (auto &alias : ic.aliases)
+    if (alias)
+      populate(alias.get());
+}
+
 void SystemConfigurationManager::populateInterfaceMetadata(
     InterfaceConfig &ic) const {
   if (auto m = query_ifreq_int(ic.name, SIOCGIFMETRIC, IfreqIntField::Metric))
@@ -328,7 +400,7 @@ void SystemConfigurationManager::populateInterfaceMetadata(
   ic.groups = query_interface_groups(ic.name);
 
   // --- Description (SIOCGIFDESCR) ---
-  try {
+  {
     Socket s(AF_INET, SOCK_DGRAM);
     struct ifreq ifr;
     prepare_ifreq(ifr, ic.name);
@@ -337,7 +409,6 @@ void SystemConfigurationManager::populateInterfaceMetadata(
     ifr.ifr_buffer.length = sizeof(descbuf);
     if (ioctl(s, SIOCGIFDESCR, &ifr) == 0 && descbuf[0] != '\0')
       ic.description = std::string(descbuf);
-  } catch (...) {
   }
 
   // --- Hardware / MAC address (AF_LINK from getifaddrs) ---
@@ -374,7 +445,7 @@ void SystemConfigurationManager::populateInterfaceMetadata(
   }
 
   // --- Capabilities (SIOCGIFCAP) ---
-  try {
+  {
     Socket s(AF_INET, SOCK_DGRAM);
     struct ifreq ifr;
     prepare_ifreq(ifr, ic.name);
@@ -382,11 +453,10 @@ void SystemConfigurationManager::populateInterfaceMetadata(
       ic.req_capabilities = static_cast<uint32_t>(ifr.ifr_reqcap);
       ic.capabilities = static_cast<uint32_t>(ifr.ifr_curcap);
     }
-  } catch (...) {
   }
 
   // --- Media (SIOCGIFMEDIA) ---
-  try {
+  {
     Socket s(AF_INET, SOCK_DGRAM);
     struct ifmediareq ifmr{};
     std::strncpy(ifmr.ifm_name, ic.name.c_str(), IFNAMSIZ - 1);
@@ -397,27 +467,33 @@ void SystemConfigurationManager::populateInterfaceMetadata(
       ic.media = std::to_string(ifmr.ifm_current);
       ic.media_active = std::to_string(ifmr.ifm_active);
     }
-  } catch (...) {
   }
 
   // --- Driver status string (SIOCGIFSTATUS) ---
-  try {
+  {
     Socket s(AF_INET, SOCK_DGRAM);
     struct ifstat ifs{};
     std::strncpy(ifs.ifs_name, ic.name.c_str(), IFNAMSIZ - 1);
     if (ioctl(s, SIOCGIFSTATUS, &ifs) == 0 && ifs.ascii[0] != '\0')
       ic.status_str = std::string(ifs.ascii);
-  } catch (...) {
   }
 
   // --- Physical wire type (SIOCGIFPHYS) ---
-  try {
+  {
     Socket s(AF_INET, SOCK_DGRAM);
     struct ifreq ifr;
     prepare_ifreq(ifr, ic.name);
     if (ioctl(s, SIOCGIFPHYS, &ifr) == 0)
       ic.phys = ifr.ifr_phys;
-  } catch (...) {
+  }
+
+  // --- ND6 per-interface options (SIOCGIFINFO_IN6) ---
+  {
+    Socket s(AF_INET6, SOCK_DGRAM);
+    struct in6_ndireq ndi{};
+    std::strncpy(ndi.ifname, ic.name.c_str(), IFNAMSIZ - 1);
+    if (ioctl(s, SIOCGIFINFO_IN6, &ndi) == 0)
+      ic.nd6_options = static_cast<uint32_t>(ndi.ndi.flags);
   }
 }
 
@@ -498,7 +574,7 @@ void SystemConfigurationManager::SaveInterface(
         try {
           Socket sock6(AF_INET6, SOCK_DGRAM);
           addIPv6Addr(sock6, ic.name, *v6, 0 /* let kernel handle DAD */);
-        } catch (const std::exception &e) {
+        } catch (const SocketException &e) {
           std::cerr << "Warning: " << e.what() << "\n";
         }
       }
@@ -743,24 +819,40 @@ std::vector<InterfaceConfig> SystemConfigurationManager::GetInterfaces(
 
   for (auto &kv : map) {
     populateInterfaceMetadata(*kv.second);
+    populateIPv6AddrFlags(*kv.second);
     for (const auto &g : kv.second->groups) {
       if (g == "epair") {
-        kv.second->type = InterfaceType::Virtual;
+        kv.second->type = InterfaceType::Epair;
         break;
       }
     }
-    if (interfaceIsLagg(kv.second->name)) {
-      kv.second->type = InterfaceType::Lagg;
-    } else if (interfaceIsBridge(kv.second->name)) {
-      kv.second->type = InterfaceType::Bridge;
-    } else if (kv.second->name.rfind("gre", 0) == 0) {
-      kv.second->type = InterfaceType::GRE;
-    } else if (kv.second->name.rfind("vxlan", 0) == 0) {
-      kv.second->type = InterfaceType::VXLAN;
-    } else if (kv.second->name.rfind("ipsec", 0) == 0) {
-      kv.second->type = InterfaceType::IPsec;
-    } else if (kv.second->name.rfind("wlan", 0) == 0) {
-      kv.second->type = InterfaceType::Wireless;
+    // Name-based refinement ONLY for types whose kernel IFT is generic
+    // (IFT_ETHER or IFT_TUNNEL).  Every type that has a dedicated IFT_*
+    // constant (lagg, bridge, wlan, gif, vlan, stf, pflog, …) is already
+    // resolved above by ifAddrToInterfaceType and must NOT be touched here.
+    auto kt = kv.second->type;
+    if (kt == InterfaceType::Ethernet || kt == InterfaceType::Tunnel ||
+        kt == InterfaceType::Unknown || kt == InterfaceType::Other ||
+        kt == InterfaceType::Epair || kt == InterfaceType::PointToPoint) {
+      auto &nm = kv.second->name;
+      if (nm.starts_with("bridge"))
+        kv.second->type = InterfaceType::Bridge;
+      else if (nm.starts_with("lagg"))
+        kv.second->type = InterfaceType::Lagg;
+      else if (nm.starts_with("wlan"))
+        kv.second->type = InterfaceType::Wireless;
+      else if (nm.starts_with("gre"))
+        kv.second->type = InterfaceType::GRE;
+      else if (nm.starts_with("vxlan"))
+        kv.second->type = InterfaceType::VXLAN;
+      else if (nm.starts_with("ipsec"))
+        kv.second->type = InterfaceType::IPsec;
+      else if (nm.starts_with("carp") || nm.starts_with("vh"))
+        kv.second->type = InterfaceType::Carp;
+      else if (nm.starts_with("tap"))
+        kv.second->type = InterfaceType::Tap;
+      else if (nm.starts_with("ovpn"))
+        kv.second->type = InterfaceType::Ovpn;
     }
     if (matches_vrf(*kv.second, vrf))
       out.emplace_back(std::move(*kv.second));

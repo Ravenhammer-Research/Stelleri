@@ -94,11 +94,10 @@ void SystemConfigurationManager::SaveGre(const GreInterfaceConfig &gre) const {
 }
 
 std::vector<GreInterfaceConfig> SystemConfigurationManager::GetGreInterfaces(
-    const std::optional<VRFConfig> &vrf) const {
-  auto bases = GetInterfaces(vrf);
+    const std::vector<InterfaceConfig> &bases) const {
   std::vector<GreInterfaceConfig> out;
   for (const auto &ic : bases) {
-    if (ic.type == InterfaceType::GRE || ic.name.rfind("gre", 0) == 0) {
+    if (ic.type == InterfaceType::GRE) {
       GreInterfaceConfig gc(ic);
 
       // Query GRE key

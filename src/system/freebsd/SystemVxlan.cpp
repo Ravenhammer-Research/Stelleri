@@ -28,11 +28,10 @@ void SystemConfigurationManager::SaveVxlan(const VxlanInterfaceConfig &vxlan) co
 }
 
 std::vector<VxlanInterfaceConfig> SystemConfigurationManager::GetVxlanInterfaces(
-    const std::optional<VRFConfig> &vrf) const {
-  auto bases = GetInterfaces(vrf);
+    const std::vector<InterfaceConfig> &bases) const {
   std::vector<VxlanInterfaceConfig> out;
   for (const auto &ic : bases) {
-    if (ic.type == InterfaceType::VXLAN || ic.name.rfind("vxlan", 0) == 0) {
+    if (ic.type == InterfaceType::VXLAN) {
       out.emplace_back(ic);
     }
   }

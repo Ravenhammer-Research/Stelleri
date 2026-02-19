@@ -6,23 +6,9 @@ void IpsecInterfaceConfig::save(ConfigurationManager &mgr) const { mgr.SaveIpsec
 
 void IpsecInterfaceConfig::create(ConfigurationManager &mgr) const { mgr.CreateIpsec(name); }
 
-IpsecInterfaceConfig::IpsecInterfaceConfig(const InterfaceConfig &base) {
-  name = base.name;
+IpsecInterfaceConfig::IpsecInterfaceConfig(const InterfaceConfig &base)
+    : InterfaceConfig(base) {
   type = InterfaceType::IPsec;
-  if (base.address)
-    address = base.address->clone();
-  aliases.clear();
-  for (const auto &a : base.aliases) {
-    if (a)
-      aliases.emplace_back(a->clone());
-    else
-      aliases.emplace_back(nullptr);
-  }
-  if (base.vrf)
-    vrf = std::make_unique<VRFConfig>(*base.vrf);
-  flags = base.flags;
-  groups = base.groups;
-  mtu = base.mtu;
 }
 
 IpsecInterfaceConfig::IpsecInterfaceConfig(const InterfaceConfig &base,

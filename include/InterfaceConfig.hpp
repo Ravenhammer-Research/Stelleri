@@ -72,7 +72,7 @@ public:
   std::optional<int> mtu;          ///< Maximum Transmission Unit
   std::optional<int> metric;       ///< Interface metric (if available)
   std::optional<int> index;        ///< Interface numeric index (if available)
-  std::optional<std::string> nd6_options; ///< ND6 options string (if available)
+  std::optional<uint32_t> nd6_options; ///< ND6 flags bitmask (ND6_IFF_*)
 
   // --- Extended base-interface properties (from struct ifreq / ioctls) ---
 
@@ -114,7 +114,7 @@ public:
   bool isBridge() const;
   bool isLagg() const;
   bool isVlan() const;
-  bool isVirtual() const;
+  bool isEpair() const;
   bool isWlan() const;
   bool isSixToFour() const;
   bool isTap() const;

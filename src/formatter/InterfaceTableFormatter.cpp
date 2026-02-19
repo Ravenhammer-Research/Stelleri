@@ -42,7 +42,6 @@ std::string InterfaceTableFormatter::format(
   // Define columns (key, title, priority, minWidth)
   addColumn("Index", "Index", 8, 5, true);
   addColumn("Interface", "Interface", 10, 9, true);
-  addColumn("Group", "Group", 6, 5, true);
   addColumn("Type", "Type", 9, 13, true);
   addColumn("Address", "Address", 10, 40, true);
   addColumn("Status", "Status", 7, 6, true);
@@ -93,32 +92,13 @@ std::string InterfaceTableFormatter::format(
     std::string flagsCell =
         ic.flags ? flagsToString(*ic.flags) : std::string("-");
 
-    std::string groupCell = "-";
-    if (!ic.groups.empty()) {
-      std::vector<std::string> filtered;
-      for (const auto &g : ic.groups) {
-        if (g == "all")
-          continue;
-        filtered.push_back(g);
-      }
-      if (!filtered.empty()) {
-        std::ostringstream goss;
-        for (size_t i = 0; i < filtered.size(); ++i) {
-          if (i)
-            goss << '\n';
-          goss << filtered[i];
-        }
-        groupCell = goss.str();
-      }
-    }
-
     const std::string B = "\x1b[1m";
     const std::string R = "\x1b[0m";
     std::string indexCell = "-";
     if (ic.index)
       indexCell = B + std::to_string(*ic.index) + R;
 
-    addRow({indexCell, ic.name, groupCell, interfaceTypeToString(ic.type),
+    addRow({indexCell, ic.name, interfaceTypeToString(ic.type),
             addrCell, status, mtuCell, vrfCell, flagsCell});
   }
 

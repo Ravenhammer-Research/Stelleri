@@ -36,6 +36,18 @@
 #pragma once
 
 #include "ConfigurationManager.hpp"
+#include "BridgeInterfaceConfig.hpp"
+#include "CarpInterfaceConfig.hpp"
+#include "EpairInterfaceConfig.hpp"
+#include "GifInterfaceConfig.hpp"
+#include "GreInterfaceConfig.hpp"
+#include "IpsecInterfaceConfig.hpp"
+#include "LaggInterfaceConfig.hpp"
+#include "OvpnInterfaceConfig.hpp"
+#include "PolicyConfig.hpp"
+#include "TunInterfaceConfig.hpp"
+#include "VlanInterfaceConfig.hpp"
+#include "VxlanInterfaceConfig.hpp"
 #include "WlanInterfaceConfig.hpp"
 #include <stdexcept>
 
@@ -55,44 +67,57 @@ public:
   }
 
   std::vector<BridgeInterfaceConfig> GetBridgeInterfaces(
-      const std::optional<VRFConfig> & /*vrf*/ = std::nullopt) const override {
+      const std::vector<InterfaceConfig> & /*bases*/) const override {
     return {};
   }
 
-  std::vector<LaggConfig> GetLaggInterfaces(
-      const std::optional<VRFConfig> & /*vrf*/ = std::nullopt) const override {
+  std::vector<LaggInterfaceConfig> GetLaggInterfaces(
+      const std::vector<InterfaceConfig> & /*bases*/) const override {
     return {};
   }
 
-  std::vector<VLANConfig> GetVLANInterfaces(
-      const std::optional<VRFConfig> & /*vrf*/ = std::nullopt) const override {
+  std::vector<VlanInterfaceConfig> GetVLANInterfaces(
+      const std::vector<InterfaceConfig> & /*bases*/) const override {
     return {};
   }
 
-  std::vector<TunConfig> GetTunInterfaces(
-      const std::optional<VRFConfig> & /*vrf*/ = std::nullopt) const override {
+  std::vector<TunInterfaceConfig> GetTunInterfaces(
+      const std::vector<InterfaceConfig> & /*bases*/) const override {
     return {};
   }
-  std::vector<GifConfig> GetGifInterfaces(
-      const std::optional<VRFConfig> & /*vrf*/ = std::nullopt) const override {
+  std::vector<GifInterfaceConfig> GetGifInterfaces(
+      const std::vector<InterfaceConfig> & /*bases*/) const override {
     return {};
   }
-  std::vector<OvpnConfig> GetOvpnInterfaces(
-      const std::optional<VRFConfig> & /*vrf*/ = std::nullopt) const override {
+  std::vector<OvpnInterfaceConfig> GetOvpnInterfaces(
+      const std::vector<InterfaceConfig> & /*bases*/) const override {
     return {};
   }
-  std::vector<IpsecConfig> GetIpsecInterfaces(
-      const std::optional<VRFConfig> & /*vrf*/ = std::nullopt) const override {
+  std::vector<IpsecInterfaceConfig> GetIpsecInterfaces(
+      const std::vector<InterfaceConfig> & /*bases*/) const override {
+    return {};
+  }
+  std::vector<GreInterfaceConfig> GetGreInterfaces(
+      const std::vector<InterfaceConfig> & /*bases*/) const override {
+    return {};
+  }
+  std::vector<VxlanInterfaceConfig> GetVxlanInterfaces(
+      const std::vector<InterfaceConfig> & /*bases*/) const override {
     return {};
   }
 
-  std::vector<VirtualInterfaceConfig> GetVirtualInterfaces(
-      const std::optional<VRFConfig> & /*vrf*/ = std::nullopt) const override {
+  std::vector<EpairInterfaceConfig> GetEpairInterfaces(
+      const std::vector<InterfaceConfig> & /*bases*/) const override {
     return {};
   }
 
   std::vector<WlanInterfaceConfig> GetWlanInterfaces(
-      const std::optional<VRFConfig> & /*vrf*/ = std::nullopt) const override {
+      const std::vector<InterfaceConfig> & /*bases*/) const override {
+    return {};
+  }
+
+  std::vector<CarpInterfaceConfig> GetCarpInterfaces(
+      const std::vector<InterfaceConfig> & /*bases*/) const override {
     return {};
   }
 
@@ -186,8 +211,8 @@ public:
   void CreateIpsec(const std::string & /*name*/) const override {}
   void SaveIpsec(const IpsecConfig & /*ipsec*/) const override {}
 
-  void CreateVirtual(const std::string & /*name*/) const override {}
-  void SaveVirtual(const VirtualInterfaceConfig & /*vic*/) const override {}
+  void CreateEpair(const std::string & /*name*/) const override {}
+  void SaveEpair(const EpairInterfaceConfig & /*vic*/) const override {}
 
   void CreateWlan(const std::string & /*name*/) const override {}
   void SaveWlan(const WlanConfig & /*wlan*/) const override {}
@@ -197,6 +222,15 @@ public:
 
   void AddRoute(const RouteConfig & /*route*/) const override {}
   void DeleteRoute(const RouteConfig & /*route*/) const override {}
+
+  // Policy
+  std::vector<PolicyConfig>
+  GetPolicies(const std::optional<uint32_t> & /*acl_filter*/ =
+                  std::nullopt) const override {
+    return {};
+  }
+  void SetPolicy(const PolicyConfig & /*pc*/) const override {}
+  void DeletePolicy(const PolicyConfig & /*pc*/) const override {}
 
   int GetFibs() const override { return 1; }
 };

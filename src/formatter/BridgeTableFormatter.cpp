@@ -27,26 +27,14 @@
 
 #include "BridgeTableFormatter.hpp"
 #include "BridgeInterfaceConfig.hpp"
-#include "ConfigurationManager.hpp"
-#include "InterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
-#include "InterfaceType.hpp"
-#include <algorithm>
-#include <cstdio>
-#include <iomanip>
-#include <regex>
 #include <sstream>
 #include <vector>
 
 std::string
-BridgeTableFormatter::format(const std::vector<InterfaceConfig> &interfaces) {
+BridgeTableFormatter::format(const std::vector<BridgeInterfaceConfig> &interfaces) {
   if (interfaces.empty())
     return "No bridge interfaces found.\n";
-
-  // Fetch full bridge interface configs via the injected manager
-  std::vector<BridgeInterfaceConfig> bridgeIfaces;
-  if (mgr_)
-    bridgeIfaces = mgr_->GetBridgeInterfaces();
 
   addColumn("Interface", "Interface", 10, 4, true);
   addColumn("STP", "STP", 6, 3, true);
@@ -56,41 +44,27 @@ BridgeTableFormatter::format(const std::vector<InterfaceConfig> &interfaces) {
   addColumn("MTU", "MTU", 4, 3, false);
   addColumn("Flags", "Flags", 3, 3, true);
 
-  for (const auto &iface : interfaces) {
-    if (iface.type != InterfaceType::Bridge)
-      continue;
-
-    // Find matching BridgeInterfaceConfig
-    const BridgeInterfaceConfig *br = nullptr;
-    for (const auto &b : bridgeIfaces) {
-      if (b.name == iface.name) {
-        br = &b;
-        break;
-      }
-    }
-    if (!br)
-      continue;
-
-    std::string stp = br->stp ? "yes" : "no";
-    std::string vlanf = br->vlanFiltering ? "yes" : "no";
+  for (const auto &br : interfaces) {
+    std::string stp = br.stp ? "yes" : "no";
+    std::string vlanf = br.vlanFiltering ? "yes" : "no";
     std::string prio =
-        br->priority ? std::to_string(*br->priority) : std::string("-");
-    std::string mtu = br->mtu ? std::to_string(*br->mtu) : std::string("-");
+        br.priority ? std::to_string(*br.priority) : std::string("-");
+    std::string mtu = br.mtu ? std::to_string(*br.mtu) : std::string("-");
     std::string flags =
-        (br->flags ? flagsToString(*br->flags) : std::string("-"));
+        (br.flags ? flagsToString(*br.flags) : std::string("-"));
 
     std::string membersCell = "-";
-    if (!br->members.empty()) {
+    if (!br.members.empty()) {
       std::ostringstream moss;
-      for (size_t i = 0; i < br->members.size(); ++i) {
+      for (size_t i = 0; i < br.members.size(); ++i) {
         if (i)
           moss << '\n';
-        moss << br->members[i];
+        moss << br.members[i];
       }
       membersCell = moss.str();
     }
 
-    addRow({br->name, stp, vlanf, prio, membersCell, mtu, flags});
+    addRow({br.name, stp, vlanf, prio, membersCell, mtu, flags});
   }
 
   return renderTable(80);

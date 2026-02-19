@@ -39,9 +39,7 @@ TapTableFormatter::format(const std::vector<InterfaceConfig> &items) {
 
   for (const auto &ic : items) {
 
-    // Heuristic: consider interfaces with names starting with "tap" or type
-    // Virtual
-    if (ic.type != InterfaceType::Virtual && ic.name.rfind("tap", 0) != 0)
+    if (ic.type != InterfaceType::Tap)
       continue;
 
     std::vector<std::string> addrs;

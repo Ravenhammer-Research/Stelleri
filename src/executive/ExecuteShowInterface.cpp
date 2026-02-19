@@ -25,87 +25,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "BridgeInterfaceConfig.hpp"
-#include "BridgeTableFormatter.hpp"
-#include "CarpTableFormatter.hpp"
-#include "ConfigurationManager.hpp"
-#include "GreTableFormatter.hpp"
-#include "InterfaceConfig.hpp"
-#include "InterfaceTableFormatter.hpp"
 #include "InterfaceToken.hpp"
-#include "LaggTableFormatter.hpp"
-#include "SingleInterfaceSummaryFormatter.hpp"
-#include "SixToFourTableFormatter.hpp"
-#include "TapTableFormatter.hpp"
-#include "TunTableFormatter.hpp"
-#include "GifTableFormatter.hpp"
-#include "OvpnTableFormatter.hpp"
-#include "IpsecTableFormatter.hpp"
-#include "VlanTableFormatter.hpp"
-#include "VxlanTableFormatter.hpp"
-#include "EpairTableFormatter.hpp"
-#include "WlanTableFormatter.hpp"
-#include <iomanip>
-#include <iostream>
-#include <sstream>
+#include "ConfigurationManager.hpp"
 
 namespace netcli {
 
   void executeShowInterface(const InterfaceToken &tok,
                             ConfigurationManager *mgr) {
-    if (!mgr) {
-      std::cout << "No ConfigurationManager provided\n";
-      return;
-    }
-    std::vector<InterfaceConfig> interfaces;
-    if (!tok.name().empty()) {
-      // Prefer to query the ConfigurationManager for the named interface
-      auto ifopt = mgr->GetInterface(tok.name());
-      if (ifopt) {
-        interfaces.push_back(std::move(*ifopt));
-      }
-    } else if (tok.type() != InterfaceType::Unknown) {
-      // Get all interfaces and filter by type and group
-      auto allIfaces = mgr->GetInterfaces();
-      for (auto &iface : allIfaces) {
-        if (tok.group) {
-          bool has = false;
-          for (const auto &g : iface.groups) {
-            if (g == *tok.group) {
-              has = true;
-              break;
-            }
-          }
-          if (!has)
-            continue;
-        }
-        if (iface.matchesType(tok.type()))
-          interfaces.push_back(std::move(iface));
-      }
-    } else {
-      if (tok.group) {
-        // Filter the main interfaces table by group
-        interfaces = mgr->GetInterfacesByGroup(std::nullopt, *tok.group);
-      } else {
-        interfaces = mgr->GetInterfaces();
-      }
-    }
-
-    // If the request was 'show interface group <g>' with no explicit type,
-    // prefer the generic interfaces table rather than type-specific tables
-    // (e.g., avoid using VirtualTableFormatter for epair group queries).
-    if (tok.group && tok.type() == InterfaceType::Unknown) {
-      InterfaceTableFormatter formatter;
-      std::cout << formatter.format(interfaces);
-      return;
-    }
-
-    if (interfaces.size() == 1 && !tok.name().empty()) {
-      SingleInterfaceSummaryFormatter formatter(mgr);
-      std::cout << formatter.format(interfaces[0]);
-      return;
-    }
-
-    std::cout << InterfaceConfig::formatInterfaces(interfaces, mgr);
+    tok.executeShow(mgr);
   }
 } // namespace netcli

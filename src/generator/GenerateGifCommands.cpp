@@ -7,7 +7,7 @@ namespace netcli {
 
 void generateGifCommands(ConfigurationManager &mgr,
                           std::set<std::string> &processedInterfaces) {
-  auto gifs = mgr.GetGifInterfaces();
+  auto gifs = mgr.GetGifInterfaces(mgr.GetInterfaces());
   for (const auto &ifc : gifs) {
     if (processedInterfaces.count(ifc.name))
       continue;

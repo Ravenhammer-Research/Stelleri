@@ -12,7 +12,7 @@ namespace netcli {
 
   void CommandGenerator::generateBridges(
       ConfigurationManager &mgr, std::set<std::string> &processedInterfaces) {
-    auto bridges = mgr.GetBridgeInterfaces();
+    auto bridges = mgr.GetBridgeInterfaces(mgr.GetInterfaces());
     for (const auto &ifc : bridges) {
       if (processedInterfaces.count(ifc.name))
         continue;

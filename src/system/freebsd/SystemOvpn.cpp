@@ -78,12 +78,10 @@ void SystemConfigurationManager::CreateOvpn(const std::string &nm) const {
 }
 
 std::vector<OvpnInterfaceConfig> SystemConfigurationManager::GetOvpnInterfaces(
-    const std::optional<VRFConfig> &vrf) const {
-  auto bases = GetInterfaces(vrf);
+    const std::vector<InterfaceConfig> &bases) const {
   std::vector<OvpnInterfaceConfig> out;
   for (const auto &ic : bases) {
-    // rely on dynamic_cast or explicit naming; accept Tunnel/Virtual types
-    if (ic.type == InterfaceType::Tunnel || ic.type == InterfaceType::Virtual)
+    if (ic.type == InterfaceType::Ovpn)
       out.emplace_back(ic);
   }
   return out;

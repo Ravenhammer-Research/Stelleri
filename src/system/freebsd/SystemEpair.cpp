@@ -42,11 +42,10 @@
 #include <sys/types.h>
 std::vector<EpairInterfaceConfig>
 SystemConfigurationManager::GetEpairInterfaces(
-    const std::optional<VRFConfig> &vrf) const {
-  auto bases = GetInterfaces(vrf);
+    const std::vector<InterfaceConfig> &bases) const {
   std::vector<EpairInterfaceConfig> out;
   for (const auto &ic : bases) {
-    if (ic.type == InterfaceType::Virtual || ic.type == InterfaceType::Tun) {
+    if (ic.type == InterfaceType::Epair) {
       out.emplace_back(ic);
     }
   }
@@ -56,7 +55,7 @@ SystemConfigurationManager::GetEpairInterfaces(
 void SystemConfigurationManager::CreateEpair(const std::string &nm) const {
   // For epair interfaces, check if the pair already exists
   std::string check_name = nm;
-  if (nm.rfind("epair", 0) == 0 && !nm.empty() && nm.back() != 'a' &&
+  if (nm.starts_with("epair") && !nm.empty() && nm.back() != 'a' &&
       nm.back() != 'b') {
     check_name = nm + "a";
   }
@@ -71,7 +70,7 @@ void SystemConfigurationManager::CreateEpair(const std::string &nm) const {
   if (ioctl(sock, SIOCIFCREATE2, &ifr) < 0) {
     int err = errno;
     // Special-case epair clones similar to original logic
-    if (err == EINVAL && nm.rfind("epair", 0) == 0) {
+    if (err == EINVAL && nm.starts_with("epair")) {
       struct ifreq tmp_ifr;
       prepare_ifreq(tmp_ifr, "epair");
       if (ioctl(sock, SIOCIFCREATE2, &tmp_ifr) < 0) {
@@ -145,7 +144,7 @@ void SystemConfigurationManager::SaveEpair(
   // pairs
   std::string actual_name = vic.name;
   std::string check_name = vic.name;
-  if (vic.name.rfind("epair", 0) == 0 && !vic.name.empty() &&
+  if (vic.name.starts_with("epair") && !vic.name.empty() &&
       vic.name.back() != 'a' && vic.name.back() != 'b') {
     check_name = vic.name + "a";
     actual_name = vic.name + "a"; // Operate on the 'a' side

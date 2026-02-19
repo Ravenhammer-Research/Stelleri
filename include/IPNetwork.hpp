@@ -39,6 +39,7 @@
 #include <cstring>
 #include <memory>
 #include <netinet/in.h>
+#include <optional>
 #include <string>
 #include <sys/socket.h>
 
@@ -117,6 +118,15 @@ class IPv6Network : public IPNetwork {
   uint8_t mask_ = 128;
 
 public:
+  /// Per-address IPv6 flags (IN6_IFF_AUTOCONF, IN6_IFF_TEMPORARY, etc.)
+  std::optional<uint32_t> addr_flags;
+  /// Scope ID for link-local / site-local addresses
+  std::optional<uint32_t> scopeid;
+  /// Preferred lifetime (seconds, 0xffffffff = infinite)
+  std::optional<uint32_t> pltime;
+  /// Valid lifetime (seconds, 0xffffffff = infinite)
+  std::optional<uint32_t> vltime;
+
   IPv6Network() = default;
   IPv6Network(unsigned __int128 a, uint8_t m) : addr_(a), mask_(m) {}
   explicit IPv6Network(const std::string &s) {
@@ -170,7 +180,12 @@ public:
   }
 
   std::unique_ptr<IPNetwork> clone() const override {
-    return std::make_unique<IPv6Network>(addr_, mask_);
+    auto c = std::make_unique<IPv6Network>(addr_, mask_);
+    c->addr_flags = addr_flags;
+    c->scopeid = scopeid;
+    c->pltime = pltime;
+    c->vltime = vltime;
+    return c;
   }
 };
 

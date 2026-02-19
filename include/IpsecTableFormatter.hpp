@@ -4,13 +4,13 @@
 
 #pragma once
 
-#include "InterfaceConfig.hpp"
+#include "IpsecInterfaceConfig.hpp"
 #include "TableFormatter.hpp"
 #include <string>
 #include <vector>
 
-class IpsecTableFormatter : public TableFormatter<InterfaceConfig> {
+class IpsecTableFormatter : public TableFormatter<IpsecInterfaceConfig> {
 public:
   IpsecTableFormatter() = default;
-  std::string format(const std::vector<InterfaceConfig> &interfaces) override;
+  std::string format(const std::vector<IpsecInterfaceConfig> &interfaces) override;
 };

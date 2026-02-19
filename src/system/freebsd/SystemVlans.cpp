@@ -36,64 +36,53 @@
 #include <sys/socket.h>
 
 std::vector<VlanInterfaceConfig> SystemConfigurationManager::GetVLANInterfaces(
-    const std::optional<VRFConfig> &vrf) const {
-  auto bases = GetInterfaces(vrf);
+    const std::vector<InterfaceConfig> &bases) const {
   std::vector<VlanInterfaceConfig> out;
   for (const auto &ic : bases) {
     if (ic.type == InterfaceType::VLAN) {
       VlanInterfaceConfig vconf(ic);
 
-      try {
-        Socket vsock(AF_INET, SOCK_DGRAM);
-        struct vlanreq vreq{};
-        struct ifreq ifr;
-        prepare_ifreq(ifr, ic.name);
-        ifr.ifr_data = reinterpret_cast<char *>(&vreq);
+      Socket vsock(AF_INET, SOCK_DGRAM);
+      struct vlanreq vreq{};
+      struct ifreq ifr;
+      prepare_ifreq(ifr, ic.name);
+      ifr.ifr_data = reinterpret_cast<char *>(&vreq);
 
-        if (ioctl(vsock, SIOCGETVLAN, &ifr) == 0) {
-          vconf.id = static_cast<uint16_t>(vreq.vlr_tag & 0x0fff);
-          int pcp = (vreq.vlr_tag >> 13) & 0x7;
-          vconf.parent = std::string(vreq.vlr_parent);
-          vconf.pcp = static_cast<PriorityCodePoint>(pcp);
+      if (ioctl(vsock, SIOCGETVLAN, &ifr) == 0) {
+        vconf.id = static_cast<uint16_t>(vreq.vlr_tag & 0x0fff);
+        int pcp = (vreq.vlr_tag >> 13) & 0x7;
+        vconf.parent = std::string(vreq.vlr_parent);
+        vconf.pcp = static_cast<PriorityCodePoint>(pcp);
 
-          if (vreq.vlr_proto) {
-            uint16_t proto = static_cast<uint16_t>(vreq.vlr_proto);
-            if (proto == static_cast<uint16_t>(VLANProto::DOT1Q))
-              vconf.proto = VLANProto::DOT1Q;
-            else if (proto == static_cast<uint16_t>(VLANProto::DOT1AD))
-              vconf.proto = VLANProto::DOT1AD;
-            else
-              vconf.proto = VLANProto::OTHER;
-          }
-        } else {
-          // SIOCGETVLAN failed, skip VLAN details
+        if (vreq.vlr_proto) {
+          uint16_t proto = static_cast<uint16_t>(vreq.vlr_proto);
+          if (proto == static_cast<uint16_t>(VLANProto::DOT1Q))
+            vconf.proto = VLANProto::DOT1Q;
+          else if (proto == static_cast<uint16_t>(VLANProto::DOT1AD))
+            vconf.proto = VLANProto::DOT1AD;
+          else
+            vconf.proto = VLANProto::OTHER;
         }
+      }
 
-        auto query_caps =
-            [&](const std::string &name) -> std::optional<uint32_t> {
-          try {
-            Socket csock(AF_INET, SOCK_DGRAM);
-            struct ifreq cifr;
-            prepare_ifreq(cifr, name);
-            if (ioctl(csock, SIOCGIFCAP, &cifr) == 0) {
-              unsigned int curcap = cifr.ifr_curcap;
-              return static_cast<uint32_t>(curcap);
-            }
-            return std::nullopt;
-          } catch (...) {
-            return std::nullopt;
-          }
-        };
+      auto query_caps =
+          [&](const std::string &name) -> std::optional<uint32_t> {
+        Socket csock(AF_INET, SOCK_DGRAM);
+        struct ifreq cifr;
+        prepare_ifreq(cifr, name);
+        if (ioctl(csock, SIOCGIFCAP, &cifr) == 0) {
+          unsigned int curcap = cifr.ifr_curcap;
+          return static_cast<uint32_t>(curcap);
+        }
+        return std::nullopt;
+      };
 
-        if (auto o = query_caps(ic.name); o) {
+      if (auto o = query_caps(ic.name); o) {
+        vconf.options_bits = *o;
+      } else if (vconf.parent) {
+        if (auto o = query_caps(*vconf.parent); o) {
           vconf.options_bits = *o;
-        } else if (vconf.parent) {
-          if (auto o = query_caps(*vconf.parent); o) {
-            vconf.options_bits = *o;
-          }
         }
-      } catch (...) {
-        // Socket creation failed, skip VLAN details
       }
 
       out.emplace_back(std::move(vconf));

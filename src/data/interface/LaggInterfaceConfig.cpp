@@ -39,43 +39,17 @@
 #include <stdexcept>
 #include <string>
 
-LaggInterfaceConfig::LaggInterfaceConfig(const InterfaceConfig &base) {
-  name = base.name;
+LaggInterfaceConfig::LaggInterfaceConfig(const InterfaceConfig &base)
+    : InterfaceConfig(base) {
   type = InterfaceType::Lagg;
-  if (base.address)
-    address = base.address->clone();
-  aliases.clear();
-  for (const auto &a : base.aliases) {
-    if (a)
-      aliases.push_back(a->clone());
-  }
-  if (base.vrf)
-    vrf = std::make_unique<VRFConfig>(*base.vrf);
-  flags = base.flags;
-  groups = base.groups;
-  mtu = base.mtu;
 }
 
 LaggInterfaceConfig::LaggInterfaceConfig(const InterfaceConfig &base, LaggProtocol protocol_,
                        std::vector<std::string> members_,
                        std::optional<uint32_t> hash_policy_,
                        std::optional<int> lacp_rate_,
-                       std::optional<int> min_links_) {
-  name = base.name;
-  type = InterfaceType::Lagg;
-  if (base.address)
-    address = base.address->clone();
-  aliases.clear();
-  for (const auto &a : base.aliases) {
-    if (a)
-      aliases.push_back(a->clone());
-  }
-  if (base.vrf)
-    vrf = std::make_unique<VRFConfig>(*base.vrf);
-  flags = base.flags;
-  groups = base.groups;
-  mtu = base.mtu;
-
+                       std::optional<int> min_links_)
+    : LaggInterfaceConfig(base) {
   protocol = protocol_;
   members = std::move(members_);
   hash_policy = hash_policy_;

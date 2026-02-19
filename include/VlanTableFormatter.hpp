@@ -32,32 +32,24 @@
 
 #pragma once
 
-#include "InterfaceConfig.hpp"
+#include "VlanInterfaceConfig.hpp"
 #include "TableFormatter.hpp"
 #include <string>
 #include <vector>
-
-class ConfigurationManager;
 
 /**
  * @brief Formats VLAN interface configuration as ASCII table
  *
  * Shows VLAN-specific details like VLAN ID, parent interface, PCP.
  */
-class VlanTableFormatter : public TableFormatter<InterfaceConfig> {
+class VlanTableFormatter : public TableFormatter<VlanInterfaceConfig> {
 public:
-  explicit VlanTableFormatter(ConfigurationManager *mgr = nullptr)
-      : mgr_(mgr) {}
-
-private:
-  ConfigurationManager *mgr_ = nullptr;
-
-public:
+  VlanTableFormatter() = default;
 
   /**
    * @brief Format VLAN interfaces into a detailed table
-   * @param interfaces List of InterfaceConfig with VLAN configurations
+   * @param interfaces List of VlanInterfaceConfig
    * @return Formatted ASCII table string
    */
-  std::string format(const std::vector<InterfaceConfig> &interfaces) override;
+  std::string format(const std::vector<VlanInterfaceConfig> &interfaces) override;
 };

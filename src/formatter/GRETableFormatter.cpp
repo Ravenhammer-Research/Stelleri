@@ -26,50 +26,31 @@
  */
 
 #include "GreTableFormatter.hpp"
-#include "InterfaceFlags.hpp"
-#include <sstream>
+#include "GreInterfaceConfig.hpp"
+#include <string>
+#include <vector>
 
 std::string
-GRETableFormatter::format(const std::vector<InterfaceConfig> &items) {
+GRETableFormatter::format(const std::vector<GreInterfaceConfig> &items) {
+  if (items.empty())
+    return "No GRE interfaces found.\n";
+
   addColumn("Interface", "Interface", 10, 4, true);
-  addColumn("Address", "Address", 5, 7, true);
-  addColumn("Status", "Status", 6, 6, true);
-  addColumn("MTU", "MTU", 6, 6, true);
+  addColumn("Source", "Source", 5, 6, true);
+  addColumn("Destination", "Destination", 5, 6, true);
+  addColumn("Key", "Key", 4, 3, false);
+  addColumn("VRF", "VRF", 5, 3, false);
 
-  for (const auto &ic : items) {
-    if (ic.type != InterfaceType::GRE && ic.name.rfind("gre", 0) != 0)
-      continue;
+  for (const auto &gre : items) {
+    std::string source = gre.greSource ? *gre.greSource : "-";
+    std::string destination = gre.greDestination ? *gre.greDestination : "-";
+    std::string keyStr = gre.greKey ? std::to_string(*gre.greKey) : "-";
+    std::string vrfStr = gre.vrf ? std::to_string(gre.vrf->table) : "-";
 
-    std::vector<std::string> addrs;
-    if (ic.address)
-      addrs.push_back(ic.address->toString());
-    for (const auto &a : ic.aliases) {
-      if (a)
-        addrs.push_back(a->toString());
-    }
-
-    std::ostringstream aoss;
-    for (size_t i = 0; i < addrs.size(); ++i) {
-      if (i)
-        aoss << '\n';
-      aoss << addrs[i];
-    }
-    std::string addrCell = addrs.empty() ? std::string("-") : aoss.str();
-
-    std::string status = "-";
-    if (ic.flags) {
-      if (hasFlag(*ic.flags, InterfaceFlag::RUNNING))
-        status = "active";
-      else if (hasFlag(*ic.flags, InterfaceFlag::UP))
-        status = "no-carrier";
-      else
-        status = "down";
-    }
-
-    std::string mtu = ic.mtu ? std::to_string(*ic.mtu) : std::string("-");
-
-    addRow({ic.name, addrCell, status, mtu});
+    addRow({gre.name, source, destination, keyStr, vrfStr});
   }
 
-  return renderTable(80);
+  auto out = renderTable(80);
+  out += "\n";
+  return out;
 }

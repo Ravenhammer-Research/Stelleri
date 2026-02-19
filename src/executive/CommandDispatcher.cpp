@@ -30,9 +30,11 @@
 #include "DeleteToken.hpp"
 #include "InterfaceToken.hpp"
 #include "NdpToken.hpp"
+#include "PolicyToken.hpp"
 #include "RouteToken.hpp"
 #include "SetToken.hpp"
 #include "ShowToken.hpp"
+#include "Socket.hpp"
 #include "VRFToken.hpp"
 
 namespace netcli {
@@ -58,6 +60,10 @@ namespace netcli {
   void executeShowNdp(const NdpToken &, ConfigurationManager *);
   void executeSetNdp(const NdpToken &, ConfigurationManager *);
   void executeDeleteNdp(const NdpToken &, ConfigurationManager *);
+
+  void executeShowPolicy(const PolicyToken &, ConfigurationManager *);
+  void executeSetPolicy(const PolicyToken &, ConfigurationManager *);
+  void executeDeletePolicy(const PolicyToken &, ConfigurationManager *);
 
   // Helper: wrap a typed handler into the type-erased Handler signature.
   template <typename TokenT>
@@ -95,6 +101,11 @@ namespace netcli {
     registerHandler<NdpToken>(Verb::Show, wrap(&executeShowNdp));
     registerHandler<NdpToken>(Verb::Set, wrap(&executeSetNdp));
     registerHandler<NdpToken>(Verb::Delete, wrap(&executeDeleteNdp));
+
+    // Policy handlers
+    registerHandler<PolicyToken>(Verb::Show, wrap(&executeShowPolicy));
+    registerHandler<PolicyToken>(Verb::Set, wrap(&executeSetPolicy));
+    registerHandler<PolicyToken>(Verb::Delete, wrap(&executeDeletePolicy));
   }
 
   void CommandDispatcher::dispatch(const std::shared_ptr<Token> &head,
@@ -130,7 +141,11 @@ namespace netcli {
       return;
     }
 
-    it->second(*next, mgr);
+    try {
+      it->second(*next, mgr);
+    } catch (const SocketException &e) {
+      std::cerr << "socket error: " << e.what() << "\n";
+    }
   }
 
 } // namespace netcli

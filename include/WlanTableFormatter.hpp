@@ -32,18 +32,12 @@
 
 #pragma once
 
-#include "InterfaceConfig.hpp"
+#include "WlanInterfaceConfig.hpp"
 #include "TableFormatter.hpp"
 #include <vector>
 
-class ConfigurationManager;
-
-class WlanTableFormatter : public TableFormatter<InterfaceConfig> {
+class WlanTableFormatter : public TableFormatter<WlanInterfaceConfig> {
 public:
-  explicit WlanTableFormatter(ConfigurationManager *mgr = nullptr)
-      : mgr_(mgr) {}
-  std::string format(const std::vector<InterfaceConfig> &items) override;
-
-private:
-  ConfigurationManager *mgr_ = nullptr;
+  WlanTableFormatter() = default;
+  std::string format(const std::vector<WlanInterfaceConfig> &items) override;
 };

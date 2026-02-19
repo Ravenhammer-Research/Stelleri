@@ -32,12 +32,12 @@
 
 #pragma once
 
-#include "InterfaceConfig.hpp"
+#include "GreInterfaceConfig.hpp"
 #include "TableFormatter.hpp"
 #include <vector>
 
-class GRETableFormatter : public TableFormatter<InterfaceConfig> {
+class GRETableFormatter : public TableFormatter<GreInterfaceConfig> {
 public:
   GRETableFormatter() = default;
-  std::string format(const std::vector<InterfaceConfig> &items) override;
+  std::string format(const std::vector<GreInterfaceConfig> &items) override;
 };

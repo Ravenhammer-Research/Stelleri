@@ -78,8 +78,7 @@ void SystemConfigurationManager::CreateTun(const std::string &nm) const {
 }
 
 std::vector<TunInterfaceConfig> SystemConfigurationManager::GetTunInterfaces(
-    const std::optional<VRFConfig> &vrf) const {
-  auto bases = GetInterfaces(vrf);
+    const std::vector<InterfaceConfig> &bases) const {
   std::vector<TunInterfaceConfig> out;
   for (const auto &ic : bases) {
     if (ic.type == InterfaceType::Tun) {

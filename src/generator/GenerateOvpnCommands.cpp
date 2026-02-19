@@ -7,7 +7,7 @@ namespace netcli {
 
 void generateOvpnCommands(ConfigurationManager &mgr,
                            std::set<std::string> &processedInterfaces) {
-  auto ovpns = mgr.GetOvpnInterfaces();
+  auto ovpns = mgr.GetOvpnInterfaces(mgr.GetInterfaces());
   for (const auto &ifc : ovpns) {
     if (processedInterfaces.count(ifc.name))
       continue;

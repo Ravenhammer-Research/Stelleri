@@ -7,7 +7,7 @@ namespace netcli {
 
 void generateTunCommands(ConfigurationManager &mgr,
                          std::set<std::string> &processedInterfaces) {
-  auto tuns = mgr.GetTunInterfaces();
+  auto tuns = mgr.GetTunInterfaces(mgr.GetInterfaces());
   for (const auto &ifc : tuns) {
     if (processedInterfaces.count(ifc.name))
       continue;

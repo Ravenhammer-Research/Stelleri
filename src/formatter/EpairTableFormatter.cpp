@@ -58,7 +58,7 @@ EpairTableFormatter::format(const std::vector<InterfaceConfig> &interfaces) {
   std::map<std::string, PairInfo> pairs;
 
   for (const auto &ic : interfaces) {
-    if (ic.type != InterfaceType::Virtual)
+    if (ic.type != InterfaceType::Epair)
       continue;
     std::string nm = ic.name;
     if (!nm.empty()) {

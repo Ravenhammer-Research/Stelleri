@@ -26,10 +26,7 @@
  */
 
 #include "VlanTableFormatter.hpp"
-#include "ConfigurationManager.hpp"
-#include "InterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
-#include "InterfaceType.hpp"
 #include "VlanInterfaceConfig.hpp"
 #include "VlanFlags.hpp"
 #include "VlanProto.hpp"
@@ -79,16 +76,10 @@ static std::string vlanCapsToString(uint32_t mask) {
 }
 
 std::string
-VlanTableFormatter::format(const std::vector<InterfaceConfig> &interfaces) {
+VlanTableFormatter::format(const std::vector<VlanInterfaceConfig> &interfaces) {
   if (interfaces.empty()) {
     return "No VLAN interfaces found.\n";
   }
-
-  // Re-query via the manager to get full VlanInterfaceConfig objects
-  // (the input vector is sliced to base InterfaceConfig).
-  std::vector<VlanInterfaceConfig> vlanIfaces;
-  if (mgr_)
-    vlanIfaces = mgr_->GetVLANInterfaces();
 
   // Define columns (key, title, priority, minWidth, leftAlign)
   addColumn("Interface", "Interface", 10, 9, true);
@@ -101,59 +92,25 @@ VlanTableFormatter::format(const std::vector<InterfaceConfig> &interfaces) {
   addColumn("Proto", "Proto", 5, 5, true);
   addColumn("Options", "Options", 2, 7, true);
 
-  for (const auto &ic : interfaces) {
-    if (ic.type != InterfaceType::VLAN)
-      continue;
-
-    // Find matching VlanInterfaceConfig from the re-queried data
-    const VlanInterfaceConfig *vptr = nullptr;
-    for (const auto &v : vlanIfaces) {
-      if (v.name == ic.name) {
-        vptr = &v;
-        break;
-      }
-    }
-
-    int vid = -1;
-    std::string parent = "-";
-    std::optional<int> pcp;
-    if (vptr) {
-      vid = vptr->id;
-      parent = vptr->parent ? *vptr->parent : std::string("-");
-      if (vptr->pcp)
-        pcp = static_cast<int>(*vptr->pcp);
-    } else {
-      // Fallback: parse forms like "re0.25" (parent.name notation).
-      auto pos = ic.name.find('.');
-      if (pos != std::string::npos) {
-        parent = ic.name.substr(0, pos);
-        std::string rest = ic.name.substr(pos + 1);
-        try {
-          vid = std::stoi(rest);
-        } catch (...) {
-          vid = -1;
-        }
-      }
-    }
-
-    std::string vidStr = (vid >= 0) ? std::to_string(vid) : std::string("-");
+  for (const auto &v : interfaces) {
+    std::string vidStr = (v.id >= 0) ? std::to_string(v.id) : std::string("-");
+    std::string parent = v.parent ? *v.parent : std::string("-");
     std::string pcpStr =
-        pcp ? std::to_string(static_cast<int>(*pcp)) : std::string("-");
-    std::string nameStr = vptr ? vptr->name : std::string("-");
-    std::string protoStr =
-        vptr ? vlanProtoToString(vptr->proto) : std::string("-");
+        v.pcp ? std::to_string(static_cast<int>(*v.pcp)) : std::string("-");
+    std::string nameStr = v.name;
+    std::string protoStr = vlanProtoToString(v.proto);
     std::string flagsStr =
-        ic.flags ? flagsToString(*ic.flags) : std::string("-");
+        v.flags ? flagsToString(*v.flags) : std::string("-");
     std::string mtuStr =
-        ic.mtu ? std::to_string(*ic.mtu) : std::string("-");
+        v.mtu ? std::to_string(*v.mtu) : std::string("-");
     std::string optionsStr = "-";
-    if (vptr && vptr->options_bits) {
-      auto s = vlanCapsToString(*vptr->options_bits);
+    if (v.options_bits) {
+      auto s = vlanCapsToString(*v.options_bits);
       if (!s.empty())
         optionsStr = s;
     }
 
-    addRow({ic.name, vidStr, nameStr, parent, pcpStr, mtuStr, flagsStr,
+    addRow({v.name, vidStr, nameStr, parent, pcpStr, mtuStr, flagsStr,
             protoStr, optionsStr});
   }
 

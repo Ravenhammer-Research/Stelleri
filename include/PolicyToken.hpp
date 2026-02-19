@@ -1,0 +1,76 @@
+/*
+ * Copyright (c) 2026, Ravenhammer Research Inc.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice,
+ *    this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/**
+ * @file PolicyToken.hpp
+ * @brief Parser token for policy set/show/delete commands
+ */
+
+#pragma once
+
+#include "PolicyConfig.hpp"
+#include "Token.hpp"
+#include <memory>
+#include <optional>
+#include <string>
+
+class PolicyToken : public Token {
+public:
+  PolicyToken() = default;
+
+  std::vector<std::string> autoComplete(std::string_view) const override;
+  std::unique_ptr<Token> clone() const override;
+
+  static std::shared_ptr<PolicyToken>
+  parseFromTokens(const std::vector<std::string> &tokens, size_t start,
+                  size_t &next);
+
+  // ── Parsed fields ──────────────────────────────────────────────────
+
+  /// Which sub-type was parsed
+  enum class SubType { AccessList };
+  SubType sub_type = SubType::AccessList;
+
+  /// Access-list fields
+  std::optional<uint32_t> acl_id;       ///< access-list number
+  std::optional<uint32_t> rule_seq;     ///< rule sequence number
+  std::optional<std::string> action;    ///< "permit" or "deny"
+  std::optional<std::string> source;    ///< source CIDR
+  std::optional<std::string> destination; ///< destination CIDR
+  std::optional<std::string> protocol;  ///< protocol
+
+  /**
+   * @brief Render a PolicyConfig to a command string (for generator)
+   */
+  static std::string toString(const PolicyConfig *cfg);
+
+private:
+  // Parse access-list sub-tokens starting at position i
+  static void parseAccessList(const std::vector<std::string> &tokens,
+                              size_t &i,
+                              std::shared_ptr<PolicyToken> &tok);
+};

@@ -4,13 +4,13 @@
 
 #pragma once
 
-#include "InterfaceConfig.hpp"
+#include "TunInterfaceConfig.hpp"
 #include "TableFormatter.hpp"
 #include <string>
 #include <vector>
 
-class TunTableFormatter : public TableFormatter<InterfaceConfig> {
+class TunTableFormatter : public TableFormatter<TunInterfaceConfig> {
 public:
   TunTableFormatter() = default;
-  std::string format(const std::vector<InterfaceConfig> &interfaces) override;
+  std::string format(const std::vector<TunInterfaceConfig> &interfaces) override;
 };

@@ -4,13 +4,13 @@
 
 #pragma once
 
-#include "InterfaceConfig.hpp"
+#include "GifInterfaceConfig.hpp"
 #include "TableFormatter.hpp"
 #include <string>
 #include <vector>
 
-class GifTableFormatter : public TableFormatter<InterfaceConfig> {
+class GifTableFormatter : public TableFormatter<GifInterfaceConfig> {
 public:
   GifTableFormatter() = default;
-  std::string format(const std::vector<InterfaceConfig> &interfaces) override;
+  std::string format(const std::vector<GifInterfaceConfig> &interfaces) override;
 };

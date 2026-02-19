@@ -30,6 +30,17 @@
 #include "GenerateGifCommands.hpp"
 #include "GenerateOvpnCommands.hpp"
 #include "GenerateIpsecCommands.hpp"
+#include "GenerateGreCommands.hpp"
+#include "GenerateVxlanCommands.hpp"
+#include "GenerateWlanCommands.hpp"
+#include "GenerateCarpCommands.hpp"
+#include "GenerateTapCommands.hpp"
+#include "GeneratePflogCommands.hpp"
+#include "GeneratePfsyncCommands.hpp"
+#include "GenerateWireGuardCommands.hpp"
+#include "GenerateSixToFourCommands.hpp"
+#include "GenerateArpCommands.hpp"
+#include "GenerateNdpCommands.hpp"
 
 namespace netcli {
 
@@ -52,10 +63,22 @@ namespace netcli {
     generateGifCommands(mgr, processedInterfaces);
     generateOvpnCommands(mgr, processedInterfaces);
     generateIpsecCommands(mgr, processedInterfaces);
-    generateEpairs(mgr, processedInterfaces);
+    generateGreCommands(mgr, processedInterfaces);
+    generateVxlanCommands(mgr, processedInterfaces);
+    generateWlanCommands(mgr, processedInterfaces);
+    generateCarpCommands(mgr, processedInterfaces);
+    generateTapCommands(mgr, processedInterfaces);
+    generatePflogCommands(mgr, processedInterfaces);
+    generatePfsyncCommands(mgr, processedInterfaces);
+    generateWireGuardCommands(mgr, processedInterfaces);
+    generateSixToFourCommands(mgr, processedInterfaces);
 
     // Generate routes
     generateRoutes(mgr);
+
+    // Generate ARP/NDP static entries
+    generateArpCommands(mgr);
+    generateNdpCommands(mgr);
   }
 
 } // namespace netcli

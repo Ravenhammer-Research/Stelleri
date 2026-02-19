@@ -31,6 +31,7 @@
 #include "DeleteToken.hpp"
 #include "InterfaceToken.hpp"
 #include "NdpToken.hpp"
+#include "PolicyToken.hpp"
 #include "RouteToken.hpp"
 #include "SetToken.hpp"
 #include "ShowToken.hpp"
@@ -99,6 +100,11 @@ namespace netcli {
       auto nt = NdpToken::parseFromTokens(tokens, idx, next);
       if (nt)
         cmd->addToken(nt);
+    } else if (target == "policy") {
+      size_t next = 0;
+      auto pt = PolicyToken::parseFromTokens(tokens, idx, next);
+      if (pt)
+        cmd->addToken(pt);
     }
 
     return cmd;

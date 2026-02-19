@@ -39,12 +39,7 @@ SixToFourTableFormatter::format(const std::vector<InterfaceConfig> &items) {
 
   for (const auto &ic : items) {
 
-    // Heuristic: treat Tunnel-type interfaces whose name starts with "gif" or
-    // "stf" as 6to4/SIT-like
-    if (ic.type != InterfaceType::Tunnel && ic.type != InterfaceType::Gif)
-      continue;
-    if (!(ic.name.rfind("gif", 0) == 0 || ic.name.rfind("stf", 0) == 0 ||
-          ic.name.rfind("sit", 0) == 0))
+    if (ic.type != InterfaceType::SixToFour)
       continue;
 
     std::vector<std::string> addrs;

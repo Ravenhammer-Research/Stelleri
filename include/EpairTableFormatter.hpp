@@ -26,7 +26,7 @@
  */
 
 /**
- * @file VirtualTableFormatter.hpp
+ * @file EpairTableFormatter.hpp
  * @brief Formatter for epair interface details
  */
 
@@ -55,6 +55,3 @@ public:
    */
   std::string format(const std::vector<InterfaceConfig> &interfaces) override;
 };
-
-// Backwards compatibility alias
-using VirtualTableFormatter = EpairTableFormatter;

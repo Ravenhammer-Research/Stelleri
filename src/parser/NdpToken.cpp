@@ -50,7 +50,8 @@ std::string NdpToken::toString(NdpConfig *cfg) {
 
 std::vector<std::string>
 NdpToken::autoComplete(std::string_view partial) const {
-  std::vector<std::string> options = {"mac", "interface", "permanent", "temp"};
+  std::vector<std::string> options = {"ip", "mac", "interface", "permanent",
+                                      "temp", "router"};
   std::vector<std::string> matches;
   for (const auto &opt : options) {
     if (opt.rfind(partial, 0) == 0)
@@ -65,6 +66,7 @@ std::unique_ptr<Token> NdpToken::clone() const {
   t->iface = iface;
   t->permanent = permanent;
   t->temp = temp;
+  t->router = router;
   return t;
 }
 
@@ -93,6 +95,9 @@ NdpToken::parseFromTokens(const std::vector<std::string> &tokens, size_t start,
     } else if (kw == "temp") {
       tok->temp = true;
       tok->permanent = false;
+      ++i;
+    } else if (kw == "router") {
+      tok->router = true;
       ++i;
     } else {
       break; // unknown keyword, stop parsing

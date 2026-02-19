@@ -26,9 +26,7 @@
  */
 
 #include "LaggTableFormatter.hpp"
-#include "InterfaceConfig.hpp"
 #include "InterfaceFlags.hpp"
-#include "InterfaceType.hpp"
 #include "LaggInterfaceConfig.hpp"
 #include <algorithm>
 #include <iomanip>
@@ -64,105 +62,9 @@ static std::string protocolToString(LaggProtocol proto) {
 }
 
 std::string
-LaggTableFormatter::format(const std::vector<InterfaceConfig> &interfaces) {
+LaggTableFormatter::format(const std::vector<LaggInterfaceConfig> &interfaces) {
   if (interfaces.empty())
     return "No LAGG interfaces found.\n";
-
-  // Build a compact table: Interface | Protocol | HashPolicy | Members | MTU |
-  // Flags | Status
-  size_t nameWidth = 9;  // "Interface"
-  size_t protoWidth = 8; // "Protocol"
-  size_t hashWidth = 10; // "HashPolicy"
-  size_t membersWidth = 10;
-  size_t mtuWidth = 3;
-  size_t flagsWidth = 5;
-  size_t statusWidth = 6;
-
-  struct Row {
-    std::string name;
-    std::string proto;
-    std::optional<uint32_t> hash;
-    std::vector<std::string> hash_items;
-    std::vector<std::string> members;
-    std::vector<uint32_t> member_flag_bits;
-    std::vector<std::string> member_flags;
-    std::optional<int> mtu;
-    std::optional<uint32_t> flags;
-    std::string status;
-  };
-
-  std::vector<Row> rows;
-
-  for (const auto &ic : interfaces) {
-    const LaggInterfaceConfig *laggPtr = dynamic_cast<const LaggInterfaceConfig *>(&ic);
-
-    if (!laggPtr)
-      continue;
-
-    Row r;
-    r.name = ic.name;
-    r.proto = protocolToString(laggPtr->protocol);
-    r.hash = laggPtr->hash_policy;
-    // Hash policy is platform-specific; display numeric hex if present.
-    if (r.hash) {
-      // leave r.hash_items empty — formatter will display hex fallback
-    }
-    r.members = laggPtr->members;
-    // Prefer numeric flag bits when available; keep string labels as fallback.
-    r.member_flag_bits = laggPtr->member_flag_bits;
-    r.member_flags = laggPtr->member_flags;
-    r.mtu = ic.mtu;
-    r.flags = ic.flags;
-    if (ic.flags) {
-      if (hasFlag(*ic.flags, InterfaceFlag::RUNNING))
-        r.status = "active";
-      else if (hasFlag(*ic.flags, InterfaceFlag::UP))
-        r.status = "no-carrier";
-      else
-        r.status = "down";
-    } else {
-      r.status = "-";
-    }
-
-    nameWidth = std::max(nameWidth, r.name.length());
-    protoWidth = std::max(protoWidth, r.proto.length());
-    if (r.hash) {
-      if (!r.hash_items.empty()) {
-        for (const auto &hi : r.hash_items)
-          hashWidth = std::max(hashWidth, hi.length());
-      } else {
-        hashWidth = std::max(hashWidth, size_t(3));
-      }
-    }
-    for (const auto &m : r.members)
-      membersWidth = std::max(membersWidth, m.length());
-    // Compute max width for flags column from either bit labels or existing
-    // labels
-    for (const auto &mf_bits : r.member_flag_bits) {
-      std::string lbl = laggFlagsToLabel(mf_bits);
-      flagsWidth = std::max(flagsWidth, lbl.length());
-    }
-    for (const auto &mf : r.member_flags)
-      flagsWidth = std::max(flagsWidth, mf.length());
-    for (const auto &hi : r.hash_items)
-      hashWidth = std::max(hashWidth, hi.length());
-    if (r.mtu)
-      mtuWidth = std::max(mtuWidth, std::to_string(*r.mtu).length());
-    if (r.flags)
-      flagsWidth = std::max(flagsWidth, flagsToString(*r.flags).length());
-    statusWidth = std::max(statusWidth, r.status.length());
-
-    rows.push_back(std::move(r));
-  }
-
-  // Add padding
-  nameWidth += 2;
-  protoWidth += 2;
-  hashWidth += 2;
-  membersWidth += 2;
-  mtuWidth += 2;
-  flagsWidth += 2;
-  statusWidth += 2;
 
   addColumn("Interface", "Interface", 10, 4, true);
   addColumn("Protocol", "Protocol", 8, 4, true);
@@ -172,40 +74,50 @@ LaggTableFormatter::format(const std::vector<InterfaceConfig> &interfaces) {
   addColumn("Flags", "Flags", 3, 3, true);
   addColumn("Status", "Status", 6, 6, true);
 
-  for (const auto &r : rows) {
-    // Combine hash items into multiline cell if present
+  for (const auto &lac : interfaces) {
+    std::string proto = protocolToString(lac.protocol);
+
     std::string hashCell = "-";
-    if (r.hash) {
+    if (lac.hash_policy) {
       char hbuf[32];
-      std::snprintf(hbuf, sizeof(hbuf), "0x%08x", *r.hash);
+      std::snprintf(hbuf, sizeof(hbuf), "0x%08x", *lac.hash_policy);
       hashCell = std::string(hbuf);
     }
 
     std::string membersCell = "-";
-    if (!r.members.empty()) {
+    if (!lac.members.empty()) {
       std::ostringstream moss;
-      for (size_t i = 0; i < r.members.size(); ++i) {
+      for (size_t i = 0; i < lac.members.size(); ++i) {
         if (i)
           moss << '\n';
-        moss << r.members[i];
+        moss << lac.members[i];
       }
       membersCell = moss.str();
     }
 
-    std::string mtuCell = r.mtu ? std::to_string(*r.mtu) : std::string("-");
+    std::string mtuCell = lac.mtu ? std::to_string(*lac.mtu) : std::string("-");
 
     std::string flagsCell = "-";
-    if (!r.member_flag_bits.empty()) {
-      std::string lbl = laggFlagsToLabel(r.member_flag_bits[0]);
+    if (!lac.member_flag_bits.empty()) {
+      std::string lbl = laggFlagsToLabel(lac.member_flag_bits[0]);
       flagsCell = lbl.empty() ? std::string("-") : lbl;
-    } else if (!r.member_flags.empty() && r.member_flags[0] != "-") {
-      flagsCell = r.member_flags[0];
-    } else if (r.flags) {
-      flagsCell = flagsToString(*r.flags);
+    } else if (!lac.member_flags.empty() && lac.member_flags[0] != "-") {
+      flagsCell = lac.member_flags[0];
+    } else if (lac.flags) {
+      flagsCell = flagsToString(*lac.flags);
     }
 
-    addRow(
-        {r.name, r.proto, hashCell, membersCell, mtuCell, flagsCell, r.status});
+    std::string status = "-";
+    if (lac.flags) {
+      if (hasFlag(*lac.flags, InterfaceFlag::RUNNING))
+        status = "active";
+      else if (hasFlag(*lac.flags, InterfaceFlag::UP))
+        status = "no-carrier";
+      else
+        status = "down";
+    }
+
+    addRow({lac.name, proto, hashCell, membersCell, mtuCell, flagsCell, status});
   }
 
   return renderTable(80);

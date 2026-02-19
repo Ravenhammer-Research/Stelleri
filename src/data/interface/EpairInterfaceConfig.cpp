@@ -34,42 +34,14 @@
 #include <stdexcept>
 #include <string>
 
-EpairInterfaceConfig::EpairInterfaceConfig(const InterfaceConfig &base) {
-  name = base.name;
-  type = base.type;
-  if (base.address)
-    address = base.address->clone();
-  aliases.clear();
-  for (const auto &a : base.aliases) {
-    if (a)
-      aliases.push_back(a->clone());
-  }
-  if (base.vrf)
-    vrf = std::make_unique<VRFConfig>(*base.vrf);
-  flags = base.flags;
-  groups = base.groups;
-  mtu = base.mtu;
-}
+EpairInterfaceConfig::EpairInterfaceConfig(const InterfaceConfig &base)
+    : InterfaceConfig(base) {}
 
 EpairInterfaceConfig::EpairInterfaceConfig(const InterfaceConfig &base,
                                            std::optional<std::string> peer_,
                                            std::optional<int> rdomain_,
-                                           bool promiscuous_) {
-  name = base.name;
-  type = base.type;
-  if (base.address)
-    address = base.address->clone();
-  aliases.clear();
-  for (const auto &a : base.aliases) {
-    if (a)
-      aliases.push_back(a->clone());
-  }
-  if (base.vrf)
-    vrf = std::make_unique<VRFConfig>(*base.vrf);
-  flags = base.flags;
-  groups = base.groups;
-  mtu = base.mtu;
-
+                                           bool promiscuous_)
+    : EpairInterfaceConfig(base) {
   peer = peer_;
   rdomain = rdomain_;
   promiscuous = promiscuous_;

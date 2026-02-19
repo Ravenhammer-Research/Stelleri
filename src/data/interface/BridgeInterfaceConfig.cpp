@@ -38,23 +38,8 @@
 #include <stdexcept>
 #include <string>
 
-BridgeInterfaceConfig::BridgeInterfaceConfig(const InterfaceConfig &base) {
-  // copy common InterfaceConfig fields
-  name = base.name;
-  type = base.type;
-  if (base.address)
-    address = base.address->cloneNetwork();
-  aliases.clear();
-  for (const auto &a : base.aliases) {
-    if (a)
-      aliases.push_back(a->cloneNetwork());
-  }
-  if (base.vrf)
-    vrf = std::make_unique<VRFConfig>(*base.vrf);
-  flags = base.flags;
-  groups = base.groups;
-  mtu = base.mtu;
-}
+BridgeInterfaceConfig::BridgeInterfaceConfig(const InterfaceConfig &base)
+    : InterfaceConfig(base) {}
 
 BridgeInterfaceConfig::BridgeInterfaceConfig(
     const InterfaceConfig &base, bool stp_, bool vlanFiltering_,
@@ -62,24 +47,8 @@ BridgeInterfaceConfig::BridgeInterfaceConfig(
     std::vector<BridgeMemberConfig> member_configs_,
     std::optional<int> priority_, std::optional<int> hello_time_,
     std::optional<int> forward_delay_, std::optional<int> max_age_,
-    std::optional<int> aging_time_, std::optional<int> max_addresses_) {
-  // copy common InterfaceConfig fields
-  name = base.name;
-  type = base.type;
-  if (base.address)
-    address = base.address->cloneNetwork();
-  aliases.clear();
-  for (const auto &a : base.aliases) {
-    if (a)
-      aliases.push_back(a->cloneNetwork());
-  }
-  if (base.vrf)
-    vrf = std::make_unique<VRFConfig>(*base.vrf);
-  flags = base.flags;
-  groups = base.groups;
-  mtu = base.mtu;
-
-  // set bridge specific
+    std::optional<int> aging_time_, std::optional<int> max_addresses_)
+    : BridgeInterfaceConfig(base) {
   stp = stp_;
   vlanFiltering = vlanFiltering_;
   members = std::move(members_);
