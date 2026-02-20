@@ -5,6 +5,10 @@
 
 #pragma once
 
+#if !defined(STELLERI_NETCONF) || STELLERI_NETCONF != 1
+#error "netconf headers are for the STELLERI_NETCONF build only"
+#endif
+
 #include <netconf.h>
 #include <libnetconf2/messages_server.h>
 #include "YangData.hpp"

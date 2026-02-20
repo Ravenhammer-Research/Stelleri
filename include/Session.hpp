@@ -5,6 +5,10 @@
 
 #pragma once
 
+#if !defined(STELLERI_NETCONF) || STELLERI_NETCONF != 1
+#error "netconf headers are for the STELLERI_NETCONF build only"
+#endif
+
 #include <string>
 #include <libnetconf2/session.h>
 #include <libyang/libyang.h>

@@ -27,7 +27,7 @@
 
 #include "CLI.hpp"
 #include "CommandGenerator.hpp"
-#ifdef NETCLI_NETCONF
+#ifdef STELLERI_NETCONF
 #include "NetconfConfigurationManager.hpp"
 #else
 #include "SystemConfigurationManager.hpp"
@@ -70,17 +70,17 @@ int main(int argc, char *argv[]) {
   }
 
   if (generate) {
-#ifdef NETCLI_NETCONF
-    NetconfConfigurationManager mgr;
+#ifdef STELLERI_NETCONF
+  NetconfConfigurationManager mgr;
 #else
-    SystemConfigurationManager mgr;
+  SystemConfigurationManager mgr;
 #endif
     netcli::CommandGenerator generator;
     generator.generateConfiguration(mgr);
     return 0;
   }
 
-#ifdef NETCLI_NETCONF
+#ifdef STELLERI_NETCONF
   auto mgr = std::make_unique<NetconfConfigurationManager>();
 #else
   auto mgr = std::make_unique<SystemConfigurationManager>();

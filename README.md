@@ -1,26 +1,24 @@
-# net
+# Stelleri
 
-A command-line network management utility for BSD systems. Provides an interactive shell and direct command execution for managing network interfaces, addresses, routes, ARP/NDP caches, VRFs, bridges, VLANs, LAGGs, and tunnels.
-
-## Features
-
-- **Interface Management**: View and configure Ethernet, loopback, bridge, LAGG, VLAN, tunnel, and virtual (epair) interfaces
-- **Address Management**: Add/remove IPv4 and IPv6 addresses with prefix lengths
-- **Routing**: Display and manipulate routing tables across multiple VRFs
-- **ARP/NDP**: Show and manage neighbor caches (IPv4 ARP and IPv6 NDP)
-- **VRF Support**: Multi-VRF routing tables and interface assignment
-- **Configuration Export**: Generate reproducible configuration commands from live system state
-- **Interactive Shell**: Tab-completion and command history via libedit
-- **Direct Execution**: Run single commands via `-c` flag without entering shell
-
-## Overview
+A router configuration / management environment: 
+- Built on system calls (no popen/exec/subprocess.) This project aims to centralize router configuration
+into a single language, such as what you would expect with Cisco/JunOS/VyOS/many others. The intention
+- Built on object oriented; available in "lite" and soon to be with NETCONF. Written for FreeBSD
+but designed with portability in mind.
+- Fluent, reproducible syntax; configuration from disk is 1:1 with configuration via command line
+- Interactive or one-shot; interactive features intellisense and auto-completion (of keywords, in context
+and also of IDs/names.) You can configure interfaces/routes manually, then export the configuration for reproduction.
+- Tabular and single interface summaries; view interfaces by type with specific columns or all information
+about a single interface. There is also a common interface table for viewing inet4/inet6 configuration, but
+for example, the bridge table lists all bridges, with verticals on columns like the bridge members.
+- Currently covers interfaces, routes, arp, ndp, and IPSEC SA/SP is in the works. 
 
 `net` is a network management tool designed for BSD systems that provides an intuitive command-line interface for viewing and modifying network configuration. It supports both interactive mode with a persistent shell and non-interactive mode for scripting.
 
 ## Prerequisites
 
 - BSD operating system (FreeBSD tested)
-- C++17 compatible compiler (g++/clang++)
+- C++26 compatible compiler (clang++)
 - CMake 3.13 or newer
 - libedit (for command-line editing and history)
 - Root privileges required for configuration changes
