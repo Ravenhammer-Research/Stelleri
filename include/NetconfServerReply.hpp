@@ -59,22 +59,14 @@ public:
     ERR_MALFORMED_MSG = NC_ERR_MALFORMED_MSG
   };
   explicit NetconfServerReply(ReplyType r) : rpl_(r) {}
-  ~NetconfServerReply() {
-    if (data_node_)
-      lyd_free_all(data_node_);
-  }
+  ~NetconfServerReply() = default;
 
   void setData(const YangData &data) {
-    if (data_node_) {
-      lyd_free_all(data_node_);
-      data_node_ = nullptr;
-    }
-    auto src = data.toLydNode();
-    if (!src)
+    data_.reset();
+    auto d = data.clone();
+    if (!d)
       return;
-    struct lyd_node *dup = nullptr;
-    if (lyd_dup_single(src, nullptr, 0, &dup) == LY_SUCCESS && dup)
-      data_node_ = dup;
+    data_ = std::move(d);
     rpl_ = RPL_DATA;
   }
 
@@ -96,10 +88,13 @@ public:
       return nc_server_reply_ok();
 
     if (rpl_ == RPL_DATA) {
-      if (!data_node_)
+      if (!data_)
+        return nullptr;
+      struct lyd_node *src = data_->toLydNode();
+      if (!src)
         return nullptr;
       struct lyd_node *dup = nullptr;
-      if (lyd_dup_single(data_node_, nullptr, 0, &dup) != LY_SUCCESS || !dup)
+      if (lyd_dup_single(src, nullptr, 0, &dup) != LY_SUCCESS || !dup)
         return nullptr;
       return nc_server_reply_data(dup, static_cast<NC_WD_MODE>(wd),
                                   static_cast<NC_PARAMTYPE>(pt));
@@ -115,11 +110,19 @@ public:
 
   bool isError() const { return rpl_ == RPL_ERROR; }
   bool isOk() const { return rpl_ == RPL_OK; }
-  bool hasData() const { return data_node_ != nullptr; }
+  bool hasData() const { return data_ != nullptr; }
   bool isNotification() const { return rpl_ == RPL_NOTIF; }
+
+  // Return a cloned YangData wrapper of the stored reply data. Caller
+  // receives ownership and may inspect or traverse the libyang nodes.
+  std::unique_ptr<YangData> getData() const {
+    if (!data_)
+      return nullptr;
+    return data_->clone();
+  }
 
 private:
   ReplyType rpl_;
-  struct lyd_node *data_node_ = nullptr;
+  std::unique_ptr<YangData> data_;
   struct lyd_node *err_ = nullptr;
 };

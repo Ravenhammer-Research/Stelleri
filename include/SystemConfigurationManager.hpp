@@ -200,13 +200,11 @@ public:
 
   // Helper methods used by system-specific implementations (defined in
   // src/system/freebsd/*.cpp)
-  void prepare_ifreq(struct ifreq &ifr,
-                             const std::string &name) const;
-  void cloneInterface(const std::string &name,
-                              unsigned long cmd) const;
+  void prepare_ifreq(struct ifreq &ifr, const std::string &name) const;
+  void cloneInterface(const std::string &name, unsigned long cmd) const;
   std::optional<int> query_ifreq_int(const std::string &ifname,
-                                             unsigned long req,
-                                             IfreqIntField which) const;
+                                     unsigned long req,
+                                     IfreqIntField which) const;
   std::optional<std::pair<std::string, int>>
   query_ifreq_sockaddr(const std::string &ifname, unsigned long req) const;
   std::vector<std::string>
@@ -215,5 +213,5 @@ public:
 
   // VRF matching helper
   bool matches_vrf(const InterfaceConfig &ic,
-                           const std::optional<VRFConfig> &vrf) const;
+                   const std::optional<VRFConfig> &vrf) const;
 };

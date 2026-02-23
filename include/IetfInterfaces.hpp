@@ -16,6 +16,8 @@
 #include "Session.hpp"
 #include "SystemConfigurationManager.hpp"
 #include "YangData.hpp"
+#include <arpa/inet.h>
+#include <charconv>
 #include <format>
 #include <libyang/libyang.h>
 #include <memory>
@@ -33,8 +35,9 @@ public:
   std::optional<std::string> bind_ni_name;
 
   std::vector<std::unique_ptr<IetfInterfaces>>
-  getIetfInterfaces(const YangData &data, const YangContext &ctx,
-                    const Session &session) {
+  getIetfInterfaces(const YangData &data [[maybe_unused]], const YangContext &ctx [[maybe_unused]],
+                    const Session &session [[maybe_unused]]) {
+    std::vector<std::unique_ptr<IetfInterfaces>> out;
     SystemConfigurationManager scm;
     auto ifs = scm.GetInterfaces();
 
@@ -76,7 +79,7 @@ public:
 
     std::string iface_path = std::format(iface_fmt, iface.name);
 
-    newPath(ctx.get(), nullptr, iface_path.c_str(), nullptr, 0);
+    newPath(ctx, iface_path.c_str(), "");
 
     if (iface.description)
       newPath(ctx, leaf_fmt, *iface.description, iface.name, "description");
@@ -200,10 +203,158 @@ public:
     }
     if (!first_created)
       return nullptr;
-    // Walk up to the top-level `interfaces` container
+    // Walk up to the top-level `interfaces` container using libyang accessor
     struct lyd_node *root = first_created;
-    while (root->parent)
-      root = root->parent;
+    while (lyd_parent(root))
+      root = lyd_parent(root);
     return std::make_unique<YangData>(root);
   }
-}
+
+  // Convert the currently held libyang `interface` node into an
+  // InterfaceConfig structure. If no node is present an empty
+  // InterfaceConfig is returned.
+  InterfaceConfig toInterfaceConfig() const {
+    InterfaceConfig out;
+    if (!node_)
+      return out;
+
+    bool havePrimaryAddr = false;
+
+    struct lyd_node *match = nullptr;
+    // name
+    if (lyd_find_path(node_, "name", 0, &match) == LY_SUCCESS && match) {
+      const char *v = lyd_get_value(match);
+      if (v)
+        out.name = v;
+    }
+    // description
+    match = nullptr;
+    if (lyd_find_path(node_, "description", 0, &match) == LY_SUCCESS && match) {
+      const char *v = lyd_get_value(match);
+      if (v)
+        out.description = v;
+    }
+    // type
+    match = nullptr;
+    if (lyd_find_path(node_, "type", 0, &match) == LY_SUCCESS && match) {
+      const char *v = lyd_get_value(match);
+      if (v)
+        out.type = netconf::ianaIdentityToInterfaceType(std::string(v));
+    }
+    // enabled
+    match = nullptr;
+    if (lyd_find_path(node_, "enabled", 0, &match) == LY_SUCCESS && match) {
+      const char *v = lyd_get_value(match);
+      if (v && std::string(v) == "true")
+        out.flags = static_cast<uint32_t>(InterfaceFlag::UP);
+    }
+    // if-index
+    match = nullptr;
+    if (lyd_find_path(node_, "if-index", 0, &match) == LY_SUCCESS && match) {
+      const char *v = lyd_get_value(match);
+      if (v && *v) {
+        int iv = 0;
+        auto res = std::from_chars(v, v + std::strlen(v), iv);
+        if (res.ec == std::errc())
+          out.index = iv;
+      }
+    }
+    // phys-address
+    match = nullptr;
+    if (lyd_find_path(node_, "phys-address", 0, &match) == LY_SUCCESS && match) {
+      const char *v = lyd_get_value(match);
+      if (v)
+        out.hwaddr = v;
+    }
+    // speed
+    match = nullptr;
+    if (lyd_find_path(node_, "speed", 0, &match) == LY_SUCCESS && match) {
+      const char *v = lyd_get_value(match);
+      if (v && *v) {
+        unsigned long long uv = 0;
+        auto res = std::from_chars(v, v + std::strlen(v), uv);
+        if (res.ec == std::errc())
+          out.baudrate = static_cast<uint64_t>(uv);
+      }
+    }
+    // mtu
+    match = nullptr;
+    if (lyd_find_path(node_, "mtu", 0, &match) == LY_SUCCESS && match) {
+      const char *v = lyd_get_value(match);
+      if (v && *v) {
+        int iv = 0;
+        auto res = std::from_chars(v, v + std::strlen(v), iv);
+        if (res.ec == std::errc())
+          out.mtu = iv;
+      }
+    }
+
+    // addresses (address child nodes)
+    match = nullptr;
+    if (lyd_find_path(node_, "address", 0, &match) == LY_SUCCESS && match) {
+      // iterate through address instances under this interface
+      struct lyd_node *addr = match;
+      for (; addr; addr = addr->next) {
+        // get children ip / prefix-length / netmask
+        struct lyd_node *ipn = nullptr;
+        if (lyd_find_path(addr, "ip", 0, &ipn) == LY_SUCCESS && ipn) {
+          const char *ipstr = lyd_get_value(ipn);
+          std::string plen;
+          struct lyd_node *pln = nullptr;
+          if (lyd_find_path(addr, "prefix-length", 0, &pln) == LY_SUCCESS && pln) {
+            const char *pv = lyd_get_value(pln);
+            if (pv) plen = pv;
+          }
+          struct lyd_node *nm = nullptr;
+          if (lyd_find_path(addr, "netmask", 0, &nm) == LY_SUCCESS && nm) {
+            const char *nv = lyd_get_value(nm);
+            if (nv) {
+              // convert netmask to prefix
+              struct in_addr m4;
+              std::string full;
+              if (inet_pton(AF_INET, nv, &m4) == 1) {
+                uint32_t mv = ntohl(m4.s_addr);
+                int bits = 0;
+                for (int i = 31; i >= 0; --i) {
+                  if ((mv >> i) & 1u)
+                    ++bits;
+                  else
+                    break;
+                }
+                full = std::string(ipstr ? ipstr : "") + "/" + std::to_string(bits);
+              } else {
+                full = std::string(ipstr ? ipstr : "");
+              }
+              if (auto net = IPNetwork::fromString(full)) {
+                if (!havePrimaryAddr) {
+                  out.address = std::move(net);
+                  havePrimaryAddr = true;
+                } else {
+                  out.aliases.push_back(std::move(net));
+                }
+              }
+              continue;
+            }
+          }
+          if (ipstr && *ipstr) {
+            std::string full = ipstr;
+            if (!plen.empty())
+              full += "/" + plen;
+            if (auto net = IPNetwork::fromString(full)) {
+              if (!havePrimaryAddr) {
+                out.address = std::move(net);
+                havePrimaryAddr = true;
+              } else {
+                out.aliases.push_back(std::move(net));
+              }
+            }
+          }
+        }
+        if (!addr->next)
+          break;
+      }
+    }
+
+    return out;
+  }
+};

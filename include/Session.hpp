@@ -12,6 +12,8 @@
 #include <cstdint>
 #include <libnetconf2/session.h>
 
+#include "YangContext.hpp"
+
 // libyang headers trigger -Werror for anonymous structs on some compilers;
 // suppress those warnings around the include.
 #if defined(__clang__)
@@ -53,10 +55,13 @@ public:
   }
   void setId(const std::string &id) { id_ = id; }
 
-  // Return libyang context associated with the underlying NETCONF session.
-  // Returns nullptr if no session is stored.
-  const struct ly_ctx *yangContext() const {
-    return nc_session_ ? nc_session_get_ctx(nc_session_) : nullptr;
+  // yangContext should return YangContext.
+  // Return a YangContext wrapper for the session's libyang context.
+  YangContext yangContext() const {
+    if (!nc_session_)
+      return YangContext(nullptr);
+    const struct ly_ctx *c = nc_session_get_ctx(nc_session_);
+    return YangContext(c);
   }
 
   // Return the underlying libnetconf2 session pointer (non-owning).

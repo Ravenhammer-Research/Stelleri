@@ -2,11 +2,66 @@
 #error "netconf headers are for the STELLERI_NETCONF build only"
 #endif
 
+#include "Client.hpp"
+#include "IetfInterfaces.hpp"
 #include "NetconfConfigurationManager.hpp"
+#include "YangContext.hpp"
+#include "YangData.hpp"
+#include "YangError.hpp"
+#include "NetconfError.hpp"
+#include <iostream>
+#include <libyang/libyang.h>
 
 std::vector<InterfaceConfig> NetconfConfigurationManager::GetInterfaces(
     const std::optional<VRFConfig> & /*vrf*/) const {
-  return {};
+  // Use the global Client singleton to request the interfaces subtree.
+  Client *c = Client::instance();
+  if (!c)
+    throw NetconfError(nullptr, YangContext());
+
+  YangContext yctx = c->session().yangContext();
+  if (!yctx.get())
+    throw YangError(yctx);
+
+  // Obtain the module for building a typed subtree filter
+  YangModule ym = yctx.GetModule("ietf-interfaces");
+  const struct lys_module *mod = ym.getModulePtr();
+  if (!mod || !ym.valid())
+    throw YangError(yctx);
+
+  struct lyd_node *filter_node = nullptr;
+  if (lyd_new_inner(nullptr, mod, "interfaces", 0, &filter_node) !=
+      LY_SUCCESS) {
+    throw YangError(yctx);
+  }
+
+  // Wrap the created filter node in a YangData so its destructor
+  // will free the libyang data tree when it goes out of scope.
+  YangData filter(filter_node, SubTree);
+
+  // Use the Client helper to perform the get-config with the typed
+  // subtree filter (avoid converting to XML and manually sending RPCs).
+  std::unique_ptr<NetconfServerReply> reply = c->getConfig(filter);
+  std::vector<InterfaceConfig> out;
+  if (reply && reply->hasData()) {
+    auto data = reply->getData();
+    if (data) {
+      struct lyd_node *op = data->toLydNode();
+      struct ly_set *set = nullptr;
+      if (lyd_find_xpath(op, "ietf-interfaces:interfaces/interface", &set) == LY_SUCCESS && set) {
+        for (uint32_t i = 0; i < set->count; ++i) {
+          struct lyd_node *n = set->dnodes[i];
+          if (!n)
+            continue;
+          IetfInterfaces ii(n);
+          out.push_back(ii.toInterfaceConfig());
+        }
+        ly_set_free(set, nullptr);
+      }
+    }
+  }
+
+  return out;
 }
 
 std::vector<InterfaceConfig> NetconfConfigurationManager::GetInterfacesByGroup(

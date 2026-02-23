@@ -14,6 +14,7 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
 #pragma clang diagnostic ignored "-Wnested-anon-types"
+#include "YangModule.hpp"
 #include <libyang/libyang.h>
 #pragma clang diagnostic pop
 #elif defined(__GNUC__)
@@ -29,12 +30,22 @@
 class YangContext {
 public:
   // Non-owning wrapper around an existing libyang context.
-  explicit YangContext(struct ly_ctx *ctx = nullptr) : ctx_(ctx) {}
+  explicit YangContext(const struct ly_ctx *ctx = nullptr) : ctx_(ctx) {}
   ~YangContext() = default;
 
   // Access the underlying libyang context pointer.
-  struct ly_ctx *get() const { return ctx_; }
+  const struct ly_ctx *get() const { return ctx_; }
+
+  // Return the latest compiled module for the given module name (no revision).
+  // If the module is not present in the context, the returned YangModule will
+  // be invalid (YangModule::valid() == false).
+  YangModule GetModule(const std::string &moduleName) const {
+    if (!ctx_)
+      return YangModule(nullptr);
+    const struct lys_module *m = ly_ctx_get_module_latest(ctx_, moduleName.c_str());
+    return YangModule(m);
+  }
 
 private:
-  struct ly_ctx *ctx_ = nullptr;
+  const struct ly_ctx *ctx_ = nullptr;
 };
