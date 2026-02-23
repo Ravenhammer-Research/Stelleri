@@ -10,7 +10,21 @@
 #endif
 
 // Use the installed libyang header from /usr/local/include/libyang
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
+#pragma clang diagnostic ignored "-Wnested-anon-types"
 #include <libyang/libyang.h>
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wgnu-anonymous-struct"
+#pragma GCC diagnostic ignored "-Wnested-anon-types"
+#include <libyang/libyang.h>
+#pragma GCC diagnostic pop
+#else
+#include <libyang/libyang.h>
+#endif
 
 class YangContext {
 public:

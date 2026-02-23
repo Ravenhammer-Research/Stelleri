@@ -16,11 +16,11 @@
 #include <atomic>
 #include <chrono>
 #include <csignal>
+#include <cstring>
 #include <getopt.h>
+#include <string>
 #include <thread>
 #include <vector>
-#include <string>
-#include <cstring>
 
 static std::atomic<bool> g_running{true};
 
@@ -67,6 +67,11 @@ int main(int argc, char **argv) {
   };
 
   std::vector<Endpoint> endpoints;
+
+  // Default unix socket path when none is specified (netconf build only)
+#ifdef STELLERI_NETCONF
+  const std::string default_unix_socket = "/var/run/netconf.sock";
+#endif
 
   const char *short_opts = "h";
   const struct option long_opts[] = {{"help", no_argument, nullptr, 'h'},
@@ -153,6 +158,15 @@ int main(int argc, char **argv) {
 
   // If endpoints were requested on the CLI, build server configuration and
   // apply it.
+  if (endpoints.empty()) {
+#ifdef STELLERI_NETCONF
+    Endpoint e;
+    e.type = Endpoint::Type::Unix;
+    e.extra = default_unix_socket;
+    endpoints.push_back(std::move(e));
+#endif
+  }
+
   if (!endpoints.empty()) {
     if (nc_server_config_load_modules(&ctx) != 0) {
       log.error("netd: failed to load server config modules");
@@ -171,8 +185,8 @@ int main(int argc, char **argv) {
 #ifdef NC_ENABLED_SSH_TLS
           // For SSH/TLS/TCP use address/port. Map TCP->TLS/SSH transport where
           // applicable.
-          NC_TRANSPORT_IMPL ti = (ep.type == Endpoint::Type::SSH) ? NC_TI_SSH
-                                                                    : NC_TI_TLS;
+          NC_TRANSPORT_IMPL ti =
+              (ep.type == Endpoint::Type::SSH) ? NC_TI_SSH : NC_TI_TLS;
           if (ep.type == Endpoint::Type::Tcp)
             ti = NC_TI_TLS; // TCP treated as TLS by default
           if (nc_server_config_add_address_port(ctx, name.c_str(), ti,
@@ -181,7 +195,8 @@ int main(int argc, char **argv) {
             log.warn("netd: failed to add address/port endpoint");
           }
 #else
-          log.warn("netd: SSH/TLS endpoints not supported by libnetconf2 build; skipping");
+          log.warn("netd: SSH/TLS endpoints not supported by libnetconf2 "
+                   "build; skipping");
 #endif
         }
       }

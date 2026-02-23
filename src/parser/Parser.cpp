@@ -36,6 +36,10 @@
 #include "SetToken.hpp"
 #include "ShowToken.hpp"
 #include "VRFToken.hpp"
+#ifdef STELLERI_NETCONF
+#include "CommitToken.hpp"
+#include "TargetToken.hpp"
+#endif
 #include <iostream>
 #include <sstream>
 
@@ -106,6 +110,19 @@ namespace netcli {
       if (pt)
         cmd->addToken(pt);
     }
+#ifdef STELLERI_NETCONF
+    else if (target == "target") {
+      size_t next = 0;
+      auto tt = TargetToken::parseFromTokens(tokens, idx, next);
+      if (tt)
+        cmd->addToken(tt);
+    } else if (target == "commit") {
+      size_t next = 0;
+      auto ct = CommitToken::parseFromTokens(tokens, idx, next);
+      if (ct)
+        cmd->addToken(ct);
+    }
+#endif
 
     return cmd;
   }

@@ -28,9 +28,13 @@
 #include "CLI.hpp"
 #include "CommandGenerator.hpp"
 #ifdef STELLERI_NETCONF
+#include "Client.hpp"
 #include "NetconfConfigurationManager.hpp"
 #else
 #include "SystemConfigurationManager.hpp"
+#endif
+#ifdef STELLERI_NETCONF
+#include <libnetconf2/netconf.h>
 #endif
 #include <getopt.h>
 #include <iostream>
@@ -40,15 +44,75 @@
 int main(int argc, char *argv[]) {
   std::string onecmd;
   bool generate = false;
+#ifdef STELLERI_NETCONF
+  const std::string default_unix_socket = "/var/run/netconf.sock";
+  bool client_initialized = false;
+#endif
 
   struct option longopts[] = {{"file", required_argument, nullptr, 'f'},
                               {"generate", no_argument, nullptr, 'g'},
                               {"interactive", no_argument, nullptr, 'i'},
                               {"help", no_argument, nullptr, 'h'},
+#ifdef STELLERI_NETCONF
+                              {"unix", required_argument, nullptr, 'U'},
+                              {"ssh", required_argument, nullptr, 0},
+                              {"tls", required_argument, nullptr, 0},
+#endif
                               {0, 0, 0, 0}};
 
   int ch;
-  while ((ch = getopt_long(argc, argv, "f:gih", longopts, nullptr)) != -1) {
+  int longidx = 0;
+  while ((ch = getopt_long(argc, argv, "f:gihU:", longopts, &longidx)) != -1) {
+    if (ch == 0) {
+#ifdef STELLERI_NETCONF
+      const char *lname = longopts[longidx].name;
+      if (lname) {
+        if (std::strcmp(lname, "ssh") == 0) {
+#ifdef NC_ENABLED_SSH_TLS
+          std::string s(optarg);
+          auto p = s.find(':');
+          std::string host;
+          uint16_t port;
+          if (p == std::string::npos) {
+            host = s;
+            port = NC_PORT_SSH;
+          } else {
+            host = s.substr(0, p);
+            port = static_cast<uint16_t>(std::stoi(s.substr(p + 1)));
+          }
+          if (!Client::init_ssh(host, port)) {
+            std::cerr << "netcli: failed to init netconf ssh client: " << host
+                      << ":" << port << "\n";
+          }
+#else
+          std::cerr << "netcli: ssh support not available in libnetconf2\n";
+#endif
+        } else if (std::strcmp(lname, "tls") == 0) {
+#ifdef NC_ENABLED_SSH_TLS
+          std::string s(optarg);
+          auto p = s.find(':');
+          std::string host;
+          uint16_t port;
+          if (p == std::string::npos) {
+            host = s;
+            port = NC_PORT_TLS;
+          } else {
+            host = s.substr(0, p);
+            port = static_cast<uint16_t>(std::stoi(s.substr(p + 1)));
+          }
+          if (!Client::init_tls(host, port)) {
+            std::cerr << "netcli: failed to init netconf tls client: " << host
+                      << ":" << port << "\n";
+          }
+#else
+          std::cerr << "netcli: tls support not available in libnetconf2\n";
+#endif
+        }
+      }
+#endif
+      continue;
+    }
+
     switch (ch) {
     case 'g':
       generate = true;
@@ -56,6 +120,17 @@ int main(int argc, char *argv[]) {
     case 'i':
       // Interactive mode (default anyway)
       break;
+#ifdef STELLERI_NETCONF
+    case 'U':
+      // --unix / -U: initialize unix socket client
+      if (!Client::init_unix(optarg)) {
+        std::cerr << "netcli: failed to init netconf client (unix): " << optarg
+                  << "\n";
+      } else {
+        client_initialized = true;
+      }
+      break;
+#endif
     case 'h':
       std::cout << "Usage: netcli [command] [-g] [-i]\n";
       std::cout << "  command           Execute a single command (any non-flag "
@@ -63,6 +138,11 @@ int main(int argc, char *argv[]) {
       std::cout << "  -g, --generate    Generate configuration from system\n";
       std::cout << "  -i, --interactive Enter interactive mode\n";
       std::cout << "  -h, --help        Show this help message\n";
+      std::cout << "Netconf options (STELLERI=netconf):\n";
+      std::cout << "  -U, --unix PATH           Use unix socket PATH for "
+                   "NETCONF client\n";
+      std::cout << "  --ssh HOST[:PORT]         Connect NETCONF over SSH\n";
+      std::cout << "  --tls HOST[:PORT]         Connect NETCONF over TLS\n";
       return 0;
     default:
       break;
@@ -86,6 +166,13 @@ int main(int argc, char *argv[]) {
   auto mgr = std::make_unique<SystemConfigurationManager>();
 #endif
   CLI cli(std::move(mgr));
+
+#ifdef STELLERI_NETCONF
+  if (!client_initialized) {
+    // Default the client to the well-known unix socket if available
+    Client::init_unix(default_unix_socket);
+  }
+#endif
 
   // If there are non-option arguments left, treat them as a single one-shot
   // command (join remaining argv entries with spaces).

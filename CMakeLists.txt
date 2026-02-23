@@ -23,7 +23,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
-# Client type: "lite" (default, FreeBSD system calls) or "netconf" (stub)
+# Client type: "lite" (default, FreeBSD system calls) or NETCONF (stub)
 # Renamed to STELLERI per request.
 set(STELLERI "lite" CACHE STRING "Configuration backend: lite or netconf")
 set_property(CACHE STELLERI PROPERTY STRINGS lite netconf)
@@ -37,7 +37,7 @@ file(GLOB_RECURSE NETCONF_CFGMGR "src/system/netconf/*.cpp")
 # By default ("lite") exclude netconf/system and server sources. When
 # building with STELLERI=netconf both client and server components are
 # produced and the netconf implementation is included.
-if(NOT STELLERI STREQUAL "netconf")
+if(NOT STELLERI STREQUAL NETCONF)
   list(REMOVE_ITEM ALL_SOURCES ${NETCONF_CFGMGR} ${SERVER_SOURCES})
 endif()
 
@@ -47,11 +47,18 @@ endif()
 set(NET_SOURCES ${ALL_SOURCES})
 list(REMOVE_ITEM NET_SOURCES ${SERVER_SOURCES})
 
+# The client executable `net` still needs the Netconf executor symbols
+# when building in NETCONF mode; add that single server source back so
+# references (e.g. CommitToken.cpp) link correctly.
+if(STELLERI STREQUAL NETCONF)
+  list(APPEND NET_SOURCES ${CMAKE_SOURCE_DIR}/src/server/NetconfExecutor.cpp)
+endif()
+
 add_executable(net ${NET_SOURCES})
 target_include_directories(net PRIVATE include)
 
 # Build the server daemon only when netconf is enabled
-if(STELLERI STREQUAL "netconf")
+if(STELLERI STREQUAL NETCONF)
   add_executable(netd ${SERVER_SOURCES})
   target_include_directories(netd PRIVATE include)
 

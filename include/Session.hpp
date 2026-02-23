@@ -9,8 +9,26 @@
 #error "netconf headers are for the STELLERI_NETCONF build only"
 #endif
 
+#include <cstdint>
 #include <libnetconf2/session.h>
+
+// libyang headers trigger -Werror for anonymous structs on some compilers;
+// suppress those warnings around the include.
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
+#pragma clang diagnostic ignored "-Wnested-anon-types"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wgnu-anonymous-struct"
+#pragma GCC diagnostic ignored "-Wnested-anon-types"
+#endif
 #include <libyang/libyang.h>
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 #include <string>
 
 class Session {
@@ -21,7 +39,12 @@ public:
     if (nc_session_)
       id_ = std::to_string(nc_session_get_id(nc_session_));
   }
-  virtual ~Session() = default;
+  virtual ~Session() {
+    if (nc_session_) {
+      nc_session_free(nc_session_, nullptr);
+      nc_session_ = nullptr;
+    }
+  }
 
   const std::string &id() const {
     if (nc_session_)
@@ -35,6 +58,9 @@ public:
   const struct ly_ctx *yangContext() const {
     return nc_session_ ? nc_session_get_ctx(nc_session_) : nullptr;
   }
+
+  // Return the underlying libnetconf2 session pointer (non-owning).
+  struct nc_session *getSessionPtr() const { return nc_session_; }
 
 private:
   struct nc_session *nc_session_ = nullptr;

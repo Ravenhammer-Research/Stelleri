@@ -36,6 +36,10 @@
 #include "ShowToken.hpp"
 #include "Socket.hpp"
 #include "VRFToken.hpp"
+#ifdef STELLERI_NETCONF
+#include "CommitToken.hpp"
+#include "TargetToken.hpp"
+#endif
 
 namespace netcli {
 
@@ -106,6 +110,16 @@ namespace netcli {
     registerHandler<PolicyToken>(Verb::Show, wrap(&executeShowPolicy));
     registerHandler<PolicyToken>(Verb::Set, wrap(&executeSetPolicy));
     registerHandler<PolicyToken>(Verb::Delete, wrap(&executeDeletePolicy));
+
+#ifdef STELLERI_NETCONF
+    // NETCONF-specific handlers
+    // Forward declarations in this file; implementations in
+    // ExecuteTarget.cpp/ExecuteCommit.cpp
+    extern void executeTarget(const TargetToken &, ConfigurationManager *);
+    extern void executeCommit(const CommitToken &, ConfigurationManager *);
+    registerHandler<TargetToken>(Verb::Set, wrap(&executeTarget));
+    registerHandler<CommitToken>(Verb::Set, wrap(&executeCommit));
+#endif
   }
 
   void CommandDispatcher::dispatch(const std::shared_ptr<Token> &head,

@@ -392,6 +392,42 @@ cmake -S . -B build
 cmake --build build
 ```
 
+## Architecture 
+
+```mermaid 
+flowchart TD
+    StelleriLite[Stelleri 
+    Lite] --> Executive(Executive
+    show/set/delete dispatching)
+    StelleriNetconf[Stelleri 
+    NETCONF client] --> Executive
+    Executive --> Parser(Parser
+    Token classes; Interface/Route/Vrf, etc)
+    Parser --> LiteOrNetconf{Lite or NETCONF?}
+    LiteOrNetconf --> |Lite| SystemConfigurationManger(SystemConfigurationManger)
+    LiteOrNetconf --> |NETCONF| NetconfConfigurationManger(NetconfConfigurationManger)
+    SystemConfigurationManger --> Ioctl(ioctl)
+    SystemConfigurationManger --> Sysctl(sysctl)
+    SystemConfigurationManger --> IfAddrs(getifaddrs)
+    NetconfConfigurationManger --> Libnetconf2(NETCONF
+    Client)    
+    NetconfServer[NETCONF 
+    Server] --> NetconfExecutor(NETCONF
+    Executor)
+    Libnetconf2 --> NetconfServer
+    NetconfExecutor --> Session
+    NetconfExecutor --> DataStore
+    Session --> NMDA
+    DataStore --> Startup 
+    DataStore --> Candidate
+    DataStore --> Running
+    Startup --> NoConfigOnDisk{No configuration 
+    on disk?}
+    NoConfigOnDisk --> SystemConfigurationManger
+    Candidate --> Commit{Commit?}
+    Commit --> SystemConfigurationManger
+```
+
 ## TODO
 
 ### Stelleri NETCONF

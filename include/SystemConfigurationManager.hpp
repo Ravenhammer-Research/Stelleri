@@ -200,20 +200,20 @@ public:
 
   // Helper methods used by system-specific implementations (defined in
   // src/system/freebsd/*.cpp)
-  virtual void prepare_ifreq(struct ifreq &ifr,
-                             const std::string &name) const = 0;
-  virtual void cloneInterface(const std::string &name,
-                              unsigned long cmd) const = 0;
-  virtual std::optional<int> query_ifreq_int(const std::string &ifname,
+  void prepare_ifreq(struct ifreq &ifr,
+                             const std::string &name) const;
+  void cloneInterface(const std::string &name,
+                              unsigned long cmd) const;
+  std::optional<int> query_ifreq_int(const std::string &ifname,
                                              unsigned long req,
-                                             IfreqIntField which) const = 0;
-  virtual std::optional<std::pair<std::string, int>>
-  query_ifreq_sockaddr(const std::string &ifname, unsigned long req) const = 0;
-  virtual std::vector<std::string>
-  query_interface_groups(const std::string &ifname) const = 0;
-  virtual void populateInterfaceMetadata(InterfaceConfig &ic) const = 0;
+                                             IfreqIntField which) const;
+  std::optional<std::pair<std::string, int>>
+  query_ifreq_sockaddr(const std::string &ifname, unsigned long req) const;
+  std::vector<std::string>
+  query_interface_groups(const std::string &ifname) const;
+  void populateInterfaceMetadata(InterfaceConfig &ic) const;
 
   // VRF matching helper
-  virtual bool matches_vrf(const InterfaceConfig &ic,
-                           const std::optional<VRFConfig> &vrf) const = 0;
+  bool matches_vrf(const InterfaceConfig &ic,
+                           const std::optional<VRFConfig> &vrf) const;
 };
