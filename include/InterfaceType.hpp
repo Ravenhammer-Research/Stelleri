@@ -182,3 +182,47 @@ inline InterfaceType interfaceTypeFromString(const std::string &s) {
     return InterfaceType::Wireless;
   return InterfaceType::Unknown;
 }
+
+/// Convert InterfaceType to the IANA `iana-if-type` identity name string.
+inline std::string interfaceTypeToIanaIdentity(InterfaceType t) {
+  switch (t) {
+  case InterfaceType::Ethernet:
+    return "ethernetCsmacd";
+  case InterfaceType::Loopback:
+    return "softwareLoopback";
+  case InterfaceType::PPP:
+    return "ppp";
+  case InterfaceType::PointToPoint:
+    return "propPointToPointSerial";
+  case InterfaceType::Wireless:
+    return "ieee80211";
+  case InterfaceType::Bridge:
+    return "bridge";
+  case InterfaceType::Lagg:
+    return "ieee8023adLag";
+  case InterfaceType::VLAN:
+    return "l2vlan";
+  case InterfaceType::Gif:
+    return "gif";
+  case InterfaceType::Tun:
+    return "tun";
+  case InterfaceType::GRE:
+    return "rfc1483";
+  case InterfaceType::VXLAN:
+    return "vxlan";
+  case InterfaceType::IPsec:
+    return "ipsec";
+  case InterfaceType::Epair:
+    return "virtualIpAddress";
+  case InterfaceType::Carp:
+    return "carp";
+  case InterfaceType::Tap:
+    return "tap";
+  case InterfaceType::SixToFour:
+    return "sixToFour";
+  case InterfaceType::Ovpn:
+    return "ovpn";
+  default:
+    return "other";
+  }
+}

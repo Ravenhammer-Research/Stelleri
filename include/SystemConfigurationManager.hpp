@@ -34,8 +34,8 @@
 
 #include "ConfigurationManager.hpp"
 
-/* don't put subclass includes here, put forward decls 
- * in ConfigurationManager instead. 
+/* don't put subclass includes here, put forward decls
+ * in ConfigurationManager instead.
  */
 
 #include <optional>
@@ -121,23 +121,6 @@ public:
   std::vector<std::string> GetInterfaceAddresses(const std::string &ifname,
                                                  int family) const override;
 
-  // Helper methods (overrides of ConfigurationManager convenience helpers)
-  void prepare_ifreq(struct ifreq &ifr, const std::string &name) const override;
-  void cloneInterface(const std::string &name,
-                      unsigned long cmd) const override;
-  std::optional<int> query_ifreq_int(const std::string &ifname,
-                                     unsigned long req,
-                                     IfreqIntField which) const override;
-  std::optional<std::pair<std::string, int>>
-  query_ifreq_sockaddr(const std::string &ifname,
-                       unsigned long req) const override;
-  std::vector<std::string>
-  query_interface_groups(const std::string &ifname) const override;
-  void populateInterfaceMetadata(InterfaceConfig &ic) const override;
-  // VRF matching helper
-  bool matches_vrf(const InterfaceConfig &ic,
-                   const std::optional<VRFConfig> &vrf) const override;
-
   // Bridge
   void CreateBridge(const std::string &name) const override;
   void SaveBridge(const BridgeInterfaceConfig &bic) const override;
@@ -174,12 +157,12 @@ public:
   void CreateTap(const std::string &name) const override;
   void SaveTap(const TapInterfaceConfig &tap) const override;
 
-    // PFLOG
-    void CreatePflog(const std::string &name) const;
-    void SavePflog(const PflogInterfaceConfig &p) const;
-    void DestroyPflog(const std::string &name) const;
-    std::vector<PflogInterfaceConfig>
-    GetPflogInterfaces(const std::vector<InterfaceConfig> &bases) const;
+  // PFLOG
+  void CreatePflog(const std::string &name) const;
+  void SavePflog(const PflogInterfaceConfig &p) const;
+  void DestroyPflog(const std::string &name) const;
+  std::vector<PflogInterfaceConfig>
+  GetPflogInterfaces(const std::vector<InterfaceConfig> &bases) const;
 
   // GRE
   void CreateGre(const std::string &name) const override;
@@ -189,12 +172,12 @@ public:
   void CreateVxlan(const std::string &name) const override;
   void SaveVxlan(const VxlanInterfaceConfig &vxlan) const override;
 
-    // PFSYNC
-    void CreatePfsync(const std::string &name) const;
-    void SavePfsync(const PfsyncInterfaceConfig &p) const;
-    void DestroyPfsync(const std::string &name) const;
-    std::vector<PfsyncInterfaceConfig>
-    GetPfsyncInterfaces(const std::vector<InterfaceConfig> &bases) const;
+  // PFSYNC
+  void CreatePfsync(const std::string &name) const;
+  void SavePfsync(const PfsyncInterfaceConfig &p) const;
+  void DestroyPfsync(const std::string &name) const;
+  std::vector<PfsyncInterfaceConfig>
+  GetPfsyncInterfaces(const std::vector<InterfaceConfig> &bases) const;
 
   // CARP
   void SaveCarp(const CarpInterfaceConfig &carp) const override;
@@ -212,4 +195,25 @@ public:
       const std::optional<uint32_t> &acl_filter = std::nullopt) const override;
   void SetPolicy(const PolicyConfig &pc) const override;
   void DeletePolicy(const PolicyConfig &pc) const override;
+
+  enum class IfreqIntField { Metric, Fib, Mtu };
+
+  // Helper methods used by system-specific implementations (defined in
+  // src/system/freebsd/*.cpp)
+  virtual void prepare_ifreq(struct ifreq &ifr,
+                             const std::string &name) const = 0;
+  virtual void cloneInterface(const std::string &name,
+                              unsigned long cmd) const = 0;
+  virtual std::optional<int> query_ifreq_int(const std::string &ifname,
+                                             unsigned long req,
+                                             IfreqIntField which) const = 0;
+  virtual std::optional<std::pair<std::string, int>>
+  query_ifreq_sockaddr(const std::string &ifname, unsigned long req) const = 0;
+  virtual std::vector<std::string>
+  query_interface_groups(const std::string &ifname) const = 0;
+  virtual void populateInterfaceMetadata(InterfaceConfig &ic) const = 0;
+
+  // VRF matching helper
+  virtual bool matches_vrf(const InterfaceConfig &ic,
+                           const std::optional<VRFConfig> &vrf) const = 0;
 };

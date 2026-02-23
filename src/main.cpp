@@ -71,9 +71,9 @@ int main(int argc, char *argv[]) {
 
   if (generate) {
 #ifdef STELLERI_NETCONF
-  NetconfConfigurationManager mgr;
+    NetconfConfigurationManager mgr;
 #else
-  SystemConfigurationManager mgr;
+    SystemConfigurationManager mgr;
 #endif
     netcli::CommandGenerator generator;
     generator.generateConfiguration(mgr);

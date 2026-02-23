@@ -13,7 +13,7 @@ namespace netcli {
   void generateArpCommands(ConfigurationManager &mgr) {
     auto entries = mgr.GetArpEntries();
     for (auto &entry : entries) {
-      // Only care about published. 
+      // Only care about published.
       if (!entry.published)
         continue;
 

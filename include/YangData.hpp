@@ -12,11 +12,33 @@
 #include <memory>
 #include <string>
 
-#include <functional>
-#include <cstdlib>
+#include <format>
 
+#include <cstdlib>
+#include <functional>
+
+#include "FilterType.hpp"
+#include "YangContext.hpp"
 #include "YangDataTypes.hpp"
+#include <cstring>
 #include <libyang/libyang.h>
+
+// Create a safe local enum backed by constexpr values that mirror libyang's
+// macros. This lets the rest of the code use a typed enum while still
+// compiling even if libyang's macros are defined as tricky tokens.
+#ifdef LY_SUCCESS
+static constexpr int LY_SUCCESS_VAL = LY_SUCCESS;
+#else
+static constexpr int LY_SUCCESS_VAL = 0;
+#endif
+
+#ifdef LY_ERR
+static constexpr int LY_ERR_VAL = LY_ERR;
+#else
+static constexpr int LY_ERR_VAL = -1;
+#endif
+
+enum class LyResult : int { Success = LY_SUCCESS_VAL, Error = LY_ERR_VAL };
 
 class YangData {
 public:
@@ -25,30 +47,26 @@ public:
       lyd_free_all(node_);
   }
 
-  // Default ctor accepts an optional libyang data tree node pointer.
-  explicit YangData(struct lyd_node *node = nullptr) : node_(node) {}
+  // Accept an optional libyang data tree node pointer.
+  explicit YangData(struct lyd_node *node = nullptr)
+      : node_(node), filter_(SubTree) {}
 
-  // Return a deep-cloned copy of this YangData instance. Default
-  // implementation duplicates the stored libyang node and returns a
-  // plain `YangData` wrapper owning the duplicated node. Subclasses
-  // may override to return their concrete type.
+  // Alternate constructor accepting a specific filter type.
+  YangData(struct lyd_node *node, FilterType filter)
+      : node_(node), filter_(filter) {}
+
   virtual std::unique_ptr<YangData> clone() const {
     if (!node_)
       return std::make_unique<YangData>(nullptr);
     struct lyd_node *dup = nullptr;
-    LY_ERR rc = lyd_dup_single(node_, nullptr, 0, &dup);
-    if (rc != LY_SUCCESS || !dup)
+    int rc = lyd_dup_single(node_, nullptr, 0, &dup);
+    if (rc != static_cast<int>(LyResult::Success) || !dup)
       return nullptr;
     return std::make_unique<YangData>(dup);
   }
 
-  // Serialize to XML/string representation. Default implementation uses
-  // libyang to print the stored `lyd_node*`.
-  //
-  // Deprecated: prefer working with the underlying libyang data tree via
-  // `toLydNode()` and libyang printers. This method is retained for
-  // compatibility but discouraged until serialization policy is clarified.
-  [[deprecated("toXML is deprecated; prefer toLydNode() and letting libnetconf2 handle serialization on its own")]]
+  [[deprecated("toXML is deprecated; prefer toLydNode() and letting "
+               "libnetconf2 handle serialization on its own")]]
   virtual std::string toXML() const {
     if (!node_)
       return std::string();
@@ -61,36 +79,42 @@ public:
     return s;
   }
 
-  // Return the underlying libyang data tree node pointer. This does NOT
-  // transfer ownership; the `YangData` instance retains ownership of the
-  // node. Callers should not free the returned pointer.
   struct lyd_node *toLydNode() const { return node_; }
 
-  // (de)serialization is NOT handled by this.
+  std::string ns() const {
+    if (!node_)
+      return std::string();
+    const struct lysc_node *schema = node_->schema;
+    if (!schema || !schema->module)
+      return std::string();
+    const char *n = schema->module->ns;
+    return n ? std::string(n) : std::string();
+  }
 
-  // Factory type used by static dispatch table entries.
-  using Factory = std::function<std::unique_ptr<YangData>(struct lyd_node *)>;
+  // Unified variadic helper: first variadic argument is treated as the
+  // node value; any remaining args are used to format the path. The
+  // value is stringified via `std::format("{}", value)` so callers
+  // may pass string-like or numeric types.
+  template <typename V, typename... Args>
+  struct lyd_node *newPath(const YangContext &ctx, const char *fmt, V &&value,
+                           Args &&...args) {
+    if (!ctx.get())
+      return nullptr;
 
-  // Dispatch: static table lookup similar to `InterfaceToken::dispatch`.
-  // The table is intentionally left empty here; concrete entries will be
-  // added later alongside concrete YangData subclasses.
-  static std::unique_ptr<YangData> dispatch(YangDataType t, struct lyd_node *node) {
-    struct Entry {
-      YangDataType type;
-      Factory factory;
-    };
+    std::string path = std::format(fmt, std::forward<Args>(args)...);
+    std::string v = std::format("{}", std::forward<V>(value));
 
-    static const Entry table[] = {
-        // { YangDataType::IetfFoo, [](struct lyd_node *n){ return std::make_unique<MyFoo>(n); } },
-    };
-
-    for (const auto &e : table) {
-      if (e.type == t)
-        return e.factory(node);
-    }
-    return nullptr;
+    /* libyang lyd_new_path signature expects parent first on this system */
+    struct lyd_node *out = nullptr;
+    int rc = lyd_new_path(node_, ctx.get(), path.c_str(), v.c_str(), 0, &out);
+    if (rc != static_cast<int>(LyResult::Success))
+      return nullptr;
+    node_ = out;
+    return node_;
   }
 
 protected:
   struct lyd_node *node_ = nullptr;
+  FilterType filter_ = None;
+  bool hasFilter() const { return filter_ != None; }
 };

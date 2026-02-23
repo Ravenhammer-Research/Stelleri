@@ -6,8 +6,8 @@
 #include "TapInterfaceConfig.hpp"
 
 #include <net/if.h>
-#include <sys/sockio.h>
 #include <stdexcept>
+#include <sys/sockio.h>
 
 void SystemConfigurationManager::CreateTap(const std::string &name) const {
   if (InterfaceConfig::exists(*this, name))

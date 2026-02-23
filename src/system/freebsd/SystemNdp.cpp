@@ -202,7 +202,8 @@ bool SystemConfigurationManager::SetNdpEntry(
   {
     unsigned int b[8];
     char *s = const_cast<char *>(mac.c_str());
-    int n = std::sscanf(s, "%x:%x:%x:%x:%x:%x", &b[0], &b[1], &b[2], &b[3], &b[4], &b[5]);
+    int n = std::sscanf(s, "%x:%x:%x:%x:%x:%x", &b[0], &b[1], &b[2], &b[3],
+                        &b[4], &b[5]);
     if (n < 6)
       return false;
     for (int i = 0; i < 6; ++i)
@@ -231,9 +232,11 @@ bool SystemConfigurationManager::SetNdpEntry(
   size_t sin6_sz = roundup(sizeof(sin6));
   p += sin6_sz;
 
-  // Build sockaddr_dl. We'll allocate minimal sockaddr_dl and copy MAC into LLADDR.
+  // Build sockaddr_dl. We'll allocate minimal sockaddr_dl and copy MAC into
+  // LLADDR.
   struct sockaddr_dl sdl = {};
-  sdl.sdl_len = static_cast<unsigned char>(sizeof(struct sockaddr_dl) + mac_len);
+  sdl.sdl_len =
+      static_cast<unsigned char>(sizeof(struct sockaddr_dl) + mac_len);
   sdl.sdl_family = AF_LINK;
   sdl.sdl_index = ifindex;
   sdl.sdl_alen = static_cast<unsigned char>(mac_len);
@@ -253,10 +256,11 @@ bool SystemConfigurationManager::SetNdpEntry(
   rtm->rtm_flags = RTF_HOST | RTF_STATIC;
   rtm->rtm_addrs = RTA_DST | RTA_GATEWAY;
 
-  // Send via routing socket
-  #include "RoutingSocket.hpp"
+// Send via routing socket
+#include "RoutingSocket.hpp"
   (void)temp;
-  return WriteRoutingSocket(std::vector<char>(buf.data(), buf.data() + rtm->rtm_msglen), AF_INET6);
+  return WriteRoutingSocket(
+      std::vector<char>(buf.data(), buf.data() + rtm->rtm_msglen), AF_INET6);
 }
 
 bool SystemConfigurationManager::DeleteNdpEntry(

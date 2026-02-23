@@ -6,8 +6,8 @@
 #include "VxlanInterfaceConfig.hpp"
 
 #include <net/if.h>
-#include <sys/sockio.h>
 #include <stdexcept>
+#include <sys/sockio.h>
 
 void SystemConfigurationManager::CreateVxlan(const std::string &name) const {
   if (InterfaceConfig::exists(*this, name))

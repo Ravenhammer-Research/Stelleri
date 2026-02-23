@@ -9,9 +9,9 @@
 #error "netconf headers are for the STELLERI_NETCONF build only"
 #endif
 
-#include <string>
 #include <libnetconf2/session.h>
 #include <libyang/libyang.h>
+#include <string>
 
 class Session {
 public:
@@ -32,7 +32,9 @@ public:
 
   // Return libyang context associated with the underlying NETCONF session.
   // Returns nullptr if no session is stored.
-  const struct ly_ctx *yangContext() const { return nc_session_ ? nc_session_get_ctx(nc_session_) : nullptr; }
+  const struct ly_ctx *yangContext() const {
+    return nc_session_ ? nc_session_get_ctx(nc_session_) : nullptr;
+  }
 
 private:
   struct nc_session *nc_session_ = nullptr;

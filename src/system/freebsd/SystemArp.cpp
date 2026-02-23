@@ -165,7 +165,8 @@ bool SystemConfigurationManager::SetArpEntry(
   {
     unsigned int b[8];
     char *s = const_cast<char *>(mac.c_str());
-    int n = std::sscanf(s, "%x:%x:%x:%x:%x:%x", &b[0], &b[1], &b[2], &b[3], &b[4], &b[5]);
+    int n = std::sscanf(s, "%x:%x:%x:%x:%x:%x", &b[0], &b[1], &b[2], &b[3],
+                        &b[4], &b[5]);
     if (n < 6)
       return false;
     for (int i = 0; i < 6; ++i)
@@ -191,7 +192,8 @@ bool SystemConfigurationManager::SetArpEntry(
   p += roundup(sizeof(sin));
 
   struct sockaddr_dl sdl = {};
-  sdl.sdl_len = static_cast<unsigned char>(sizeof(struct sockaddr_dl) + mac_len);
+  sdl.sdl_len =
+      static_cast<unsigned char>(sizeof(struct sockaddr_dl) + mac_len);
   sdl.sdl_family = AF_LINK;
   sdl.sdl_index = ifindex;
   sdl.sdl_alen = static_cast<unsigned char>(mac_len);
@@ -209,9 +211,10 @@ bool SystemConfigurationManager::SetArpEntry(
     rtm->rtm_flags |= RTF_ANNOUNCE;
   rtm->rtm_addrs = RTA_DST | RTA_GATEWAY;
 
-  #include "RoutingSocket.hpp"
+#include "RoutingSocket.hpp"
   (void)temp;
-  return WriteRoutingSocket(std::vector<char>(buf.data(), buf.data() + rtm->rtm_msglen), AF_INET);
+  return WriteRoutingSocket(
+      std::vector<char>(buf.data(), buf.data() + rtm->rtm_msglen), AF_INET);
 }
 
 bool SystemConfigurationManager::DeleteArpEntry(

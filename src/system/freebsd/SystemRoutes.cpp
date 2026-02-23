@@ -7,17 +7,17 @@
 #include "RouteConfig.hpp"
 #include "SystemConfigurationManager.hpp"
 
+#include <arpa/inet.h>
 #include <cstring>
+#include <iomanip>
 #include <net/if.h>
 #include <net/if_dl.h>
 #include <net/route.h>
 #include <netinet/in.h>
+#include <sstream>
 #include <sys/socket.h>
 #include <sys/sysctl.h>
 #include <unordered_map>
-#include <sstream>
-#include <iomanip>
-#include <arpa/inet.h>
 
 static inline size_t roundup_sa_len(int len) {
   if (len <= 0)
@@ -56,8 +56,8 @@ std::vector<RouteConfig> SystemConfigurationManager::GetStaticRoutes(
     std::memset(rti_info, 0, sizeof(rti_info));
 
     for (int i = 0; i < RouteConfig::RTAX(RouteConfig::RTAX::COUNT) &&
-            reinterpret_cast<char *>(sa) < next + rtm->rtm_msglen;
-       i++) {
+                    reinterpret_cast<char *>(sa) < next + rtm->rtm_msglen;
+         i++) {
       if ((rtm->rtm_addrs & (1 << i)) == 0)
         continue;
       rti_info[i] = sa;
@@ -88,7 +88,8 @@ std::vector<RouteConfig> SystemConfigurationManager::GetStaticRoutes(
 
     // capture IFA (interface address) when present
     if (rti_info[RouteConfig::RTAX(RouteConfig::RTAX::IFA)]) {
-      struct sockaddr *saifa = rti_info[RouteConfig::RTAX(RouteConfig::RTAX::IFA)];
+      struct sockaddr *saifa =
+          rti_info[RouteConfig::RTAX(RouteConfig::RTAX::IFA)];
       char buf_ifa[INET6_ADDRSTRLEN] = {0};
       if (saifa->sa_family == AF_INET) {
         auto sin = reinterpret_cast<struct sockaddr_in *>(saifa);
@@ -103,7 +104,8 @@ std::vector<RouteConfig> SystemConfigurationManager::GetStaticRoutes(
 
     // capture IFP (interface info) when present (usually AF_LINK)
     if (rti_info[RouteConfig::RTAX(RouteConfig::RTAX::IFP)]) {
-      struct sockaddr *saifp = rti_info[RouteConfig::RTAX(RouteConfig::RTAX::IFP)];
+      struct sockaddr *saifp =
+          rti_info[RouteConfig::RTAX(RouteConfig::RTAX::IFP)];
       if (saifp->sa_family == AF_LINK) {
         auto sdl = reinterpret_cast<struct sockaddr_dl *>(saifp);
         if (sdl->sdl_nlen > 0)
@@ -113,7 +115,8 @@ std::vector<RouteConfig> SystemConfigurationManager::GetStaticRoutes(
 
     // capture AUTHOR and BRD if present
     if (rti_info[RouteConfig::RTAX(RouteConfig::RTAX::AUTHOR)]) {
-      struct sockaddr *saa = rti_info[RouteConfig::RTAX(RouteConfig::RTAX::AUTHOR)];
+      struct sockaddr *saa =
+          rti_info[RouteConfig::RTAX(RouteConfig::RTAX::AUTHOR)];
       char buf_author[INET6_ADDRSTRLEN] = {0};
       if (saa->sa_family == AF_INET) {
         auto sin = reinterpret_cast<struct sockaddr_in *>(saa);
@@ -126,7 +129,8 @@ std::vector<RouteConfig> SystemConfigurationManager::GetStaticRoutes(
       }
     }
     if (rti_info[RouteConfig::RTAX(RouteConfig::RTAX::BRD)]) {
-      struct sockaddr *sabr = rti_info[RouteConfig::RTAX(RouteConfig::RTAX::BRD)];
+      struct sockaddr *sabr =
+          rti_info[RouteConfig::RTAX(RouteConfig::RTAX::BRD)];
       char buf_brd[INET6_ADDRSTRLEN] = {0};
       if (sabr->sa_family == AF_INET) {
         auto sin = reinterpret_cast<struct sockaddr_in *>(sabr);
@@ -155,10 +159,10 @@ std::vector<RouteConfig> SystemConfigurationManager::GetStaticRoutes(
         } else
           prefixlen = 32;
         rc.prefix = std::string(buf_dst) + "/" + std::to_string(prefixlen);
-        } else if (rti_info[RouteConfig::RTAX(RouteConfig::RTAX::DST)]
-               ->sa_family == AF_INET6) {
+      } else if (rti_info[RouteConfig::RTAX(RouteConfig::RTAX::DST)]
+                     ->sa_family == AF_INET6) {
         auto sin6 = reinterpret_cast<struct sockaddr_in6 *>(
-          rti_info[RouteConfig::RTAX(RouteConfig::RTAX::DST)]);
+            rti_info[RouteConfig::RTAX(RouteConfig::RTAX::DST)]);
         inet_ntop(AF_INET6, &sin6->sin6_addr, buf_dst, sizeof(buf_dst));
         if (rti_info[RouteConfig::RTAX(RouteConfig::RTAX::NETMASK)]) {
           auto mask6 = reinterpret_cast<struct sockaddr_in6 *>(
@@ -204,7 +208,8 @@ std::vector<RouteConfig> SystemConfigurationManager::GetStaticRoutes(
           rc.iface = std::string(sdl->sdl_data, sdl->sdl_nlen);
         // Capture link-layer (MAC) address if available
         if (sdl->sdl_alen > 0) {
-          unsigned char *mac = reinterpret_cast<unsigned char *>(sdl->sdl_data + sdl->sdl_nlen);
+          unsigned char *mac =
+              reinterpret_cast<unsigned char *>(sdl->sdl_data + sdl->sdl_nlen);
           std::ostringstream macs;
           macs << std::hex << std::setfill('0');
           for (int mi = 0; mi < sdl->sdl_alen; mi++) {
@@ -234,8 +239,6 @@ std::vector<RouteConfig> SystemConfigurationManager::GetStaticRoutes(
     rc.flags = static_cast<unsigned int>(rtm->rtm_flags);
     if (rtm->rtm_rmx.rmx_expire != 0)
       rc.expire = static_cast<int>(rtm->rtm_rmx.rmx_expire);
-
-    
 
     if (!rc.prefix.empty()) {
       if (vrf) {

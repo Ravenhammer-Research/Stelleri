@@ -9,79 +9,117 @@
 #error "netconf headers are for the STELLERI_NETCONF build only"
 #endif
 
-#include <netconf.h>
-#include <libnetconf2/messages_server.h>
 #include "YangData.hpp"
+#include <libnetconf2/messages_server.h>
+#include <libnetconf2/netconf.h>
 
-// Convenience enums mirroring libnetconf2 types used by reply builders.
 enum WdMode {
-	WD_UNKNOWN = NC_WD_UNKNOWN,
-	WD_ALL = NC_WD_ALL,
-	WD_ALL_TAG = NC_WD_ALL_TAG,
-	WD_TRIM = NC_WD_TRIM,
-	WD_EXPLICIT = NC_WD_EXPLICIT
+  WD_UNKNOWN = NC_WD_UNKNOWN,
+  WD_ALL = NC_WD_ALL,
+  WD_ALL_TAG = NC_WD_ALL_TAG,
+  WD_TRIM = NC_WD_TRIM,
+  WD_EXPLICIT = NC_WD_EXPLICIT
 };
 
 enum ParamType {
-	PARAMTYPE_CONST = NC_PARAMTYPE_CONST,
-	PARAMTYPE_FREE = NC_PARAMTYPE_FREE,
-	PARAMTYPE_DUP_AND_FREE = NC_PARAMTYPE_DUP_AND_FREE
+  PARAMTYPE_CONST = NC_PARAMTYPE_CONST,
+  PARAMTYPE_FREE = NC_PARAMTYPE_FREE,
+  PARAMTYPE_DUP_AND_FREE = NC_PARAMTYPE_DUP_AND_FREE
 };
 
 class NetconfServerReply {
 public:
-	explicit NetconfServerReply(NC_RPL r) : rpl_(r) {}
-	~NetconfServerReply() {
-		if (data_node_)
-			lyd_free_all(data_node_);
-	}
+  // Local enum mapping of libnetconf2 reply types.
+  enum ReplyType {
+    RPL_OK = NC_RPL_OK,
+    RPL_DATA = NC_RPL_DATA,
+    RPL_ERROR = NC_RPL_ERROR,
+    RPL_NOTIF = NC_RPL_NOTIF
+  };
 
-	// Set the data payload for a DATA reply. The `YangData` instance provides
-	// the underlying libyang node via `toLydNode()`.
-	void setData(const YangData &data) {
-		if (data_node_) {
-			lyd_free_all(data_node_);
-			data_node_ = nullptr;
-		}
-		auto src = data.toLydNode();
-		if (!src)
-			return;
-		struct lyd_node *dup = nullptr;
-		if (lyd_dup_single(src, nullptr, 0, &dup) == LY_SUCCESS && dup)
-			data_node_ = dup;
-		rpl_ = NC_RPL_DATA;
-	}
+  enum ErrorCode {
+    ERR_IN_USE = NC_ERR_IN_USE,
+    ERR_INVALID_VALUE = NC_ERR_INVALID_VALUE,
+    ERR_ACCESS_DENIED = NC_ERR_ACCESS_DENIED,
+    ERR_ROLLBACK_FAILED = NC_ERR_ROLLBACK_FAILED,
+    ERR_OP_NOT_SUPPORTED = NC_ERR_OP_NOT_SUPPORTED,
+    ERR_TOO_BIG = NC_ERR_TOO_BIG,
+    ERR_RES_DENIED = NC_ERR_RES_DENIED,
+    ERR_OP_FAILED = NC_ERR_OP_FAILED,
+    ERR_MISSING_ATTR = NC_ERR_MISSING_ATTR,
+    ERR_BAD_ATTR = NC_ERR_BAD_ATTR,
+    ERR_UNKNOWN_ATTR = NC_ERR_UNKNOWN_ATTR,
+    ERR_MISSING_ELEM = NC_ERR_MISSING_ELEM,
+    ERR_BAD_ELEM = NC_ERR_BAD_ELEM,
+    ERR_UNKNOWN_ELEM = NC_ERR_UNKNOWN_ELEM,
+    ERR_UNKNOWN_NS = NC_ERR_UNKNOWN_NS,
+    ERR_LOCK_DENIED = NC_ERR_LOCK_DENIED,
+    ERR_DATA_EXISTS = NC_ERR_DATA_EXISTS,
+    ERR_DATA_MISSING = NC_ERR_DATA_MISSING,
+    ERR_MALFORMED_MSG = NC_ERR_MALFORMED_MSG
+  };
+  explicit NetconfServerReply(ReplyType r) : rpl_(r) {}
+  ~NetconfServerReply() {
+    if (data_node_)
+      lyd_free_all(data_node_);
+  }
 
+  void setData(const YangData &data) {
+    if (data_node_) {
+      lyd_free_all(data_node_);
+      data_node_ = nullptr;
+    }
+    auto src = data.toLydNode();
+    if (!src)
+      return;
+    struct lyd_node *dup = nullptr;
+    if (lyd_dup_single(src, nullptr, 0, &dup) == LY_SUCCESS && dup)
+      data_node_ = dup;
+    rpl_ = RPL_DATA;
+  }
 
+  void setError(ErrorCode code) {
+    rpl_ = RPL_ERROR;
+    /* libnetconf2's nc_err() takes a libyang context first and returns a
+       libyang data node representing the <rpc-error>. Passing nullptr for
+       the context is acceptable for constructing a generic error node. */
+    err_ = nc_err(nullptr, static_cast<NC_ERR>(code));
+  }
+  // If you have a libyang context and want to convert libyang diagnostics to
+  // an <rpc-error>, build it via nc_err() when available. The helper
+  // nc_err_libyang() is not available in all libnetconf2 versions, so it is
+  // not used here.
 
-	// Build a libnetconf2 server reply object. Returned pointer is owned by
-	// the caller and should be freed/handled per libnetconf2 semantics.
-	// Accepts optional arguments to control with-defaults mode and parameter
-	// ownership treatment.
-	struct nc_server_reply *toNcServerReply(WdMode wd = WD_UNKNOWN, ParamType pt = PARAMTYPE_FREE) const {
-		if (rpl_ == NC_RPL_OK)
-			return nc_server_reply_ok();
+  struct nc_server_reply *toNcServerReply(WdMode wd = WD_UNKNOWN,
+                                          ParamType pt = PARAMTYPE_FREE) const {
+    if (rpl_ == RPL_OK)
+      return nc_server_reply_ok();
 
-		if (rpl_ == NC_RPL_DATA) {
-			if (!data_node_)
-				return nullptr;
-			struct lyd_node *dup = nullptr;
-			if (lyd_dup_single(data_node_, nullptr, 0, &dup) != LY_SUCCESS || !dup)
-				return nullptr;
-			return nc_server_reply_data(dup, static_cast<NC_WD_MODE>(wd), static_cast<NC_PARAMTYPE>(pt));
-		}
-
+    if (rpl_ == RPL_DATA) {
+      if (!data_node_)
         return nullptr;
-	}
+      struct lyd_node *dup = nullptr;
+      if (lyd_dup_single(data_node_, nullptr, 0, &dup) != LY_SUCCESS || !dup)
+        return nullptr;
+      return nc_server_reply_data(dup, static_cast<NC_WD_MODE>(wd),
+                                  static_cast<NC_PARAMTYPE>(pt));
+    }
 
-	// Query helpers
-	bool isError() const { return rpl_ == NC_RPL_ERROR; }
-	bool isOk() const { return rpl_ == NC_RPL_OK; }
-	bool hasData() const { return data_node_ != nullptr; }
-	bool isNotification() const { return rpl_ == NC_RPL_NOTIF; }
+    if (rpl_ == RPL_ERROR) {
+      if (err_)
+        return nc_server_reply_err(err_);
+    }
+
+    return nullptr;
+  }
+
+  bool isError() const { return rpl_ == RPL_ERROR; }
+  bool isOk() const { return rpl_ == RPL_OK; }
+  bool hasData() const { return data_node_ != nullptr; }
+  bool isNotification() const { return rpl_ == RPL_NOTIF; }
 
 private:
-	NC_RPL rpl_;
-	struct lyd_node *data_node_ = nullptr;
+  ReplyType rpl_;
+  struct lyd_node *data_node_ = nullptr;
+  struct lyd_node *err_ = nullptr;
 };
-

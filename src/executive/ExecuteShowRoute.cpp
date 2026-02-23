@@ -52,8 +52,11 @@ namespace netcli {
     // Retrieve RouteConfig entries for the requested VRF (or global).
     auto routeConfs = mgr->GetRoutes(vrfOpt);
     // Debug: report how many entries were returned by backend
-        std::cerr << "[debug] GetRoutes returned " << routeConfs.size()
-          << " entries for VRF '" << (vrfOpt ? std::to_string(vrfOpt->table) : std::string("(global)")) << "'\n";
+    std::cerr << "[debug] GetRoutes returned " << routeConfs.size()
+              << " entries for VRF '"
+              << (vrfOpt ? std::to_string(vrfOpt->table)
+                         : std::string("(global)"))
+              << "'\n";
     if (tok.prefix().empty()) {
       routes = std::move(routeConfs);
     } else {

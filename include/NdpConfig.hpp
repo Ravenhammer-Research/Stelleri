@@ -66,16 +66,16 @@ public:
   // ND option type numbers (ND_OPT_*). Kept as literals to avoid
   // requiring system headers in this header file.
   enum OptionType : int {
-    OPT_SOURCE_LINKADDR = 1,   // ND_OPT_SOURCE_LINKADDR
-    OPT_TARGET_LINKADDR = 2,   // ND_OPT_TARGET_LINKADDR
-    OPT_PREFIX_INFORMATION = 3,// ND_OPT_PREFIX_INFORMATION
-    OPT_REDIRECTED_HEADER = 4, // ND_OPT_REDIRECTED_HEADER
-    OPT_MTU = 5,               // ND_OPT_MTU
-    OPT_NONCE = 14,            // ND_OPT_NONCE
-    OPT_ROUTE_INFO = 24,       // ND_OPT_ROUTE_INFO
-    OPT_RDNSS = 25,            // ND_OPT_RDNSS
-    OPT_DNSSL = 31,            // ND_OPT_DNSSL
-    OPT_PREF64 = 38            // ND_OPT_PREF64
+    OPT_SOURCE_LINKADDR = 1,    // ND_OPT_SOURCE_LINKADDR
+    OPT_TARGET_LINKADDR = 2,    // ND_OPT_TARGET_LINKADDR
+    OPT_PREFIX_INFORMATION = 3, // ND_OPT_PREFIX_INFORMATION
+    OPT_REDIRECTED_HEADER = 4,  // ND_OPT_REDIRECTED_HEADER
+    OPT_MTU = 5,                // ND_OPT_MTU
+    OPT_NONCE = 14,             // ND_OPT_NONCE
+    OPT_ROUTE_INFO = 24,        // ND_OPT_ROUTE_INFO
+    OPT_RDNSS = 25,             // ND_OPT_RDNSS
+    OPT_DNSSL = 31,             // ND_OPT_DNSSL
+    OPT_PREF64 = 38             // ND_OPT_PREF64
   };
 
   // rtm_rmx metric copies
@@ -88,8 +88,8 @@ public:
   unsigned long rmx_sendpipe = 0;
   unsigned long rmx_ssthresh = 0;
   unsigned long rmx_pksent = 0;
-  int rmx_weight = 0;               // ND6_LLINFO_* state (renamed to avoid macro collision)
-  bool is_proxy = false;           // whether this entry is a proxy (RTF_ANNOUNCE)
+  int rmx_weight = 0; // ND6_LLINFO_* state (renamed to avoid macro collision)
+  bool is_proxy = false; // whether this entry is a proxy (RTF_ANNOUNCE)
 
   // Raw routing message provenance
   std::optional<int> rtm_type;
