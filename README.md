@@ -459,6 +459,13 @@ The following features are slated as lowest priority but open to discussion:
 
 - Intel SGX
 
+- Managed & Unmanaged labels for interfaces 
+
+- VPP (Vector Packet Processing) as a backend: https://ipng.ch/s/articles/2024/02/10/vpp-on-freebsd-part-1/
+
+- Looking into storing some or all of boot.conf in EFI NVRAM as an option: https://ruuucker.github.io/EFI-Basics-NVRAM-Variables/
+
+
 ## See Also
 
 This tool combines the functionality of several BSD utilities into a cohesive configuration syntax that can be easily maintained:
