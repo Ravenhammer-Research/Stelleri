@@ -22,8 +22,10 @@ for example, the bridge table lists all bridges, with verticals on columns like 
 - CMake 3.13 or newer
 - libedit (for command-line editing and history)
 - Root privileges required for configuration changes
-- libyang 5.0.2 
-- libnetconf2 4.1.2
+- libyang 5.0.2 (https://github.com/CESNET/libyang/tree/devel)
+- - `cd libyang ; cmake -S . -B build -DPREFIX=/usr/local; cmake --build -j$(nprocs) ; cmake --install`
+- libnetconf2 4.1.2 (https://github.com/CESNET/libnetconf2/tree/v4.1.2)
+- - `cd libnetconf2 ; cmake -S . -B build -DPREFIX=/usr/local; cmake --build -j$(nprocs) ; cmake --install`
 
 ## Building
 
