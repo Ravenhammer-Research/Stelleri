@@ -17,11 +17,13 @@ for example, the bridge table lists all bridges, with verticals on columns like 
 
 ## Prerequisites
 
-- BSD operating system (FreeBSD tested)
+- BSD operating system (FreeBSD support only, currently)
 - C++26 compatible compiler (clang++)
 - CMake 3.13 or newer
 - libedit (for command-line editing and history)
 - Root privileges required for configuration changes
+- libyang 5.0.2 
+- libnetconf2 4.1.2
 
 ## Building
 

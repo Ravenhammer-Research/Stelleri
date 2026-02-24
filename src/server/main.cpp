@@ -9,9 +9,23 @@
 #include "Logger.hpp"
 #include "Server.hpp"
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
+#pragma clang diagnostic ignored "-Wnested-anon-types"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wgnu-anonymous-struct"
+#pragma GCC diagnostic ignored "-Wnested-anon-types"
+#endif
 #include <libnetconf2/log.h>
 #include <libnetconf2/server_config.h>
 #include <libnetconf2/session_server.h>
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 #include <atomic>
 #include <chrono>
@@ -23,11 +37,6 @@
 #include <vector>
 
 static std::atomic<bool> g_running{true};
-
-static void stop_signal(int) {
-  (void)int();
-  g_running.store(false);
-}
 
 // Forward libnetconf2 print messages into our logger.
 static void nc_print_clb(const struct nc_session * /*session*/,
