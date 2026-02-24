@@ -445,7 +445,8 @@ flowchart TD
 ```
 
 ## TODO
-
+### VNET 
+investigate whether this would be a better solution for VRF-lite
 ### Stelleri NETCONF
 
 A full-featured NETCONF implementation (non-lite version) is planned for future development. This will provide standardized network management protocol support for integration with enterprise management systems.
