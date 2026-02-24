@@ -2,7 +2,7 @@
 
 A router configuration / management environment: 
 - Built on system calls (no popen/exec/subprocess.) This project aims to centralize router configuration
-into a single language, such as what you would expect with Cisco/JunOS/VyOS/many others. The intention
+into a single language, such as what you would expect with Cisco/JunOS/VyOS/many others. 
 - Built on object oriented; available in "lite" and soon to be with NETCONF. Written for FreeBSD
 but designed with portability in mind.
 - Fluent, reproducible syntax; configuration from disk is 1:1 with configuration via command line
