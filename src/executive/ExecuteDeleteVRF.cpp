@@ -31,9 +31,8 @@
 
 namespace netcli {
 
-  void executeDeleteVRF(const VRFToken &tok, ConfigurationManager *mgr) {
-    (void)tok;
-    (void)mgr;
+  void executeDeleteVRF(const VRFToken &tok [[maybe_unused]],
+                        ConfigurationManager *mgr [[maybe_unused]]) {
     // Stub: VRF deletion will be implemented never
     std::cout << "delete vrf: (stub)\n";
   }

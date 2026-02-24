@@ -25,10 +25,16 @@ for example, the bridge table lists all bridges, with verticals on columns like 
 
 ## Building
 
-1. **Configure** the build (out-of-source recommended):
+1. **Configure** configure for Stelleri Lite:
 
 ```bash
 cmake -S . -B build
+```
+
+Alternatively you can configure the NETCONF version of Stelleri with:
+
+```bash
+cmake -S . -B build -DSTELLERI=NETCONF
 ```
 
 2. **Build** the project:
@@ -44,6 +50,11 @@ This produces the `net` executable at `build/net`.
 ```bash
 sudo cmake --install build
 ```
+
+## Porting 
+- `src/system/<os>` is necesarry for both Stelleri Lite and Stelleri NETCONF (Stelleri Server uses
+this code in NETCONF configured builds.) You need to implement the `ConfigurationManager` class and add
+OS-specific guards to `CMakeLists.txt`.
 
 ## Usage
 

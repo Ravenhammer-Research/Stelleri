@@ -35,7 +35,8 @@ public:
   std::optional<std::string> bind_ni_name;
 
   std::vector<std::unique_ptr<IetfInterfaces>>
-  getIetfInterfaces(const YangData &data [[maybe_unused]], const YangContext &ctx [[maybe_unused]],
+  getIetfInterfaces(const YangData &data [[maybe_unused]],
+                    const YangContext &ctx [[maybe_unused]],
                     const Session &session [[maybe_unused]]) {
     std::vector<std::unique_ptr<IetfInterfaces>> out;
     SystemConfigurationManager scm;
@@ -261,7 +262,8 @@ public:
     }
     // phys-address
     match = nullptr;
-    if (lyd_find_path(node_, "phys-address", 0, &match) == LY_SUCCESS && match) {
+    if (lyd_find_path(node_, "phys-address", 0, &match) == LY_SUCCESS &&
+        match) {
       const char *v = lyd_get_value(match);
       if (v)
         out.hwaddr = v;
@@ -301,9 +303,11 @@ public:
           const char *ipstr = lyd_get_value(ipn);
           std::string plen;
           struct lyd_node *pln = nullptr;
-          if (lyd_find_path(addr, "prefix-length", 0, &pln) == LY_SUCCESS && pln) {
+          if (lyd_find_path(addr, "prefix-length", 0, &pln) == LY_SUCCESS &&
+              pln) {
             const char *pv = lyd_get_value(pln);
-            if (pv) plen = pv;
+            if (pv)
+              plen = pv;
           }
           struct lyd_node *nm = nullptr;
           if (lyd_find_path(addr, "netmask", 0, &nm) == LY_SUCCESS && nm) {
@@ -321,7 +325,8 @@ public:
                   else
                     break;
                 }
-                full = std::string(ipstr ? ipstr : "") + "/" + std::to_string(bits);
+                full = std::string(ipstr ? ipstr : "") + "/" +
+                       std::to_string(bits);
               } else {
                 full = std::string(ipstr ? ipstr : "");
               }

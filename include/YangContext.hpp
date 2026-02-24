@@ -42,7 +42,8 @@ public:
   YangModule GetModule(const std::string &moduleName) const {
     if (!ctx_)
       return YangModule(nullptr);
-    const struct lys_module *m = ly_ctx_get_module_latest(ctx_, moduleName.c_str());
+    const struct lys_module *m =
+        ly_ctx_get_module_latest(ctx_, moduleName.c_str());
     return YangModule(m);
   }
 

@@ -17,111 +17,99 @@
 #include "YangData.hpp"
 #include <memory>
 
-std::unique_ptr<NetconfServerReply>
-NetconfExecutor::get(const Session &session, const YangData &filter) {
-  (void)session;
-  (void)filter;
+std::unique_ptr<NetconfServerReply> NetconfExecutor::get(const Session &session
+                                                         [[maybe_unused]],
+                                                         const YangData &filter
+                                                         [[maybe_unused]]) {
   auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_ERROR);
   r->setError(NetconfServerReply::ERR_OP_NOT_SUPPORTED);
   return r;
 }
 
 std::unique_ptr<NetconfServerReply>
-NetconfExecutor::getConfig(const Session &session, const YangData &filter) {
-  (void)session;
-  (void)filter;
+NetconfExecutor::getConfig(const Session &session [[maybe_unused]],
+                           const YangData &filter [[maybe_unused]]) {
   auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_ERROR);
   r->setError(NetconfServerReply::ERR_OP_NOT_SUPPORTED);
   return r;
 }
 
 std::unique_ptr<NetconfServerReply>
-NetconfExecutor::editConfig(const Session &session, const YangData &target,
-                            NetconfEditConfigOperation op) {
-  (void)session;
-  (void)target;
-  (void)op;
+NetconfExecutor::editConfig(const Session &session [[maybe_unused]],
+                            const YangData &target [[maybe_unused]],
+                            NetconfEditConfigOperation op [[maybe_unused]]) {
   auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_ERROR);
   r->setError(NetconfServerReply::ERR_OP_NOT_SUPPORTED);
   return r;
 }
 
 std::unique_ptr<NetconfServerReply>
-NetconfExecutor::copyConfig(const Session &session, DataStore src,
-                            DataStore dst) {
-  (void)session;
-  (void)src;
-  (void)dst;
+NetconfExecutor::copyConfig(const Session &session [[maybe_unused]],
+                            DataStore src [[maybe_unused]],
+                            DataStore dst [[maybe_unused]]) {
   auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_ERROR);
   r->setError(NetconfServerReply::ERR_OP_NOT_SUPPORTED);
   return r;
 }
 
 std::unique_ptr<NetconfServerReply>
-NetconfExecutor::deleteConfig(const Session &session, const YangData &target) {
-  (void)session;
-  (void)target;
+NetconfExecutor::deleteConfig(const Session &session [[maybe_unused]],
+                              const YangData &target [[maybe_unused]]) {
   auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_ERROR);
   r->setError(NetconfServerReply::ERR_OP_NOT_SUPPORTED);
   return r;
 }
 
 std::unique_ptr<NetconfServerReply>
-NetconfExecutor::commit(const Session &session) {
-  (void)session;
+NetconfExecutor::commit(const Session &session [[maybe_unused]]) {
+  auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_ERROR);
+  r->setError(NetconfServerReply::ERR_OP_NOT_SUPPORTED);
+  return r;
+}
+
+std::unique_ptr<NetconfServerReply> NetconfExecutor::lock(const Session &session
+                                                          [[maybe_unused]],
+                                                          DataStore ds
+                                                          [[maybe_unused]]) {
   auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_ERROR);
   r->setError(NetconfServerReply::ERR_OP_NOT_SUPPORTED);
   return r;
 }
 
 std::unique_ptr<NetconfServerReply>
-NetconfExecutor::lock(const Session &session, DataStore ds) {
-  (void)session;
-  (void)ds;
+NetconfExecutor::unlock(const Session &session [[maybe_unused]],
+                        DataStore ds [[maybe_unused]]) {
   auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_ERROR);
   r->setError(NetconfServerReply::ERR_OP_NOT_SUPPORTED);
   return r;
 }
 
 std::unique_ptr<NetconfServerReply>
-NetconfExecutor::unlock(const Session &session, DataStore ds) {
-  (void)session;
-  (void)ds;
+NetconfExecutor::closeSession(const Session &session [[maybe_unused]],
+                              const Session &target [[maybe_unused]]) {
   auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_ERROR);
   r->setError(NetconfServerReply::ERR_OP_NOT_SUPPORTED);
   return r;
 }
 
 std::unique_ptr<NetconfServerReply>
-NetconfExecutor::closeSession(const Session &session, const Session &target) {
-  (void)session;
-  (void)target;
+NetconfExecutor::killSession(const Session &session [[maybe_unused]],
+                             const Session &target [[maybe_unused]]) {
   auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_ERROR);
   r->setError(NetconfServerReply::ERR_OP_NOT_SUPPORTED);
   return r;
 }
 
 std::unique_ptr<NetconfServerReply>
-NetconfExecutor::killSession(const Session &session, const Session &target) {
-  (void)session;
-  (void)target;
+NetconfExecutor::validate(const Session &session [[maybe_unused]],
+                          const YangData &target [[maybe_unused]]) {
   auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_ERROR);
   r->setError(NetconfServerReply::ERR_OP_NOT_SUPPORTED);
   return r;
 }
 
 std::unique_ptr<NetconfServerReply>
-NetconfExecutor::validate(const Session &session, const YangData &target) {
-  (void)session;
-  (void)target;
-  auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_ERROR);
-  r->setError(NetconfServerReply::ERR_OP_NOT_SUPPORTED);
-  return r;
-}
-
-std::unique_ptr<NetconfServerReply>
-NetconfExecutor::discardChanges(const Session &session) {
-  (void)session;
+NetconfExecutor::discardChanges(const Session &session [[maybe_unused]]) {
   auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_ERROR);
   r->setError(NetconfServerReply::ERR_OP_NOT_SUPPORTED);
   return r;

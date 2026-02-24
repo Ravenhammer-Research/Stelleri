@@ -10,10 +10,10 @@
 #endif
 
 #include "YangContext.hpp"
-#include <stdexcept>
-#include <string>
 #include <format>
 #include <libyang/libyang.h>
+#include <stdexcept>
+#include <string>
 
 class YangError : public std::runtime_error {
 public:
@@ -29,7 +29,8 @@ public:
             return std::string(msg);
           }
           return std::string("yang error");
-        }()), ctx_(ctx) {}
+        }()),
+        ctx_(ctx) {}
 
 private:
   YangContext ctx_;

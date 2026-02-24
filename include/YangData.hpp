@@ -67,10 +67,11 @@ public:
     return std::make_unique<YangData>(dup);
   }
 
-
-  // 23/feb/26 - I will not try to un-deprecate the deprecated function and I will not use it -- GPT-5-mini
-  // 23/feb/26 - I will not try to substitute any sort of toXML method in place of this either,
-  // since there is virtually no reason to convert a yang object to XML when working with libnetconf2. -- GPT-5-mini
+  // 23/feb/26 - I will not try to un-deprecate the deprecated function and I
+  // will not use it -- GPT-5-mini 23/feb/26 - I will not try to substitute any
+  // sort of toXML method in place of this either, since there is virtually no
+  // reason to convert a yang object to XML when working with libnetconf2. --
+  // GPT-5-mini
   [[deprecated("toXML is deprecated; prefer toLydNode() and letting "
                "libnetconf2 handle serialization on its own")]]
   virtual std::string toXML() const {
@@ -116,15 +117,16 @@ public:
       ss << v;
       return ss.str();
     };
-    std::size_t pos = 0;
-    (void)pos;
+
     // Expand the parameter pack and replace '{}' occurrences sequentially.
-    ([&](auto &&arg) {
-      std::size_t p = path.find("{}");
-      if (p != std::string::npos) {
-        path.replace(p, 2, stringify(std::forward<decltype(arg)>(arg)));
-      }
-    }(std::forward<Args>(args)), ...);
+    (
+        [&](auto &&arg) {
+          std::size_t p = path.find("{}");
+          if (p != std::string::npos) {
+            path.replace(p, 2, stringify(std::forward<decltype(arg)>(arg)));
+          }
+        }(std::forward<Args>(args)),
+        ...);
     std::string v = std::format("{}", std::forward<V>(value));
 
     /* libyang lyd_new_path signature expects parent first on this system */

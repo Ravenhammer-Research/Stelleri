@@ -20,18 +20,16 @@ std::string InterfaceToken::toString(TapInterfaceConfig *cfg) {
   return InterfaceToken::toString(static_cast<InterfaceConfig *>(cfg));
 }
 
-bool InterfaceToken::parseTapKeywords(std::shared_ptr<InterfaceToken> &tok,
-                                      const std::vector<std::string> &tokens,
-                                      size_t &cur) {
-  (void)tok;
-  (void)tokens;
-  (void)cur;
+bool InterfaceToken::parseTapKeywords(std::shared_ptr<InterfaceToken> &tok
+                                      [[maybe_unused]],
+                                      const std::vector<std::string> &tokens
+                                      [[maybe_unused]],
+                                      size_t &cur [[maybe_unused]]) {
   return false;
 }
 
-std::vector<std::string>
-InterfaceToken::tapCompletions(const std::string &prev) {
-  (void)prev;
+std::vector<std::string> InterfaceToken::tapCompletions(const std::string &prev
+                                                        [[maybe_unused]]) {
   return {};
 }
 

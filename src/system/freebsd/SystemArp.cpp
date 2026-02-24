@@ -26,6 +26,7 @@
  */
 
 #include "ArpConfig.hpp"
+#include "RoutingSocket.hpp"
 #include "SystemConfigurationManager.hpp"
 
 #include <arpa/inet.h>
@@ -147,7 +148,8 @@ std::vector<ArpConfig> SystemConfigurationManager::GetArpEntries(
 
 bool SystemConfigurationManager::SetArpEntry(
     const std::string &ip, const std::string &mac,
-    const std::optional<std::string> &iface, bool temp, bool pub) const {
+    const std::optional<std::string> &iface, bool temp [[maybe_unused]],
+    bool pub) const {
   // Build RTM_ADD for an ARP (IPv4) neighbor entry.
   auto roundup = [](size_t a) -> size_t {
     const size_t l = sizeof(long);
@@ -211,14 +213,13 @@ bool SystemConfigurationManager::SetArpEntry(
     rtm->rtm_flags |= RTF_ANNOUNCE;
   rtm->rtm_addrs = RTA_DST | RTA_GATEWAY;
 
-#include "RoutingSocket.hpp"
-  (void)temp;
   return WriteRoutingSocket(
       std::vector<char>(buf.data(), buf.data() + rtm->rtm_msglen), AF_INET);
 }
 
 bool SystemConfigurationManager::DeleteArpEntry(
-    const std::string &ip, const std::optional<std::string> &iface) const {
+    const std::string &ip,
+    const std::optional<std::string> &iface [[maybe_unused]]) const {
   auto roundup = [](size_t a) -> size_t {
     const size_t l = sizeof(long);
     return (a + l - 1) & ~(l - 1);
@@ -250,6 +251,5 @@ bool SystemConfigurationManager::DeleteArpEntry(
     return false;
   ssize_t written = write(s, buf.data(), rtm->rtm_msglen);
   close(s);
-  (void)iface;
   return (written == rtm->rtm_msglen);
 }

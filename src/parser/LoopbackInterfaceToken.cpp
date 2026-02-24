@@ -15,17 +15,14 @@ public:
 };
 
 bool InterfaceToken::parseLoopbackKeywords(
-    std::shared_ptr<InterfaceToken> &tok,
-    const std::vector<std::string> &tokens, size_t &cur) {
-  (void)tok;
-  (void)tokens;
-  (void)cur;
+    std::shared_ptr<InterfaceToken> &tok [[maybe_unused]],
+    const std::vector<std::string> &tokens [[maybe_unused]],
+    size_t &cur [[maybe_unused]]) {
   return false;
 }
 
 std::vector<std::string>
-InterfaceToken::loopbackCompletions(const std::string &prev) {
-  (void)prev;
+InterfaceToken::loopbackCompletions(const std::string &prev [[maybe_unused]]) {
   return {};
 }
 

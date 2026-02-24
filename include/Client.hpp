@@ -9,12 +9,12 @@
 #error "netconf headers are for the STELLERI_NETCONF build only"
 #endif
 
+#include "DataStore.hpp"
+#include "NetconfEditConfigOperation.hpp"
 #include "NetconfServerReply.hpp"
 #include "Session.hpp"
 #include "YangContext.hpp"
 #include "YangData.hpp"
-#include "NetconfEditConfigOperation.hpp"
-#include "DataStore.hpp"
 #include <memory>
 #include <string>
 

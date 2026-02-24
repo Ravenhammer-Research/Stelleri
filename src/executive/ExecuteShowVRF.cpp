@@ -31,8 +31,8 @@
 
 namespace netcli {
 
-  void executeShowVRF(const VRFToken &tok, ConfigurationManager *mgr) {
-    (void)mgr;
+  void executeShowVRF(const VRFToken &tok [[maybe_unused]],
+                      ConfigurationManager *mgr [[maybe_unused]]) {
     std::cout << "VRF table: " << tok.table() << "\n";
   }
 } // namespace netcli

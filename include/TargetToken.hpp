@@ -17,17 +17,14 @@ public:
   enum class Type { Unix, Ssh, Tls, Unknown };
 
   TargetToken() = default;
-  std::vector<std::string>
-  autoComplete(std::string_view partial) const override {
-    (void)partial;
+  std::vector<std::string> autoComplete(std::string_view partial
+                                        [[maybe_unused]]) const override {
     return {};
   }
   std::vector<std::string>
-  autoComplete(const std::vector<std::string> &tokens, std::string_view partial,
-               ConfigurationManager *mgr) const override {
-    (void)tokens;
-    (void)partial;
-    (void)mgr;
+  autoComplete(const std::vector<std::string> &tokens [[maybe_unused]],
+               std::string_view partial [[maybe_unused]],
+               ConfigurationManager *mgr [[maybe_unused]]) const override {
     return {};
   }
   std::unique_ptr<Token> clone() const override {

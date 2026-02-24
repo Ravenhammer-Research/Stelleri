@@ -12,6 +12,7 @@
 #include "DataStore.hpp"
 #include "NetconfEditConfigOperation.hpp"
 #include "NetconfServerReply.hpp"
+#include "NotImplementedError.hpp"
 #include "YangData.hpp"
 #include <cstdint>
 #include <cstdlib>
@@ -20,7 +21,6 @@
 #include <libnetconf2/session.h>
 #include <libnetconf2/session_client.h>
 #include <libyang/libyang.h>
-#include "NotImplementedError.hpp"
 
 // libnetconf2 headers may include libyang headers that trigger -Werror on
 // anonymous/gnu extensions; silence those diagnostics locally.
@@ -55,7 +55,8 @@ Client::~Client() = default;
 
 std::unique_ptr<Client> Client::connect_unix(const std::string &path,
                                              const YangContext &ctx) {
-  struct nc_session *s = nc_connect_unix(path.c_str(), const_cast<struct ly_ctx *>(ctx.get()));
+  struct nc_session *s =
+      nc_connect_unix(path.c_str(), const_cast<struct ly_ctx *>(ctx.get()));
   if (!s)
     return nullptr;
   Session sess(s);
@@ -64,7 +65,8 @@ std::unique_ptr<Client> Client::connect_unix(const std::string &path,
 
 std::unique_ptr<Client> Client::connect_inout(int fdin, int fdout,
                                               const YangContext &ctx) {
-  struct nc_session *s = nc_connect_inout(fdin, fdout, const_cast<struct ly_ctx *>(ctx.get()));
+  struct nc_session *s =
+      nc_connect_inout(fdin, fdout, const_cast<struct ly_ctx *>(ctx.get()));
   if (!s)
     return nullptr;
   Session sess(s);
@@ -75,7 +77,8 @@ std::unique_ptr<Client> Client::connect_inout(int fdin, int fdout,
 std::unique_ptr<Client> Client::connect_ssh(const std::string &host,
                                             uint16_t port,
                                             const YangContext &ctx) {
-  struct nc_session *s = nc_connect_ssh(host.c_str(), port, const_cast<struct ly_ctx *>(ctx.get()));
+  struct nc_session *s = nc_connect_ssh(host.c_str(), port,
+                                        const_cast<struct ly_ctx *>(ctx.get()));
   if (!s)
     return nullptr;
   Session sess(s);
@@ -85,7 +88,8 @@ std::unique_ptr<Client> Client::connect_ssh(const std::string &host,
 std::unique_ptr<Client> Client::connect_tls(const std::string &host,
                                             uint16_t port,
                                             const YangContext &ctx) {
-  struct nc_session *s = nc_connect_tls(host.c_str(), port, const_cast<struct ly_ctx *>(ctx.get()));
+  struct nc_session *s = nc_connect_tls(host.c_str(), port,
+                                        const_cast<struct ly_ctx *>(ctx.get()));
   if (!s)
     return nullptr;
   Session sess(s);
@@ -149,12 +153,13 @@ void Client::shutdown() noexcept {
 
 // Helper removed per request; RPC methods inline send/receive logic below.
 
-std::unique_ptr<NetconfServerReply> Client::get(const YangData &filter [[maybe_unused]]) const {
+std::unique_ptr<NetconfServerReply> Client::get(const YangData &filter
+                                                [[maybe_unused]]) const {
   throw NotImplementedError();
 }
 
-std::unique_ptr<NetconfServerReply>
-Client::getConfig(const YangData &filter [[maybe_unused]]) const {
+std::unique_ptr<NetconfServerReply> Client::getConfig(const YangData &filter
+                                                      [[maybe_unused]]) const {
   // Always request the full running datastore; client-side filtering
   // avoids any XML serialization and matches the installed libnetconf2 API.
   struct nc_rpc *rpc = nc_rpc_getconfig(NC_DATASTORE_RUNNING, nullptr,
@@ -171,12 +176,14 @@ Client::getConfig(const YangData &filter [[maybe_unused]]) const {
 
   struct lyd_node *env = nullptr;
   struct lyd_node *op = nullptr;
-  NC_MSG_TYPE rt = nc_recv_reply(session_.getSessionPtr(), rpc, msgid, -1, &env, &op);
+  NC_MSG_TYPE rt =
+      nc_recv_reply(session_.getSessionPtr(), rpc, msgid, -1, &env, &op);
   nc_rpc_free(rpc);
   if (rt == NC_MSG_REPLY) {
     if (op) {
       YangData d(op);
-      auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_DATA);
+      auto r =
+          std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_DATA);
       r->setData(d);
       if (env)
         lyd_free_all(env);
@@ -202,8 +209,10 @@ Client::editConfig(const YangData &target [[maybe_unused]],
   throw NotImplementedError();
 }
 
-std::unique_ptr<NetconfServerReply> Client::copyConfig(DataStore src [[maybe_unused]],
-                                                       DataStore dst [[maybe_unused]]) const {
+std::unique_ptr<NetconfServerReply> Client::copyConfig(DataStore src
+                                                       [[maybe_unused]],
+                                                       DataStore dst
+                                                       [[maybe_unused]]) const {
   throw NotImplementedError();
 }
 
@@ -216,11 +225,13 @@ std::unique_ptr<NetconfServerReply> Client::commit() const {
   throw NotImplementedError();
 }
 
-std::unique_ptr<NetconfServerReply> Client::lock(DataStore ds [[maybe_unused]]) const {
+std::unique_ptr<NetconfServerReply> Client::lock(DataStore ds
+                                                 [[maybe_unused]]) const {
   throw NotImplementedError();
 }
 
-std::unique_ptr<NetconfServerReply> Client::unlock(DataStore ds [[maybe_unused]]) const {
+std::unique_ptr<NetconfServerReply> Client::unlock(DataStore ds
+                                                   [[maybe_unused]]) const {
   throw NotImplementedError();
 }
 
@@ -233,8 +244,8 @@ Client::killSession(const Session &target [[maybe_unused]]) const {
   throw NotImplementedError();
 }
 
-std::unique_ptr<NetconfServerReply>
-Client::validate(const YangData &target [[maybe_unused]]) const {
+std::unique_ptr<NetconfServerReply> Client::validate(const YangData &target
+                                                     [[maybe_unused]]) const {
   throw NotImplementedError();
 }
 

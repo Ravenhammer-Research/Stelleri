@@ -231,6 +231,7 @@ static void pfkeyAddSA(const IpsecSA &sa) {
 
   // Read reply to consume the kernel's response
   uint8_t rbuf[4096];
+  // XXX if read() rather tahn discarding the return val
   (void)read(fd, rbuf, sizeof(rbuf));
   close(fd);
 }

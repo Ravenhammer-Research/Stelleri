@@ -112,8 +112,7 @@ void CLI::processLine(const std::string &line) {
 // Prompt callbacks
 // =====================================================================
 
-char *CLI::promptFunc(EditLine *el) {
-  (void)el;
+char *CLI::promptFunc(EditLine *el [[maybe_unused]]) {
   static char prompt[] = "net> ";
   return prompt;
 }
@@ -315,8 +314,7 @@ void CLI::clearLineBuffer() {
 // libedit key handlers (static — retrieve CLI* via EL_CLIENTDATA)
 // =====================================================================
 
-unsigned char CLI::completeCommand(EditLine *el, int ch) {
-  (void)ch;
+unsigned char CLI::completeCommand(EditLine *el, int ch [[maybe_unused]]) {
   CLI *cli = nullptr;
   el_get(el, EL_CLIENTDATA, &cli);
   if (!cli)
@@ -376,8 +374,8 @@ unsigned char CLI::showInlinePreview(EditLine *el, int ch) {
   return CC_REDISPLAY;
 }
 
-unsigned char CLI::handleBackspacePreview(EditLine *el, int ch) {
-  (void)ch;
+unsigned char CLI::handleBackspacePreview(EditLine *el,
+                                          int ch [[maybe_unused]]) {
   CLI *cli = nullptr;
   el_get(el, EL_CLIENTDATA, &cli);
   if (!cli)
@@ -389,8 +387,7 @@ unsigned char CLI::handleBackspacePreview(EditLine *el, int ch) {
   return CC_REDISPLAY;
 }
 
-unsigned char CLI::handleSpace(EditLine *el, int ch) {
-  (void)ch;
+unsigned char CLI::handleSpace(EditLine *el, int ch [[maybe_unused]]) {
   CLI *cli = nullptr;
   el_get(el, EL_CLIENTDATA, &cli);
   if (!cli)
@@ -402,8 +399,7 @@ unsigned char CLI::handleSpace(EditLine *el, int ch) {
 }
 
 // ── Ctrl-C: cancel line ──────────────────────────────────────────────
-unsigned char CLI::handleCtrlC(EditLine *el, int ch) {
-  (void)ch;
+unsigned char CLI::handleCtrlC(EditLine *el, int ch [[maybe_unused]]) {
   CLI *cli = nullptr;
   el_get(el, EL_CLIENTDATA, &cli);
   if (!cli)
@@ -416,8 +412,7 @@ unsigned char CLI::handleCtrlC(EditLine *el, int ch) {
 }
 
 // ── Ctrl-L: clear screen ────────────────────────────────────────────
-unsigned char CLI::handleCtrlL(EditLine *el, int ch) {
-  (void)ch;
+unsigned char CLI::handleCtrlL(EditLine *el, int ch [[maybe_unused]]) {
   CLI *cli = nullptr;
   el_get(el, EL_CLIENTDATA, &cli);
   if (!cli)
@@ -429,8 +424,7 @@ unsigned char CLI::handleCtrlL(EditLine *el, int ch) {
 }
 
 // ── Ctrl-D: EOF on empty line, delete-char otherwise ─────────────────
-unsigned char CLI::handleCtrlD(EditLine *el, int ch) {
-  (void)ch;
+unsigned char CLI::handleCtrlD(EditLine *el, int ch [[maybe_unused]]) {
   CLI *cli = nullptr;
   el_get(el, EL_CLIENTDATA, &cli);
   if (!cli)
@@ -476,8 +470,7 @@ unsigned char CLI::handleCtrlD(EditLine *el, int ch) {
 //   • Enter / Right arrow accepts the current match into the main buffer.
 //   • Ctrl-C / Ctrl-G / Escape cancels and restores the original line.
 
-unsigned char CLI::handleCtrlR(EditLine *el, int ch) {
-  (void)ch;
+unsigned char CLI::handleCtrlR(EditLine *el, int ch [[maybe_unused]]) {
   CLI *cli = nullptr;
   el_get(el, EL_CLIENTDATA, &cli);
   if (!cli)

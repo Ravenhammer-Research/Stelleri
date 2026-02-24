@@ -49,10 +49,10 @@ public:
 
   // Persist this configuration via the supplied manager. Implementations may
   // override to provide concrete behavior. Default is no-op.
-  virtual void save(ConfigurationManager &mgr) const { (void)mgr; }
+  virtual void save(ConfigurationManager &mgr [[maybe_unused]]) const {}
 
   // Destroy this configuration via the supplied manager (e.g., remove
   // interface). Concrete types may override to perform deletion/teardown.
   // Default is no-op.
-  virtual void destroy(ConfigurationManager &mgr) const { (void)mgr; }
+  virtual void destroy(ConfigurationManager &mgr [[maybe_unused]]) const {}
 };

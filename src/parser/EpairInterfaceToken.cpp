@@ -15,18 +15,16 @@ public:
   using InterfaceToken::InterfaceToken;
 };
 
-bool InterfaceToken::parseEpairKeywords(std::shared_ptr<InterfaceToken> &tok,
-                                        const std::vector<std::string> &tokens,
-                                        size_t &cur) {
-  (void)tok;
-  (void)tokens;
-  (void)cur;
+bool InterfaceToken::parseEpairKeywords(std::shared_ptr<InterfaceToken> &tok
+                                        [[maybe_unused]],
+                                        const std::vector<std::string> &tokens
+                                        [[maybe_unused]],
+                                        size_t &cur [[maybe_unused]]) {
   return false;
 }
 
 std::vector<std::string>
-InterfaceToken::epairCompletions(const std::string &prev) {
-  (void)prev;
+InterfaceToken::epairCompletions(const std::string &prev [[maybe_unused]]) {
   return {};
 }
 

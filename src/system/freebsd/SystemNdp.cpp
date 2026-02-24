@@ -26,6 +26,7 @@
  */
 
 #include "NdpConfig.hpp"
+#include "RoutingSocket.hpp"
 #include "SystemConfigurationManager.hpp"
 
 #include <arpa/inet.h>
@@ -179,7 +180,7 @@ std::vector<NdpConfig> SystemConfigurationManager::GetNdpEntries(
 
 bool SystemConfigurationManager::SetNdpEntry(
     const std::string &ip, const std::string &mac,
-    const std::optional<std::string> &iface, bool temp) const {
+    const std::optional<std::string> &iface, bool temp [[maybe_unused]]) const {
   // Build RTM_ADD routing socket message with RTA_DST and RTA_GATEWAY.
   // This mirrors the approach used by ndp(8): destination is the IPv6
   // neighbor address, gateway is a sockaddr_dl containing the link-layer
@@ -256,15 +257,13 @@ bool SystemConfigurationManager::SetNdpEntry(
   rtm->rtm_flags = RTF_HOST | RTF_STATIC;
   rtm->rtm_addrs = RTA_DST | RTA_GATEWAY;
 
-// Send via routing socket
-#include "RoutingSocket.hpp"
-  (void)temp;
   return WriteRoutingSocket(
       std::vector<char>(buf.data(), buf.data() + rtm->rtm_msglen), AF_INET6);
 }
 
 bool SystemConfigurationManager::DeleteNdpEntry(
-    const std::string &ip, const std::optional<std::string> &iface) const {
+    const std::string &ip,
+    const std::optional<std::string> &iface [[maybe_unused]]) const {
   auto roundup = [](size_t a) -> size_t {
     const size_t l = sizeof(long);
     return (a + l - 1) & ~(l - 1);
@@ -294,7 +293,6 @@ bool SystemConfigurationManager::DeleteNdpEntry(
   int s = socket(PF_ROUTE, SOCK_RAW, AF_INET6);
   if (s < 0)
     return false;
-  (void)iface;
   ssize_t written = write(s, buf.data(), rtm->rtm_msglen);
   close(s);
   return (written == rtm->rtm_msglen);
