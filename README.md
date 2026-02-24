@@ -55,8 +55,9 @@ sudo cmake --install build
 
 ## Porting 
 - `src/system/<os>` is necesarry for both Stelleri Lite and Stelleri NETCONF (Stelleri Server uses
-this code in NETCONF configured builds.) You need to implement the `ConfigurationManager` class and add
-OS-specific guards to `CMakeLists.txt`.
+this code in NETCONF configured builds.) You need to implement the `SystemConfigurationManager` class and add
+OS-specific file glob to `CMakeLists.txt`. You can use `src/system/freebsd` as an example of how to implement 
+it for your specific operating system.
 
 ## Usage
 

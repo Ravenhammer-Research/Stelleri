@@ -196,6 +196,7 @@ public:
   void SetPolicy(const PolicyConfig &pc) const override;
   void DeletePolicy(const PolicyConfig &pc) const override;
 
+  #ifdef __FreeBSD__  
   enum class IfreqIntField { Metric, Fib, Mtu };
 
   // Helper methods used by system-specific implementations (defined in
@@ -214,4 +215,5 @@ public:
   // VRF matching helper
   bool matches_vrf(const InterfaceConfig &ic,
                    const std::optional<VRFConfig> &vrf) const;
+  #endif
 };
