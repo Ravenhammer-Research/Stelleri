@@ -107,6 +107,14 @@ public:
   GetWlanInterfaces(const std::vector<InterfaceConfig> &bases) const = 0;
   virtual std::vector<CarpInterfaceConfig>
   GetCarpInterfaces(const std::vector<InterfaceConfig> &bases) const = 0;
+  virtual std::vector<SixToFourInterfaceConfig>
+  GetSixToFourInterfaces(const std::vector<InterfaceConfig> &bases) const = 0;
+  virtual std::vector<PflogInterfaceConfig>
+  GetPflogInterfaces(const std::vector<InterfaceConfig> &bases) const = 0;
+  virtual std::vector<PfsyncInterfaceConfig>
+  GetPfsyncInterfaces(const std::vector<InterfaceConfig> &bases) const = 0;
+  // virtual std::vector<WireGuardInterfaceConfig>
+  // GetWireGuardInterfaces(const std::vector<InterfaceConfig> &bases) const = 0;
   virtual std::vector<RouteConfig>
   GetStaticRoutes(const std::optional<VRFConfig> &vrf = std::nullopt) const = 0;
   virtual std::vector<RouteConfig>
@@ -190,6 +198,22 @@ public:
   virtual void CreateVxlan(const std::string &name) const = 0;
   virtual void SaveVxlan(const VxlanInterfaceConfig &vxlan) const = 0;
 
+  virtual void CreateSixToFour(const std::string &name) const = 0;
+  virtual void SaveSixToFour(const SixToFourInterfaceConfig &stf) const = 0;
+  virtual void DestroySixToFour(const std::string &name) const = 0;
+
+  virtual void CreatePflog(const std::string &name) const = 0;
+  virtual void SavePflog(const PflogInterfaceConfig &pflog) const = 0;
+  virtual void DestroyPflog(const std::string &name) const = 0;
+
+  virtual void CreatePfsync(const std::string &name) const = 0;
+  virtual void SavePfsync(const PfsyncInterfaceConfig &pfsync) const = 0;
+  virtual void DestroyPfsync(const std::string &name) const = 0;
+
+  // virtual void CreateWireGuard(const std::string &name) const = 0;
+  // virtual void SaveWireGuard(const WireGuardInterfaceConfig &wg) const = 0;
+  // virtual void DestroyWireGuard(const std::string &name) const = 0;
+
   // CARP operations
   virtual void SaveCarp(const CarpInterfaceConfig &carp) const = 0;
 
@@ -205,6 +229,10 @@ public:
 
   virtual void CreateEpair(const std::string &name) const = 0;
   virtual void SaveEpair(const EpairInterfaceConfig &epair) const = 0;
+
+  // VRF operations
+  virtual void CreateVrf(const VRFConfig &vrf) const = 0;
+  virtual void DeleteVrf(const std::string &name) const = 0;
 
   // VRF helpers
   // Use `GetVrfs(...)` for retrieving VRF definitions.

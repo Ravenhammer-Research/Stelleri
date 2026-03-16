@@ -27,12 +27,14 @@
 
 #include "VRFToken.hpp"
 
-VRFToken::VRFToken(int table) : table_(table) {}
+VRFToken::VRFToken(int table, std::string name) : table_(table), name_(std::move(name)) {}
 
 // Static renderer for VRFConfig
 std::string VRFToken::toString(VRFConfig *cfg) {
   if (!cfg)
     return std::string();
+  if (!cfg->name.empty())
+    return std::string("vrf name ") + cfg->name + " table " + std::to_string(cfg->table);
   return std::string("vrf ") + std::to_string(cfg->table);
 }
 
@@ -49,11 +51,28 @@ VRFToken::parseFromTokens(const std::vector<std::string> &tokens, size_t start,
                           size_t &next) {
   next = start + 1; // consume the 'vrf' token
 
+  std::string name;
   int table = 0;
+
   if (next < tokens.size()) {
-    table = std::stoi(tokens[next]);
-    ++next;
+    if (tokens[next] == "name") {
+      ++next;
+      if (next < tokens.size()) {
+        name = tokens[next];
+        ++next;
+      }
+      if (next < tokens.size() && tokens[next] == "table") {
+        ++next;
+        if (next < tokens.size()) {
+          table = std::stoi(tokens[next]);
+          ++next;
+        }
+      }
+    } else {
+      table = std::stoi(tokens[next]);
+      ++next;
+    }
   }
 
-  return std::make_shared<VRFToken>(table);
+  return std::make_shared<VRFToken>(table, name);
 }

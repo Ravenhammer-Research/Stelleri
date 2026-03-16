@@ -45,10 +45,11 @@
 class VRFToken : public Token {
 public:
   /**
-   * @brief Construct VRF token with table ID
+   * @brief Construct VRF token with table ID and optional name
    * @param table FIB table ID (0-65535)
+   * @param name VRF name
    */
-  explicit VRFToken(int table);
+  explicit VRFToken(int table, std::string name = "");
 
   /** @brief Convert to command string */
 
@@ -66,8 +67,12 @@ public:
   /** @brief Get VRF table ID */
   int table() const { return table_; }
 
+  /** @brief Get VRF name */
+  std::string name() const { return name_; }
+
 private:
   int table_;
+  std::string name_;
 
 public:
   /**

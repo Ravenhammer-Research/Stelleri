@@ -25,13 +25,28 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "VRFConfig.hpp"
-#include "ConfigurationManager.hpp"
+#include "WlanInterfaceConfig.hpp"
+#include "SystemConfigurationManager.hpp"
+#include <vector>
+#include <string>
 
-void VRFConfig::save(ConfigurationManager &mgr) const {
-  mgr.CreateVrf(*this);
+std::vector<WlanInterfaceConfig> SystemConfigurationManager::GetWlanInterfaces(
+    const std::vector<InterfaceConfig> &bases) const {
+  std::vector<WlanInterfaceConfig> results;
+  for (const auto &base : bases) {
+    if (base.type == InterfaceType::Wireless) {
+      results.emplace_back(base);
+      // Detailed attribute retrieval via nl80211 would go here
+    }
+  }
+  return results;
 }
 
-void VRFConfig::destroy(ConfigurationManager &mgr) const {
-  mgr.DeleteVrf(this->name);
+void SystemConfigurationManager::CreateWlan(const std::string &name [[maybe_unused]]) const {
+  // WLAN creation on Linux is usually not 'creating' but configuring an existing hardware interface.
+  // Unless it's creating a virtual interface (e.g. monitor mode, multiple SSIDs).
+}
+
+void SystemConfigurationManager::SaveWlan(const WlanInterfaceConfig &wlan [[maybe_unused]]) const {
+  // Apply SSID, passphrase, mode etc via nl80211 or specialized tools like wpa_supplicant
 }

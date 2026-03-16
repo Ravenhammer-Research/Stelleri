@@ -208,7 +208,7 @@ InterfaceConfig::formatInterfaces(const std::vector<InterfaceConfig> &ifaces,
     GifTableFormatter formatter;
     return formatter.format(mgr->GetGifInterfaces(ifaces));
   }
-  if (checkType == InterfaceType::Tun || checkType == InterfaceType::Tunnel) {
+  if (checkType == InterfaceType::Tun) {
     TunTableFormatter formatter;
     return formatter.format(mgr->GetTunInterfaces(ifaces));
   }

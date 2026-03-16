@@ -43,18 +43,17 @@ enum class InterfaceType {
   Unknown,
   Loopback,
   Ethernet,
-  PointToPoint,
   Wireless,
   Bridge,
   Lagg,
   VLAN,
   PPP,
-  Tunnel,
   Gif,
   Tun,
   GRE,
   VXLAN,
   IPsec,
+  Ipip,
   FDDI,
   TokenRing,
   ATM,
@@ -67,6 +66,7 @@ enum class InterfaceType {
   Pfsync,
   WireGuard,
   Enc,
+  VRF, // L3MDev on Linux Systems, but also support Layer 3 addressing
   Other,
 };
 
@@ -79,8 +79,6 @@ inline std::string interfaceTypeToString(InterfaceType t) {
     return "Loopback";
   case InterfaceType::Ethernet:
     return "Ethernet";
-  case InterfaceType::PointToPoint:
-    return "PointToPoint";
   case InterfaceType::Wireless:
     return "Wireless";
   case InterfaceType::Bridge:
@@ -90,9 +88,7 @@ inline std::string interfaceTypeToString(InterfaceType t) {
   case InterfaceType::VLAN:
     return "VLAN";
   case InterfaceType::PPP:
-    return "PPP";
-  case InterfaceType::Tunnel:
-    return "Tunnel";
+    return "PointToPoint";
   case InterfaceType::Gif:
     return "GenericTunnel";
   case InterfaceType::Tun:
@@ -110,23 +106,25 @@ inline std::string interfaceTypeToString(InterfaceType t) {
   case InterfaceType::ATM:
     return "ATM";
   case InterfaceType::Epair:
-    return "Epair";
+    return "VirtualEthernet";
   case InterfaceType::Carp:
-    return "Carp";
+    return "CARP";
   case InterfaceType::Tap:
-    return "Tap";
+    return "TAP";
   case InterfaceType::SixToFour:
     return "SixToFour";
   case InterfaceType::Ovpn:
     return "OpenVPN";
   case InterfaceType::Pflog:
-    return "Pflog";
+    return "PFLog";
   case InterfaceType::Pfsync:
-    return "Pfsync";
+    return "PFSync";
   case InterfaceType::WireGuard:
     return "WireGuard";
   case InterfaceType::Enc:
-    return "Enc";
+    return "IPSEC";
+  case InterfaceType::VRF:
+    return "VRF";
   case InterfaceType::Other:
     return "Other";
   default:
@@ -134,11 +132,10 @@ inline std::string interfaceTypeToString(InterfaceType t) {
   }
 }
 
-/// Parse a CLI type keyword (e.g. "ethernet", "bridge") into InterfaceType.
 inline InterfaceType interfaceTypeFromString(const std::string &s) {
   if (s == "ethernet")
     return InterfaceType::Ethernet;
-  if (s == "loopback")
+  if (s == "lo")
     return InterfaceType::Loopback;
   if (s == "ppp")
     return InterfaceType::PPP;
@@ -146,10 +143,8 @@ inline InterfaceType interfaceTypeFromString(const std::string &s) {
     return InterfaceType::Bridge;
   if (s == "vlan")
     return InterfaceType::VLAN;
-  if (s == "lagg" || s == "lag")
+  if (s == "lagg")
     return InterfaceType::Lagg;
-  if (s == "tunnel")
-    return InterfaceType::Tunnel;
   if (s == "gif")
     return InterfaceType::Gif;
   if (s == "tun")
@@ -158,27 +153,25 @@ inline InterfaceType interfaceTypeFromString(const std::string &s) {
     return InterfaceType::GRE;
   if (s == "vxlan")
     return InterfaceType::VXLAN;
-  if (s == "ipsec")
-    return InterfaceType::IPsec;
-  if (s == "epair" || s == "virtual")
+  if (s == "epair")
     return InterfaceType::Epair;
   if (s == "carp")
     return InterfaceType::Carp;
   if (s == "tap")
     return InterfaceType::Tap;
-  if (s == "stf" || s == "6to4" || s == "sixtofour")
+  if (s == "stf")
     return InterfaceType::SixToFour;
-  if (s == "ovpn" || s == "openvpn")
+  if (s == "ovpn")
     return InterfaceType::Ovpn;
   if (s == "pflog")
     return InterfaceType::Pflog;
   if (s == "pfsync")
     return InterfaceType::Pfsync;
-  if (s == "wireguard" || s == "wg")
+  if (s == "wg")
     return InterfaceType::WireGuard;
   if (s == "enc")
     return InterfaceType::Enc;
-  if (s == "wireless" || s == "wlan")
+  if (s == "wlan")
     return InterfaceType::Wireless;
   return InterfaceType::Unknown;
 }
@@ -187,42 +180,42 @@ inline InterfaceType interfaceTypeFromString(const std::string &s) {
 inline std::string interfaceTypeToIanaIdentity(InterfaceType t) {
   switch (t) {
   case InterfaceType::Ethernet:
-    return "ethernetCsmacd";
+    return "iana-if-type:ethernetCsmacd";
   case InterfaceType::Loopback:
-    return "softwareLoopback";
+    return "iana-if-type:softwareLoopback";
   case InterfaceType::PPP:
-    return "ppp";
-  case InterfaceType::PointToPoint:
-    return "propPointToPointSerial";
+    return "iana-if-type:ppp";
   case InterfaceType::Wireless:
-    return "ieee80211";
+    return "iana-if-type:ieee80211";
   case InterfaceType::Bridge:
-    return "bridge";
+    return "iana-if-type:bridge";
   case InterfaceType::Lagg:
-    return "ieee8023adLag";
+    return "iana-if-type:ieee8023adLag";
   case InterfaceType::VLAN:
-    return "l2vlan";
+    return "iana-if-type:l2vlan";
   case InterfaceType::Gif:
-    return "gif";
+    return "iana-tunnel-type:gre";
   case InterfaceType::Tun:
-    return "tun";
+    return "iana-tunnel-type:other";
   case InterfaceType::GRE:
-    return "rfc1483";
+    return "iana-tunnel-type:gre";
   case InterfaceType::VXLAN:
-    return "vxlan";
+    return "iana-tunnel-type:other";
   case InterfaceType::IPsec:
-    return "ipsec";
+    return "iana-tunnel-type:ipsectunnelmode";
   case InterfaceType::Epair:
-    return "virtualIpAddress";
+    return "iana-if-type:ethernetCsmacd";
   case InterfaceType::Carp:
-    return "carp";
+    return "iana-if-type:ethernetCsmacd";
   case InterfaceType::Tap:
-    return "tap";
+    return "iana-if-type:ethernetCsmacd";
   case InterfaceType::SixToFour:
-    return "sixToFour";
+    return "iana-tunnel-type:sixtofour";
   case InterfaceType::Ovpn:
-    return "ovpn";
+    return "iana-tunnel-type:other";
+  case InterfaceType::VRF:
+    return "ietf-network-instance";
   default:
-    return "other";
+    return "iana-if-type:other";
   }
 }

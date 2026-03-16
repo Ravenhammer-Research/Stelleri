@@ -31,9 +31,10 @@
 
 namespace netcli {
 
-  void executeSetVRF(const VRFToken &tok [[maybe_unused]],
-                     ConfigurationManager *mgr [[maybe_unused]]) {
-    // Stub: creating VRF (FIB) will be implemented later
-    std::cout << "set vrf: (stub)\n";
+  void executeSetVRF(const VRFToken &tok,
+                     ConfigurationManager *mgr) {
+    if (!mgr) return;
+    VRFConfig cfg(tok.name(), tok.table());
+    cfg.save(*mgr);
   }
 } // namespace netcli

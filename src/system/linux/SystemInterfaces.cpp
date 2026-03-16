@@ -61,12 +61,13 @@ namespace {
       if (driver == "bridge") return InterfaceType::Bridge;
       if (driver == "bonding") return InterfaceType::Lagg;
       if (driver == "8021q") return InterfaceType::VLAN;
+      if (driver == "vrf") return InterfaceType::VRF;
       if (driver == "tun") return InterfaceType::Tun;
       if (driver == "veth") return InterfaceType::Epair;
       if (driver == "vxlan") return InterfaceType::VXLAN;
       if (driver == "gre" || driver == "gretap") return InterfaceType::GRE;
       if (driver == "sit") return InterfaceType::SixToFour;
-      if (driver == "ipip") return InterfaceType::Tunnel;
+      if (driver == "ipip") return InterfaceType::Ipip;
       if (driver == "wireguard") return InterfaceType::WireGuard;
       if (driver == "macvlan") return InterfaceType::Ethernet; // Or a specific type if added
     }
@@ -87,7 +88,7 @@ namespace {
         case ARPHRD_ETHER: return InterfaceType::Ethernet;
         case ARPHRD_PPP: return InterfaceType::PPP;
         case ARPHRD_TUNNEL:
-        case ARPHRD_TUNNEL6: return InterfaceType::Tunnel;
+        case ARPHRD_TUNNEL6: return InterfaceType::IPsec;
         case ARPHRD_SIT: return InterfaceType::SixToFour;
         case ARPHRD_IEEE80211: return InterfaceType::Wireless;
       }

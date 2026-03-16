@@ -12,7 +12,7 @@ void OvpnInterfaceConfig::create(ConfigurationManager &mgr) const {
 
 OvpnInterfaceConfig::OvpnInterfaceConfig(const InterfaceConfig &base)
     : InterfaceConfig(base) {
-  type = InterfaceType::Tunnel;
+  type = InterfaceType::Ovpn;
 }
 
 OvpnInterfaceConfig::OvpnInterfaceConfig(const InterfaceConfig &base,

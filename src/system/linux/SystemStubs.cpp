@@ -75,8 +75,6 @@ SystemConfigurationManager::GetWlanInterfaces(const std::vector<InterfaceConfig>
 std::vector<CarpInterfaceConfig>
 SystemConfigurationManager::GetCarpInterfaces(const std::vector<InterfaceConfig> &bases [[maybe_unused]]) const { return {}; }
 
-std::vector<VRFConfig> SystemConfigurationManager::GetVrfs() const { return {}; }
-
 std::vector<NdpConfig> SystemConfigurationManager::GetNdpEntries(
     const std::optional<std::string> &ip_filter [[maybe_unused]],
     const std::optional<std::string> &iface_filter [[maybe_unused]]) const { return {}; }

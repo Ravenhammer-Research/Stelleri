@@ -43,12 +43,14 @@
  */
 class VRFConfig : public ConfigData {
 public:
-  int table; ///< FIB table number (0-65535)
+  std::string name; ///< VRF name (e.g., vrf255)
+  int table; ///< Routing table ID (0-65535)
 
   VRFConfig() : table(0) {}
   explicit VRFConfig(int t) : table(t) {}
+  VRFConfig(std::string n, int t) : name(std::move(n)), table(t) {}
 
-  // Persist VRF configuration (no-op placeholder)
-  void save(ConfigurationManager &mgr [[maybe_unused]]) const override {}
-  void destroy(ConfigurationManager &mgr [[maybe_unused]]) const override {}
+  // Persist VRF configuration
+  void save(ConfigurationManager &mgr) const override;
+  void destroy(ConfigurationManager &mgr) const override;
 };
