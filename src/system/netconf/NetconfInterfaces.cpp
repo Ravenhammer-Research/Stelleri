@@ -94,3 +94,6 @@ std::vector<std::string> NetconfConfigurationManager::GetInterfaceAddresses(
 std::vector<VRFConfig> NetconfConfigurationManager::GetVrfs() const {
   return {};
 }
+
+void NetconfConfigurationManager::CreateVrf(const VRFConfig & /*vrf*/) const {}
+void NetconfConfigurationManager::DeleteVrf(const std::string & /*name*/) const {}

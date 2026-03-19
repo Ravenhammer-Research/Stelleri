@@ -155,11 +155,11 @@ class NetconfConfigurationManager : public ConfigurationManager {
   void SaveOvpn(const OvpnInterfaceConfig &ovpn) const override;
   void CreateIpsec(const std::string &name) const override;
   void SaveIpsec(const IpsecInterfaceConfig &ipsec) const override;
-  void CreateSixToFour(const std::string &name) const;
-  void SaveSixToFour(const SixToFourInterfaceConfig &t) const;
-  void DestroySixToFour(const std::string &name) const;
+  void CreateSixToFour(const std::string &name) const override;
+  void SaveSixToFour(const SixToFourInterfaceConfig &t) const override;
+  void DestroySixToFour(const std::string &name) const override;
   std::vector<SixToFourInterfaceConfig>
-  GetSixToFourInterfaces(const std::vector<InterfaceConfig> &bases) const;
+  GetSixToFourInterfaces(const std::vector<InterfaceConfig> &bases) const override;
 
   // WLAN
   void CreateWlan(const std::string &name) const override;
@@ -170,11 +170,11 @@ class NetconfConfigurationManager : public ConfigurationManager {
   void SaveTap(const TapInterfaceConfig &tap) const override;
 
   // PFLOG
-  void CreatePflog(const std::string &name) const;
-  void SavePflog(const PflogInterfaceConfig &p) const;
-  void DestroyPflog(const std::string &name) const;
+  void CreatePflog(const std::string &name) const override;
+  void SavePflog(const PflogInterfaceConfig &p) const override;
+  void DestroyPflog(const std::string &name) const override;
   std::vector<PflogInterfaceConfig>
-  GetPflogInterfaces(const std::vector<InterfaceConfig> &bases) const;
+  GetPflogInterfaces(const std::vector<InterfaceConfig> &bases) const override;
 
   // GRE
   void CreateGre(const std::string &name) const override;
@@ -185,11 +185,11 @@ class NetconfConfigurationManager : public ConfigurationManager {
   void SaveVxlan(const VxlanInterfaceConfig &vxlan) const override;
 
   // PFSYNC
-  void CreatePfsync(const std::string &name) const;
-  void SavePfsync(const PfsyncInterfaceConfig &p) const;
-  void DestroyPfsync(const std::string &name) const;
+  void CreatePfsync(const std::string &name) const override;
+  void SavePfsync(const PfsyncInterfaceConfig &p) const override;
+  void DestroyPfsync(const std::string &name) const override;
   std::vector<PfsyncInterfaceConfig>
-  GetPfsyncInterfaces(const std::vector<InterfaceConfig> &bases) const;
+  GetPfsyncInterfaces(const std::vector<InterfaceConfig> &bases) const override;
 
   // CARP
   void SaveCarp(const CarpInterfaceConfig &carp) const override;
@@ -207,4 +207,8 @@ class NetconfConfigurationManager : public ConfigurationManager {
       const std::optional<uint32_t> &acl_filter = std::nullopt) const override;
   void SetPolicy(const PolicyConfig &pc) const override;
   void DeletePolicy(const PolicyConfig &pc) const override;
+
+  // VRF
+  void CreateVrf(const VRFConfig &vrf) const override;
+  void DeleteVrf(const std::string &name) const override;
 };

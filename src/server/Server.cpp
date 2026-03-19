@@ -19,26 +19,33 @@
 #include <cstring>
 #include <memory>
 
+#ifndef NC_ENABLED_SSH_TLS
+#define NC_ENABLED_SSH_TLS
+#endif
+
 #include <libnetconf2/messages_server.h>
+#include <libnetconf2/session_server.h>
 #include <libyang/libyang.h>
 
 Server::Server() noexcept {}
 
 Server::~Server() = default;
 
-bool Server::registerCallbacks() { return true; }
+bool Server::registerCallbacks() {
+  nc_set_global_rpc_clb(server_rpc_callback);
+  return true;
+}
 
-void Server::unregisterCallbacks() { /* no-op for now */ }
+void Server::unregisterCallbacks() { nc_set_global_rpc_clb(nullptr); }
 
 struct nc_server_reply *
-Server::server_rpc_callback(struct nc_session *session,
-                            const struct lyd_node *rpc,
-                            void * /*private_data*/) noexcept {
+Server::server_rpc_callback(struct lyd_node *rpc,
+                            struct nc_session *session) noexcept {
   Session s(session);
   std::unique_ptr<NetconfServerReply> reply;
 
   // Determine RPC operation name from the first child element of <rpc>.
-  const struct lyd_node *op = rpc ? lyd_child(rpc) : nullptr;
+  const struct lyd_node *op = rpc;
   const char *opname = nullptr;
   if (op) {
     const struct lysc_node *schema = op->schema;
@@ -64,6 +71,12 @@ Server::server_rpc_callback(struct nc_session *session,
     return nc_server_reply_ok();
   }
 
+  if (std::strcmp(opname, "get-schema") == 0) {
+    return nc_clb_default_get_schema(rpc, session);
+  } else if (std::strcmp(opname, "close-session") == 0) {
+    return nc_clb_default_close_session(rpc, session);
+  }
+
   if (std::strcmp(opname, "get") == 0) {
     reply = NetconfExecutor::get(s, data);
   } else if (std::strcmp(opname, "get-config") == 0) {
@@ -82,8 +95,6 @@ Server::server_rpc_callback(struct nc_session *session,
     reply = NetconfExecutor::lock(s, DataStore::Running);
   } else if (std::strcmp(opname, "unlock") == 0) {
     reply = NetconfExecutor::unlock(s, DataStore::Running);
-  } else if (std::strcmp(opname, "close-session") == 0) {
-    reply = NetconfExecutor::closeSession(s, Session());
   } else if (std::strcmp(opname, "kill-session") == 0) {
     reply = NetconfExecutor::killSession(s, Session());
   } else if (std::strcmp(opname, "validate") == 0) {
@@ -96,7 +107,8 @@ Server::server_rpc_callback(struct nc_session *session,
   }
 
   if (!reply) {
-    struct lyd_node *err = nc_err(nullptr, NC_ERR_OP_FAILED);
+    const struct ly_ctx *ctx = nc_session_get_ctx(session);
+    struct lyd_node *err = nc_err(ctx, NC_ERR_OP_FAILED);
     return nc_server_reply_err(err);
   }
 

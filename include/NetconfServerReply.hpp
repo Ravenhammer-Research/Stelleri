@@ -70,12 +70,11 @@ public:
     rpl_ = RPL_DATA;
   }
 
-  void setError(ErrorCode code) {
+  void setError(ErrorCode code, const struct ly_ctx *ctx = nullptr) {
     rpl_ = RPL_ERROR;
     /* libnetconf2's nc_err() takes a libyang context first and returns a
-       libyang data node representing the <rpc-error>. Passing nullptr for
-       the context is acceptable for constructing a generic error node. */
-    err_ = nc_err(nullptr, static_cast<NC_ERR>(code));
+       libyang data node representing the <rpc-error>. */
+    err_ = nc_err(ctx, static_cast<NC_ERR>(code));
   }
   // If you have a libyang context and want to convert libyang diagnostics to
   // an <rpc-error>, build it via nc_err() when available. The helper

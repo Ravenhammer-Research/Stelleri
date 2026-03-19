@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
   std::string onecmd;
   bool generate = false;
 #ifdef STELLERI_NETCONF
-  const std::string default_unix_socket = "/var/run/netconf.sock";
+  const std::string default_unix_socket = "/var/run/stelleri/netconf.sock";
   bool client_initialized = false;
 #endif
 

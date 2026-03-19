@@ -41,12 +41,7 @@ public:
     if (nc_session_)
       id_ = std::to_string(nc_session_get_id(nc_session_));
   }
-  virtual ~Session() {
-    if (nc_session_) {
-      nc_session_free(nc_session_, nullptr);
-      nc_session_ = nullptr;
-    }
-  }
+  virtual ~Session() = default;
 
   const std::string &id() const {
     if (nc_session_)

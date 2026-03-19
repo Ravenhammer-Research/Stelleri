@@ -18,9 +18,15 @@
 #pragma GCC diagnostic ignored "-Wgnu-anonymous-struct"
 #pragma GCC diagnostic ignored "-Wnested-anon-types"
 #endif
+
+#ifndef NC_ENABLED_SSH_TLS
+#define NC_ENABLED_SSH_TLS
+#endif
+
 #include <libnetconf2/log.h>
 #include <libnetconf2/server_config.h>
 #include <libnetconf2/session_server.h>
+#include <libyang/libyang.h>
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #elif defined(__GNUC__)
@@ -79,7 +85,7 @@ int main(int argc, char **argv) {
 
   // Default unix socket path when none is specified (netconf build only)
 #ifdef STELLERI_NETCONF
-  const std::string default_unix_socket = "/var/run/netconf.sock";
+  const std::string default_unix_socket = "netconf.sock";
 #endif
 
   const char *short_opts = "h";
@@ -159,6 +165,11 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // Set base directory for UNIX sockets.
+  if (nc_server_set_unix_socket_dir("/var/run/stelleri") != 0) {
+    log.warn("netd: failed to set unix socket base directory");
+  }
+
   // Initialize or obtain a libyang context for the server.
   struct ly_ctx *ctx = nullptr;
   if (nc_server_init_ctx(&ctx) != 0) {
@@ -180,6 +191,17 @@ int main(int argc, char **argv) {
     if (nc_server_config_load_modules(&ctx) != 0) {
       log.error("netd: failed to load server config modules");
     } else {
+      // Enable 'unix-socket-path' feature for 'libnetconf2-netconf-server'.
+      struct lys_module *mod =
+          ly_ctx_get_module_implemented(ctx, "libnetconf2-netconf-server");
+      if (mod) {
+        const char *features[] = {"unix-socket-path", nullptr};
+        if (lys_set_implemented(mod, features) != LY_SUCCESS) {
+          log.warn("netd: failed to enable 'unix-socket-path' feature for "
+                   "'libnetconf2-netconf-server'");
+        }
+      }
+
       struct lyd_node *config = nullptr;
       unsigned count = 0;
       for (const auto &ep : endpoints) {
@@ -227,12 +249,37 @@ int main(int argc, char **argv) {
   std::signal(SIGINT, [](int) { g_running.store(false); });
   std::signal(SIGTERM, [](int) { g_running.store(false); });
 
+  struct nc_pollsession *ps = nc_ps_new();
+  if (!ps) {
+    log.error("netd: failed to create pollsession structure");
+    return 1;
+  }
+
   // Main loop
   while (g_running.load()) {
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    struct nc_session *new_sess = nullptr;
+    // Non-blocking accept for new sessions
+    NC_MSG_TYPE msgtype = nc_accept(100, ctx, &new_sess);
+    if (msgtype == NC_MSG_HELLO) {
+      if (nc_ps_add_session(ps, new_sess) != 0) {
+        log.warn("netd: failed to add new session to pollsession");
+        nc_session_free(new_sess, nullptr);
+      }
+    }
+
+    // Process existing sessions
+    struct nc_session *active_sess = nullptr;
+    int ret = nc_ps_poll(ps, 100, &active_sess);
+    if (ret & (NC_PSPOLL_SESSION_TERM | NC_PSPOLL_SESSION_ERROR)) {
+      if (active_sess) {
+        nc_ps_del_session(ps, active_sess);
+        nc_session_free(active_sess, nullptr);
+      }
+    }
   }
 
   log.info("netd: shutting down");
+  nc_ps_free(ps);
   srv.unregisterCallbacks();
   nc_server_destroy();
   return 0;

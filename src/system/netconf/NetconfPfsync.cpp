@@ -4,4 +4,17 @@
 
 #include "NetconfConfigurationManager.hpp"
 
-// Placeholder for pfsync stubs (no dedicated API in ConfigurationManager).
+std::vector<PfsyncInterfaceConfig>
+NetconfConfigurationManager::GetPfsyncInterfaces(
+    const std::vector<InterfaceConfig> & /*bases*/) const {
+  return {};
+}
+
+void NetconfConfigurationManager::CreatePfsync(
+    const std::string & /*name*/) const {}
+
+void NetconfConfigurationManager::SavePfsync(
+    const PfsyncInterfaceConfig & /*p*/) const {}
+
+void NetconfConfigurationManager::DestroyPfsync(
+    const std::string & /*name*/) const {}

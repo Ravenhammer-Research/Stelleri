@@ -148,6 +148,9 @@ Client *Client::instance() noexcept {
 
 void Client::shutdown() noexcept {
   std::lock_guard<std::mutex> lk(g_client_mutex);
+  if (g_client_instance && g_client_instance->session_.getSessionPtr()) {
+    nc_session_free(g_client_instance->session_.getSessionPtr(), nullptr);
+  }
   g_client_instance.reset();
 }
 

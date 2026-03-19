@@ -6,78 +6,73 @@
 
 namespace netconf {
 
+  /// Convert InterfaceType to the IANA `iana-if-type` identity name string.
   inline std::string interfaceTypeToIanaIdentity(InterfaceType t) {
     switch (t) {
     case InterfaceType::Ethernet:
-      return "ethernetCsmacd";
+      return "iana-if-type:ethernetCsmacd";
     case InterfaceType::Loopback:
-      return "softwareLoopback";
+      return "iana-if-type:softwareLoopback";
     case InterfaceType::PPP:
-      return "ppp";
-    case InterfaceType::PointToPoint:
-      return "propPointToPointSerial";
+      return "iana-if-type:ppp";
     case InterfaceType::Wireless:
-      return "ieee80211";
+      return "iana-if-type:ieee80211";
     case InterfaceType::Bridge:
-      return "bridge";
+      return "iana-if-type:bridge";
     case InterfaceType::Lagg:
-      return "ieee8023adLag";
+      return "iana-if-type:ieee8023adLag";
     case InterfaceType::VLAN:
-      return "l2vlan";
+      return "iana-if-type:l2vlan";
     case InterfaceType::Gif:
-      return "tunnel";
+      return "iana-tunnel-type:gre";
     case InterfaceType::Tun:
-      return "tunnel";
+      return "iana-tunnel-type:other";
     case InterfaceType::GRE:
-      return "rfc1483";
+      return "iana-tunnel-type:gre";
     case InterfaceType::VXLAN:
-      return "tunnel";
+      return "iana-tunnel-type:other";
     case InterfaceType::IPsec:
-      return "propVirtual";
+      return "iana-tunnel-type:ipsectunnelmode";
     case InterfaceType::Epair:
-      return "ethernetCsmacd";
+      return "iana-if-type:ethernetCsmacd";
     case InterfaceType::Carp:
-      return "other";
+      return "iana-if-type:ethernetCsmacd";
     case InterfaceType::Tap:
-      return "ethernetCsmacd";
+      return "iana-if-type:ethernetCsmacd";
     case InterfaceType::SixToFour:
-      return "sixToFour";
+      return "iana-tunnel-type:sixtofour";
     case InterfaceType::Ovpn:
-      return "tunnel";
+      return "iana-tunnel-type:other";
+    case InterfaceType::VRF:
+      return "ietf-network-instance";
     default:
-      return "other";
+      return "iana-if-type:other";
     }
   }
 
-  inline InterfaceType ianaIdentityToInterfaceType(std::string_view id) {
-    using sv = std::string_view;
-    if (id == sv("ethernetCsmacd"))
+  inline InterfaceType ianaIdentityToInterfaceType(std::string id) {
+    if(id == "iana-if-type:ethernetCsmacd")
       return InterfaceType::Ethernet;
-    if (id == sv("softwareLoopback"))
+    else if (id == "iana-if-type:softwareLoopback")
       return InterfaceType::Loopback;
-    if (id == sv("ppp"))
+    else if (id == "iana-if-type:ppp")
       return InterfaceType::PPP;
-    if (id == sv("propPointToPointSerial"))
-      return InterfaceType::PointToPoint;
-    if (id == sv("ieee80211"))
+    else if (id == "iana-if-type:ieee80211")
       return InterfaceType::Wireless;
-    if (id == sv("bridge"))
+    else if (id == "iana-if-type:bridge")
       return InterfaceType::Bridge;
-    if (id == sv("ieee8023adLag"))
+    else if (id == "iana-if-type:ieee8023adLag")
       return InterfaceType::Lagg;
-    if (id == sv("l2vlan"))
+    else if (id == "iana-if-type:l2vlan")
       return InterfaceType::VLAN;
-    if (id == sv("tunnel"))
-      return InterfaceType::Tun; // generic tunnel -> prefer Tun
-    if (id == sv("rfc1483"))
+    else if (id == "iana-tunnel-type:gre")
       return InterfaceType::GRE;
-    if (id == sv("propVirtual"))
+    else if (id == "iana-tunnel-type:ipsectunnelmode")
       return InterfaceType::IPsec;
-    if (id == sv("other"))
-      return InterfaceType::Carp;
-    if (id == sv("sixToFour"))
+    else if (id == "iana-tunnel-type:sixtofour")
       return InterfaceType::SixToFour;
-    // Fallback: unknown identity
-    return InterfaceType::Unknown;
+    else if (id == "ietf-network-instance")
+      return InterfaceType::VRF;
+    else return InterfaceType::Unknown;
   }
-} // namespace netconf
+}

@@ -4,4 +4,18 @@
 
 #include "NetconfConfigurationManager.hpp"
 
-// Placeholder for 6to4 stubs (no dedicated API in ConfigurationManager).
+std::vector<SixToFourInterfaceConfig>
+NetconfConfigurationManager::GetSixToFourInterfaces(
+    const std::vector<InterfaceConfig> & /*bases*/) const {
+  return {};
+}
+
+void NetconfConfigurationManager::CreateSixToFour(
+    const std::string & /*name*/) const {}
+
+void NetconfConfigurationManager::SaveSixToFour(
+    const SixToFourInterfaceConfig & /*t*/) const {}
+
+void NetconfConfigurationManager::DestroySixToFour(
+    const std::string & /*name*/) const {
+}
