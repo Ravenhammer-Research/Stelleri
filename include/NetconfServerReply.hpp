@@ -104,8 +104,9 @@ public:
   // nc_err_libyang() is not available in all libnetconf2 versions, so it is
   // not used here.
 
-  struct nc_server_reply *toNcServerReply(WdMode wd = WD_UNKNOWN,
-                                          ParamType pt = PARAMTYPE_DUP_AND_FREE) const {
+  struct nc_server_reply *
+  toNcServerReply(WdMode wd = WD_UNKNOWN,
+                  ParamType pt = PARAMTYPE_DUP_AND_FREE) const {
     if (rpl_ == RPL_OK)
       return nc_server_reply_ok();
 

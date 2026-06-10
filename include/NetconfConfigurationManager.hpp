@@ -51,7 +51,11 @@
 #include "VlanInterfaceConfig.hpp"
 #include "VxlanInterfaceConfig.hpp"
 #include "WlanInterfaceConfig.hpp"
+#include "YangData.hpp"
 #include <stdexcept>
+
+// Forward declarations for YANG parsing
+struct lyd_node;
 
 // Forward-declare system struct used by the ConfigurationManager helper API so
 // netconf backend headers don't need to include <net/if.h>.
@@ -99,26 +103,29 @@ class NetconfConfigurationManager : public ConfigurationManager {
   GetRoutes(const std::optional<VRFConfig> &vrf = std::nullopt) const override;
   std::vector<VRFConfig> GetVrfs() const override;
 
-  std::vector<ArpConfig>
-  GetArpEntries(const std::optional<std::string> &ip_filter = std::nullopt,
-                const std::optional<std::string> &iface_filter =
-                    std::nullopt) const override;
-  bool SetArpEntry(const std::string &ip, const std::string &mac,
+  // ARP/NDP entries use IPNetwork instead of string for proper type safety.
+  // IPv4 hosts use /32, IPv6 hosts use /128.
+
+  std::vector<ArpConfig> GetArpEntries(
+      const std::optional<std::unique_ptr<IPNetwork>> &ip_filter = std::nullopt,
+      const std::optional<std::string> &iface_filter =
+          std::nullopt) const override;
+  bool SetArpEntry(const std::unique_ptr<IPNetwork> &ip, const std::string &mac,
                    const std::optional<std::string> &iface = std::nullopt,
                    bool temp = false, bool pub = false) const override;
   bool DeleteArpEntry(
-      const std::string &ip,
+      const std::unique_ptr<IPNetwork> &ip,
       const std::optional<std::string> &iface = std::nullopt) const override;
 
-  std::vector<NdpConfig>
-  GetNdpEntries(const std::optional<std::string> &ip_filter = std::nullopt,
-                const std::optional<std::string> &iface_filter =
-                    std::nullopt) const override;
-  bool SetNdpEntry(const std::string &ip, const std::string &mac,
+  std::vector<NdpConfig> GetNdpEntries(
+      const std::optional<std::unique_ptr<IPNetwork>> &ip_filter = std::nullopt,
+      const std::optional<std::string> &iface_filter =
+          std::nullopt) const override;
+  bool SetNdpEntry(const std::unique_ptr<IPNetwork> &ip, const std::string &mac,
                    const std::optional<std::string> &iface = std::nullopt,
                    bool temp = false) const override;
   bool DeleteNdpEntry(
-      const std::string &ip,
+      const std::unique_ptr<IPNetwork> &ip,
       const std::optional<std::string> &iface = std::nullopt) const override;
 
   // Mutation API
@@ -146,7 +153,7 @@ class NetconfConfigurationManager : public ConfigurationManager {
   // VLAN
   void SaveVlan(const VlanInterfaceConfig &vlan) const override;
 
-  // Tunnel types
+  // Tunnel types - client-side (NETCONF calls)
   void CreateTun(const std::string &name) const override;
   void SaveTun(const TunInterfaceConfig &tun) const override;
   void CreateGif(const std::string &name) const override;
@@ -155,6 +162,12 @@ class NetconfConfigurationManager : public ConfigurationManager {
   void SaveOvpn(const OvpnInterfaceConfig &ovpn) const override;
   void CreateIpsec(const std::string &name) const override;
   void SaveIpsec(const IpsecInterfaceConfig &ipsec) const override;
+
+  // Tunnel types - server-side (YANG parsing)
+  TunInterfaceConfig parseTunFromYang(struct lyd_node *node) const;
+  GifInterfaceConfig parseGifFromYang(struct lyd_node *node) const;
+  OvpnInterfaceConfig parseOvpnFromYang(struct lyd_node *node) const;
+  IpsecInterfaceConfig parseIpsecFromYang(struct lyd_node *node) const;
   void CreateSixToFour(const std::string &name) const override;
   void SaveSixToFour(const SixToFourInterfaceConfig &t) const override;
   void DestroySixToFour(const std::string &name) const override;

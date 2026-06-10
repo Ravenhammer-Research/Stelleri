@@ -45,6 +45,10 @@
 
 class ConfigurationManager; // Forward declaration to avoid circular dependency
 
+// Forward declare libyang types for YANG serialization
+struct lyd_node;
+struct ly_ctx;
+
 /**
  * @brief Complete configuration for a network interface
  *
@@ -131,6 +135,10 @@ public:
   static std::string
   formatInterfaces(const std::vector<InterfaceConfig> &ifaces,
                    ConfigurationManager *mgr = nullptr);
+
+  // YANG serialization/deserialization (for NETCONF)
+  // Convert to libyang node in given context
+  struct lyd_node *toLydNode(const YangContext &ctx) const;
 
 protected:
   // (Interface existence check moved to `ConfigData::exists`)

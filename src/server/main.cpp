@@ -100,8 +100,9 @@ int main(int argc, char **argv) {
 
   while ((c = getopt_long(argc, argv, short_opts, long_opts, &idx)) != -1) {
     if (c == 'h') {
-      std::puts("Usage: netd [-v] [--unix PATH] [--tcp ADDR:PORT] [--ssh ADDR:PORT] "
-                "[--tls ADDR:PORT]");
+      std::puts(
+          "Usage: netd [-v] [--unix PATH] [--tcp ADDR:PORT] [--ssh ADDR:PORT] "
+          "[--tls ADDR:PORT]");
       return 0;
     } else if (c == 'v') {
       log.setLevel(logger::Level::Debug);
@@ -178,8 +179,10 @@ int main(int argc, char **argv) {
 
   // Load and implement ietf-interfaces so clients can use it.
   if (ctx) {
-    ly_ctx_set_searchdir(ctx, "/usr/local/share/yang/modules/yang/standard/ietf/RFC");
-    ly_ctx_set_searchdir(ctx, "/usr/local/share/yang/modules/yang/standard/iana");
+    ly_ctx_set_searchdir(
+        ctx, "/usr/local/share/yang/modules/yang/standard/ietf/RFC");
+    ly_ctx_set_searchdir(ctx,
+                         "/usr/local/share/yang/modules/yang/standard/iana");
     ly_ctx_set_searchdir(ctx, "/usr/local/share/yang/modules/libnetconf2");
     const struct lys_module *mod =
         ly_ctx_load_module(ctx, "ietf-interfaces", nullptr, nullptr);
@@ -197,8 +200,11 @@ int main(int argc, char **argv) {
     struct lys_module *nc_mod =
         ly_ctx_get_module_implemented(ctx, "ietf-netconf");
     if (nc_mod) {
-      const char *nc_features[] = {"candidate", "writable-running",
-                                   "rollback-on-error", "validate", "xpath",
+      const char *nc_features[] = {"candidate",
+                                   "writable-running",
+                                   "rollback-on-error",
+                                   "validate",
+                                   "xpath",
                                    nullptr};
       if (lys_set_implemented(nc_mod, nc_features) != LY_SUCCESS) {
         log.warn("netd: failed to enable ietf-netconf features");

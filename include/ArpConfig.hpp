@@ -33,12 +33,13 @@
 #pragma once
 
 #include "ConfigData.hpp"
+#include "IPNetwork.hpp"
 #include <optional>
 #include <string>
 
 class ArpConfig : public ConfigData {
 public:
-  std::string ip;                   // IP address
+  std::unique_ptr<IPNetwork> ip;    // IPv4 network (typically /32 for ARP)
   std::string mac;                  // MAC address
   std::optional<std::string> iface; // Interface name
   std::optional<int> expire;        // Expiration time
@@ -47,4 +48,8 @@ public:
 
   void save(ConfigurationManager &mgr) const override;
   void destroy(ConfigurationManager &mgr) const override;
+
+  // YANG serialization/deserialization (for NETCONF)
+  static ArpConfig fromYang(const struct lyd_node *node);
+  struct lyd_node *toLydNode(const YangContext &ctx) const;
 };

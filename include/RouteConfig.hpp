@@ -134,4 +134,8 @@ public:
   // Persist route configuration via the supplied manager.
   void save(ConfigurationManager &mgr) const override;
   void destroy(ConfigurationManager &mgr) const override;
+
+  // YANG serialization/deserialization (for NETCONF)
+  static RouteConfig fromYang(const struct lyd_node *node);
+  struct lyd_node *toLydNode(const YangContext &ctx) const;
 };

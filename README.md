@@ -22,10 +22,21 @@ for example, the bridge table lists all bridges, with verticals on columns like 
 - CMake 3.13 or newer
 - libedit (for command-line editing and history)
 - Root privileges required for configuration changes
-- libyang 5.0.2 (https://github.com/CESNET/libyang/tree/devel)
-- - `cd libyang ; cmake -S . -B build -DPREFIX=/usr/local; cmake --build -j$(nprocs) ; cmake --install`
-- libnetconf2 4.1.2 (https://github.com/CESNET/libnetconf2/tree/v4.1.2)
-- - `cd libnetconf2 ; cmake -S . -B build -DPREFIX=/usr/local; cmake --build -j$(nprocs) ; cmake --install`
+### Using Submodules (Recommended)
+
+The required dependencies are available as git submodules in the `3rdparty/` directory:
+
+```bash
+git submodule update --init --recursive
+# Then build libyang and libnetconf2 from 3rdparty/
+```
+
+### Manual Installation
+
+- **libyang** 5.0.2+ (devel branch recommended): https://github.com/CESNET/libyang
+  - `cd libyang ; cmake -S . -B build -DPREFIX=/usr/local; cmake --build -j$(nprocs) ; cmake --install`
+- **libnetconf2** 4.1.2+ (v4.1.x branch recommended): https://github.com/CESNET/libnetconf2
+  - `cd libnetconf2 ; cmake -S . -B build -DPREFIX=/usr/local; cmake --build -j$(nprocs) ; cmake --install`
 
 ## Building
 

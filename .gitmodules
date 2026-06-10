@@ -1,0 +1,6 @@
+[submodule "3rdparty/libyang"]
+	path = 3rdparty/libyang
+	url = https://github.com/CESNET/libyang.git
+[submodule "3rdparty/libnetconf2"]
+	path = 3rdparty/libnetconf2
+	url = https://github.com/CESNET/libnetconf2.git

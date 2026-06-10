@@ -33,6 +33,7 @@
 #pragma once
 
 #include "ConfigData.hpp"
+#include "IPNetwork.hpp"
 #include <optional>
 #include <string>
 // Avoid pulling system/FreeBSD headers into this public header.
@@ -42,7 +43,7 @@
 
 class NdpConfig : public ConfigData {
 public:
-  std::string ip;                   // IPv6 address
+  std::unique_ptr<IPNetwork> ip;    // IPv6 network (typically /128 for NDP)
   std::string mac;                  // MAC address
   std::optional<std::string> iface; // Interface name
   std::optional<int> expire;        // Expiration time
@@ -99,4 +100,8 @@ public:
 
   void save(ConfigurationManager &mgr) const override;
   void destroy(ConfigurationManager &mgr) const override;
+
+  // YANG serialization/deserialization (for NETCONF)
+  static NdpConfig fromYang(const struct lyd_node *node);
+  struct lyd_node *toLydNode(const YangContext &ctx) const;
 };

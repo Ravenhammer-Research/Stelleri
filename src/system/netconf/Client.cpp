@@ -66,9 +66,9 @@
 #pragma GCC diagnostic pop
 #endif
 
+#include "Logger.hpp"
 #include <cstdlib>
 #include <mutex>
-#include "Logger.hpp"
 
 static std::once_flag g_client_init_flag;
 static std::mutex g_client_mutex;
@@ -104,8 +104,8 @@ static void nc_print_clb(const struct nc_session * /*session*/,
 
 // Forward libyang print messages into our logger.
 static void ly_print_clb(LY_LOG_LEVEL level, const char *msg,
-                         const char * /*data_path*/, const char * /*schema_path*/,
-                         uint64_t /*line*/) {
+                         const char * /*data_path*/,
+                         const char * /*schema_path*/, uint64_t /*line*/) {
   using logger::Level;
   auto &log = logger::get();
   std::string m = "libyang: ";
@@ -139,7 +139,8 @@ static void global_client_init() {
   nc_verbosity(NC_VERB_WARNING);
   ly_log_level(LY_LLWRN);
 
-  nc_client_set_schema_searchpath("/usr/local/share/yang/modules/yang/standard/ietf/RFC");
+  nc_client_set_schema_searchpath(
+      "/usr/local/share/yang/modules/yang/standard/ietf/RFC");
 }
 
 Client::Client(Session session) noexcept : session_(std::move(session)) {}
@@ -160,8 +161,10 @@ std::unique_ptr<Client> Client::connect_unix(const std::string &path,
       return nullptr;
     }
     ly_ctx_set_searchdir(ly_ctx, "/usr/local/share/yang/modules/libnetconf2");
-    ly_ctx_set_searchdir(ly_ctx, "/usr/local/share/yang/modules/yang/standard/ietf/RFC");
-    ly_ctx_set_searchdir(ly_ctx, "/usr/local/share/yang/modules/yang/standard/iana");
+    ly_ctx_set_searchdir(
+        ly_ctx, "/usr/local/share/yang/modules/yang/standard/ietf/RFC");
+    ly_ctx_set_searchdir(ly_ctx,
+                         "/usr/local/share/yang/modules/yang/standard/iana");
     own_ctx = true;
   }
 
@@ -185,8 +188,10 @@ std::unique_ptr<Client> Client::connect_inout(int fdin, int fdout,
       return nullptr;
     }
     ly_ctx_set_searchdir(ly_ctx, "/usr/local/share/yang/modules/libnetconf2");
-    ly_ctx_set_searchdir(ly_ctx, "/usr/local/share/yang/modules/yang/standard/ietf/RFC");
-    ly_ctx_set_searchdir(ly_ctx, "/usr/local/share/yang/modules/yang/standard/iana");
+    ly_ctx_set_searchdir(
+        ly_ctx, "/usr/local/share/yang/modules/yang/standard/ietf/RFC");
+    ly_ctx_set_searchdir(ly_ctx,
+                         "/usr/local/share/yang/modules/yang/standard/iana");
     own_ctx = true;
   }
 
@@ -277,9 +282,99 @@ void Client::shutdown() noexcept {
 
 // Helper removed per request; RPC methods inline send/receive logic below.
 
-std::unique_ptr<NetconfServerReply> Client::get(const YangData &filter
-                                                [[maybe_unused]]) const {
-  throw NotImplementedError();
+std::unique_ptr<NetconfServerReply> Client::get(const YangData &filter) const {
+  // Serialize filter to XML for get RPC
+  const struct lyd_node *filter_node = filter.toLydNode();
+  char *xml = nullptr;
+
+  if (filter_node) {
+    if (lyd_print_mem(&xml, filter_node, LYD_XML, 0) != LY_SUCCESS) {
+      return nullptr;
+    }
+
+    struct nc_rpc *rpc = nc_rpc_get(xml, NC_WD_UNKNOWN, NC_PARAMTYPE_FREE);
+    if (!rpc) {
+      free(xml);
+      return nullptr;
+    }
+
+    uint64_t msgid = 0;
+    NC_MSG_TYPE mt = nc_send_rpc(session_.getSessionPtr(), rpc, -1, &msgid);
+    if (mt != NC_MSG_RPC) {
+      nc_rpc_free(rpc);
+      return nullptr;
+    }
+
+    struct lyd_node *env = nullptr;
+    struct lyd_node *op = nullptr;
+    NC_MSG_TYPE rt =
+        nc_recv_reply(session_.getSessionPtr(), rpc, msgid, -1, &env, &op);
+
+    nc_rpc_free(rpc);
+
+    if (rt == NC_MSG_REPLY) {
+      auto r =
+          std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_DATA);
+      if (op) {
+        YangData d(op);
+        r->setData(d);
+      }
+
+      if (env)
+        lyd_free_all(env);
+      if (op)
+        lyd_free_all(op);
+
+      return r;
+    }
+
+    if (env)
+      lyd_free_all(env);
+    if (op)
+      lyd_free_all(op);
+    return nullptr;
+  } else {
+    // No filter - get all data using nc_rpc_get without XML
+    struct nc_rpc *rpc = nc_rpc_get(nullptr, NC_WD_UNKNOWN, NC_PARAMTYPE_CONST);
+    if (!rpc)
+      return nullptr;
+
+    uint64_t msgid = 0;
+    NC_MSG_TYPE mt = nc_send_rpc(session_.getSessionPtr(), rpc, -1, &msgid);
+    if (mt != NC_MSG_RPC) {
+      nc_rpc_free(rpc);
+      return nullptr;
+    }
+
+    struct lyd_node *env = nullptr;
+    struct lyd_node *op = nullptr;
+    NC_MSG_TYPE rt =
+        nc_recv_reply(session_.getSessionPtr(), rpc, msgid, -1, &env, &op);
+
+    nc_rpc_free(rpc);
+
+    if (rt == NC_MSG_REPLY) {
+      auto r =
+          std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_DATA);
+      if (op) {
+        YangData d(op);
+        r->setData(d);
+      }
+
+      if (env)
+        lyd_free_all(env);
+      if (op)
+        lyd_free_all(op);
+
+      return r;
+    }
+
+    if (env)
+      lyd_free_all(env);
+    if (op)
+      lyd_free_all(op);
+    return nullptr;
+  }
 }
 
 std::unique_ptr<NetconfServerReply> Client::getConfig(const YangData &filter
@@ -308,8 +403,7 @@ std::unique_ptr<NetconfServerReply> Client::getConfig(const YangData &filter
   nc_rpc_free(rpc);
 
   if (rt == NC_MSG_REPLY) {
-    auto r =
-        std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_DATA);
+    auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_DATA);
     if (op) {
       YangData d(op);
       r->setData(d);
@@ -397,9 +491,8 @@ std::unique_ptr<NetconfServerReply> Client::copyConfig(DataStore src,
                                      : NC_DATASTORE_CANDIDATE;
   };
 
-  struct nc_rpc *rpc =
-      nc_rpc_copy(to_nc_ds(dst), nullptr, to_nc_ds(src), nullptr, NC_WD_UNKNOWN,
-                  NC_PARAMTYPE_CONST);
+  struct nc_rpc *rpc = nc_rpc_copy(to_nc_ds(dst), nullptr, to_nc_ds(src),
+                                   nullptr, NC_WD_UNKNOWN, NC_PARAMTYPE_CONST);
 
   if (!rpc)
     return nullptr;
@@ -437,8 +530,8 @@ std::unique_ptr<NetconfServerReply> Client::copyConfig(DataStore src,
 std::unique_ptr<NetconfServerReply>
 Client::deleteConfig(const YangData &target [[maybe_unused]]) const {
   // Simplistic delete-config for candidate.
-  struct nc_rpc *rpc = nc_rpc_delete(NC_DATASTORE_CANDIDATE, nullptr,
-                                     NC_PARAMTYPE_CONST);
+  struct nc_rpc *rpc =
+      nc_rpc_delete(NC_DATASTORE_CANDIDATE, nullptr, NC_PARAMTYPE_CONST);
 
   if (!rpc)
     return nullptr;
@@ -474,7 +567,8 @@ Client::deleteConfig(const YangData &target [[maybe_unused]]) const {
 }
 
 std::unique_ptr<NetconfServerReply> Client::commit() const {
-  struct nc_rpc *rpc = nc_rpc_commit(0, 0, nullptr, nullptr, NC_PARAMTYPE_CONST);
+  struct nc_rpc *rpc =
+      nc_rpc_commit(0, 0, nullptr, nullptr, NC_PARAMTYPE_CONST);
 
   if (!rpc)
     return nullptr;
@@ -586,8 +680,38 @@ std::unique_ptr<NetconfServerReply> Client::unlock(DataStore ds) const {
 }
 
 std::unique_ptr<NetconfServerReply> Client::closeSession() const {
-  // <close-session> is done implicitly by freeing the session.
-  return std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_OK);
+  struct nc_rpc *rpc = nc_rpc_close(session_.getSessionPtr());
+  if (!rpc)
+    return nullptr;
+
+  uint64_t msgid = 0;
+  NC_MSG_TYPE mt = nc_send_rpc(session_.getSessionPtr(), rpc, -1, &msgid);
+  if (mt != NC_MSG_RPC) {
+    nc_rpc_free(rpc);
+    return nullptr;
+  }
+
+  struct lyd_node *env = nullptr;
+  struct lyd_node *op = nullptr;
+  NC_MSG_TYPE rt =
+      nc_recv_reply(session_.getSessionPtr(), rpc, msgid, -1, &env, &op);
+
+  nc_rpc_free(rpc);
+
+  if (rt == NC_MSG_REPLY) {
+    auto r = std::make_unique<NetconfServerReply>(NetconfServerReply::RPL_OK);
+    if (env)
+      lyd_free_all(env);
+    if (op)
+      lyd_free_all(op);
+    return r;
+  }
+
+  if (env)
+    lyd_free_all(env);
+  if (op)
+    lyd_free_all(op);
+  return nullptr;
 }
 
 std::unique_ptr<NetconfServerReply>
